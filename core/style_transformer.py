@@ -216,7 +216,7 @@ def apply_value_by_alpha(
 
 def _jenks_breaks(values: List[float], n: int) -> List[float]:
     """Simple Jenks-like breaks via k-means on sorted values."""
-    clean = sorted(v for v in values if math.isfinite(v))
+    clean = sorted(float(v) for v in values if v is not None and math.isfinite(float(v)))
     if len(clean) <= n:
         return [clean[0]] + clean + [clean[-1] + 1e-9]
     step = len(clean) // n

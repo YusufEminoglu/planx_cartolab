@@ -40,8 +40,10 @@ class CartogramFeature:
 
     def __init__(self, feature_id: int, geometry: QgsGeometry, value: float):
         self.id = feature_id
+        if geometry is None or (hasattr(geometry, "isNull") and geometry.isNull()):
+            raise ValueError(f"Feature {feature_id}: geometry is None or null")
         self.wkt_str = geometry.asWkt()
-        self.value = max(value, 1e-12)  # guard against zero
+        self.value = max(float(value or 0.0), 1e-12)  # guard against zero/None
         self.area = 0.0
         self.radius = 0.0
         self.cx = 0.0
