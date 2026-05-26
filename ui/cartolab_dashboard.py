@@ -287,6 +287,9 @@ class CartoLabDashboard(QDialog):
         ql.addStretch()
         self.tabs.addTab(qa_tab, "Quick Actions")
 
+        # Layout Tools tab
+        self._build_layout_tab()
+
         # Recent Runs tab
         rl_tab = QWidget()
         rl = QVBoxLayout(rl_tab)
@@ -407,7 +410,23 @@ class CartoLabDashboard(QDialog):
     # ── Algorithm execution ──────────────────────────────────────────
 
     def _run_algorithm(self, algo_id: str, label: str) -> None:
-        processing.execAlgorithmDialog(algo_id)
+        reg = QgsApplication.processingRegistry()
+        if reg.algorithmById(algo_id) is None:
+            QMessageBox.warning(
+                self, "Algorithm Not Found",
+                f"The algorithm '{algo_id}' is not registered.\n\n"
+                "The Processing provider may not have loaded correctly. "
+                "Try restarting QGIS or reinstalling the plugin."
+            )
+            return
+        try:
+            processing.execAlgorithmDialog(algo_id)
+        except Exception as exc:
+            QMessageBox.critical(
+                self, "Algorithm Error",
+                f"Failed to open '{label}':\n{exc}"
+            )
+            return
         ts = datetime.now().strftime("%H:%M:%S")
         self.recent_runs.insert(0, f"[{ts}] {label} ({algo_id})")
         self.recent_runs = self.recent_runs[:30]
@@ -423,6 +442,89 @@ class CartoLabDashboard(QDialog):
     def _clear_runlog(self) -> None:
         self.recent_runs = []
         self._refresh_runlog()
+
+    # ── Layout Tools ──────────────────────────────────────────────────
+
+    def _build_layout_tab(self) -> None:
+        w = QWidget()
+        lyt = QVBoxLayout(w)
+        lyt.setContentsMargins(12, 12, 12, 12)
+
+        gb = self._make_group("Print Layout Automation")
+        gl = QVBoxLayout(gb)
+
+        gl.addWidget(QLabel(
+            "Create publication-ready print layouts with one click.\n"
+            "Requires at least one map layer loaded in the project."))
+
+        btn_iso = QPushButton("Create Isometric Layer Stack")
+        btn_iso.setToolTip("Stack selected layers as floating 2.5D planes in a Print Layout")
+        btn_iso.clicked.connect(self._on_isometric_stack)
+        gl.addWidget(btn_iso)
+
+        btn_typo = QPushButton("Apply Swiss Typography")
+        btn_typo.setToolTip("Set Inter/IBM Plex Mono font hierarchy on all layouts")
+        btn_typo.clicked.connect(self._on_typography)
+        gl.addWidget(btn_typo)
+
+        btn_grid = QPushButton("Add Minimalist Grid")
+        btn_grid.setToolTip("Add thin cross-hair coordinate grid to first map item")
+        btn_grid.clicked.connect(self._on_grid_style)
+        gl.addWidget(btn_grid)
+
+        lyt.addWidget(gb)
+        lyt.addStretch()
+        self.tabs.addTab(w, "Layout")
+
+    def _on_isometric_stack(self) -> None:
+        layers = list(QgsProject.instance().mapLayers().values())
+        if len(layers) < 2:
+            QMessageBox.warning(self, "Isometric Stack",
+                                "Need at least 2 layers in the project.")
+            return
+        try:
+            from ..layout.isometric_stacker import create_isometric_stack_layout
+            create_isometric_stack_layout(layers[:6])  # max 6 layers
+            self.iface.messageBar().pushSuccess("CartoLab",
+                "Isometric layout created. Open Layout Manager to view.")
+        except Exception as exc:
+            QMessageBox.critical(self, "Layout Error", str(exc))
+
+    def _on_typography(self) -> None:
+        project = QgsProject.instance()
+        manager = project.layoutManager()
+        count = 0
+        try:
+            from ..layout.typography_engine import apply_typography_hierarchy
+            for layout in manager.layouts():
+                apply_typography_hierarchy(layout)
+                count += 1
+            if count:
+                self.iface.messageBar().pushSuccess("CartoLab",
+                    f"Typography applied to {count} layout(s).")
+            else:
+                QMessageBox.information(self, "Typography",
+                    "No print layouts found. Create one first in Project → Layout Manager.")
+        except Exception as exc:
+            QMessageBox.critical(self, "Typography Error", str(exc))
+
+    def _on_grid_style(self) -> None:
+        project = QgsProject.instance()
+        manager = project.layoutManager()
+        count = 0
+        try:
+            from ..layout.grid_styler import apply_minimalist_grid
+            for layout in manager.layouts():
+                apply_minimalist_grid(layout)
+                count += 1
+            if count:
+                self.iface.messageBar().pushSuccess("CartoLab",
+                    f"Minimalist grid added to {count} layout(s).")
+            else:
+                QMessageBox.information(self, "Grid Style",
+                    "No print layouts found. Create one first.")
+        except Exception as exc:
+            QMessageBox.critical(self, "Grid Error", str(exc))
 
     # ── System health / refresh ──────────────────────────────────────
 
