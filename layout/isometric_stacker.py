@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from typing import List
 
+from qgis.PyQt.QtGui import QFont
 from qgis.core import (
     QgsLayout,
     QgsLayoutItemMap,
@@ -106,7 +107,9 @@ def create_isometric_stack_layout(
         from qgis.core import QgsLayoutItemLabel
         label = QgsLayoutItemLabel(layout)
         label.setText(layer.name())
-        label.setFont(QgsFontUtils.getStandardTestFont("Bold", 10))
+        font = QFont("Inter, Segoe UI", 9)
+        font.setBold(True)
+        label.setFont(font)
         label.adjustSizeToText()
         label.attemptMove(
             QgsLayoutPoint(center_x + dx, center_y - dy - 8, QgsUnitTypes.LayoutMillimeters)

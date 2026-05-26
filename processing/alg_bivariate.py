@@ -2,31 +2,19 @@
 """Bivariate Choropleth — Processing algorithm."""
 from __future__ import annotations
 
+import math
+
 from qgis.core import (
-    QgsFeatureSink,
-    QgsFeature,
-    QgsField,
-    QgsGraduatedSymbolRenderer,
-    QgsProcessing,
-    QgsProcessingAlgorithm,
-    QgsProcessingException,
-    QgsProcessingParameterFeatureSink,
-    QgsProcessingParameterFeatureSource,
-    QgsProcessingParameterField,
-    QgsProcessingParameterNumber,
+    QgsFeature, QgsFeatureSink, QgsField, QgsFields,
+    QgsProcessing, QgsProcessingAlgorithm, QgsProcessingException,
+    QgsProcessingParameterFeatureSink, QgsProcessingParameterFeatureSource,
+    QgsProcessingParameterField, QgsProcessingParameterNumber,
     QgsProcessingParameterEnum,
-    QgsRendererRange,
-    QgsSymbol,
-    QgsVectorLayer,
-    QgsProject,
 )
 from qgis.PyQt.QtCore import QVariant
-from qgis.PyQt.QtGui import QColor
 
 from ..core.bivariate_engine import (
-    geometric_interval_breaks,
-    fisher_jenks_breaks,
-    bivariate_colour_matrix,
+    geometric_interval_breaks, fisher_jenks_breaks, bivariate_colour_matrix,
 )
 
 
@@ -58,40 +46,28 @@ class BivariateChoroplethAlgorithm(QgsProcessingAlgorithm):
     def shortHelpString(self) -> str:
         return (
             "Create a bivariate choropleth map by classifying two numeric fields "
-            "into an N×N colour matrix. Each feature is assigned a compound "
-            "colour from the bilinear-interpolated legend matrix.\n\n"
-            "The output layer retains all source fields plus a 'bivar_class' "
-            "string field encoding the (row,col) assignment."
+            "into an NxN colour matrix.\n\n"
+            "Output adds three fields: bivar_x_class (int), bivar_y_class (int), "
+            "bivar_class (string). Use bivar_class for symbology."
         )
 
     def initAlgorithm(self, config=None):
-        self.addParameter(
-            QgsProcessingParameterFeatureSource(
-                self.INPUT, "Input layer", [QgsProcessing.TypeVectorAnyGeometry]
-            )
-        )
-        self.addParameter(
-            QgsProcessingParameterField(self.FIELD_X, "X-axis variable (column)",
-                                         parentLayerParameterName=self.INPUT,
-                                         type=QgsProcessingParameterField.Numeric)
-        )
-        self.addParameter(
-            QgsProcessingParameterField(self.FIELD_Y, "Y-axis variable (row)",
-                                         parentLayerParameterName=self.INPUT,
-                                         type=QgsProcessingParameterField.Numeric)
-        )
-        self.addParameter(
-            QgsProcessingParameterNumber(self.CLASSES, "Grid size (e.g. 4 → 4×4)",
-                                          type=QgsProcessingParameterNumber.Integer,
-                                          minValue=2, defaultValue=4, maxValue=7)
-        )
-        self.addParameter(
-            QgsProcessingParameterEnum(self.METHOD, "Classification method",
-                                        options=[m[0] for m in self.METHODS], defaultValue=0)
-        )
-        self.addParameter(
-            QgsProcessingParameterFeatureSink(self.OUTPUT, "Bivariate output")
-        )
+        self.addParameter(QgsProcessingParameterFeatureSource(
+            self.INPUT, "Input layer", [QgsProcessing.TypeVectorAnyGeometry]))
+        self.addParameter(QgsProcessingParameterField(
+            self.FIELD_X, "X-axis variable (column)", parentLayerParameterName=self.INPUT,
+            type=QgsProcessingParameterField.Numeric))
+        self.addParameter(QgsProcessingParameterField(
+            self.FIELD_Y, "Y-axis variable (row)", parentLayerParameterName=self.INPUT,
+            type=QgsProcessingParameterField.Numeric))
+        self.addParameter(QgsProcessingParameterNumber(
+            self.CLASSES, "Grid size (e.g. 4 = 4x4)", type=QgsProcessingParameterNumber.Integer,
+            minValue=2, defaultValue=4, maxValue=7))
+        self.addParameter(QgsProcessingParameterEnum(
+            self.METHOD, "Classification method",
+            options=[m[0] for m in self.METHODS], defaultValue=0))
+        self.addParameter(QgsProcessingParameterFeatureSink(
+            self.OUTPUT, "Bivariate output"))
 
     def processAlgorithm(self, parameters, context, feedback):
         source = self.parameterAsSource(parameters, self.INPUT, context)
@@ -99,57 +75,59 @@ class BivariateChoroplethAlgorithm(QgsProcessingAlgorithm):
         field_y = self.parameterAsString(parameters, self.FIELD_Y, context)
         n_classes = self.parameterAsInt(parameters, self.CLASSES, context)
         method_idx = self.parameterAsEnum(parameters, self.METHOD, context)
-
         method = self.METHODS[method_idx][1]
 
         # collect paired values
         x_vals, y_vals = [], []
+        features_raw = []
         for feat in source.getFeatures():
             xv = feat[field_x]
             yv = feat[field_y]
-            if xv is not None and yv is not None:
+            if xv is not None and yv is not None and math.isfinite(float(xv)) and math.isfinite(float(yv)):
                 x_vals.append(float(xv))
                 y_vals.append(float(yv))
+                features_raw.append(feat)
 
         if not x_vals:
-            raise QgsProcessingException("No valid paired values found.")
+            raise QgsProcessingException("No valid paired numeric values found.")
 
-        # classify each axis
-        classify = geometric_interval_breaks if method == "geometric" else fisher_jenks_breaks
-        x_breaks = classify(x_vals, n_classes)
-        y_breaks = classify(y_vals, n_classes)
+        classify_fn = geometric_interval_breaks if method == "geometric" else fisher_jenks_breaks
+        x_breaks = classify_fn(x_vals, n_classes)
+        y_breaks = classify_fn(y_vals, n_classes)
 
         feedback.pushInfo(
             f"X breaks ({field_x}): {[round(b, 4) for b in x_breaks]}\n"
             f"Y breaks ({field_y}): {[round(b, 4) for b in y_breaks]}"
         )
 
-        # colour matrix
-        colour_matrix = bivariate_colour_matrix(n_classes)
+        # Build output schema with bivariate fields
+        out_fields = QgsFields()
+        for f in source.fields():
+            out_fields.append(QgsField(f.name(), f.type()))
+        out_fields.append(QgsField("bivar_x_class", QVariant.Int))
+        out_fields.append(QgsField("bivar_y_class", QVariant.Int))
+        out_fields.append(QgsField("bivar_class", QVariant.String))
 
         (sink, dest_id) = self.parameterAsSink(
             parameters, self.OUTPUT, context,
-            source.fields(), source.wkbType(), source.sourceCrs(),
+            out_fields, source.wkbType(), source.sourceCrs(),
         )
 
-        total = source.featureCount() or 1
-        for current, feat in enumerate(source.getFeatures()):
+        total = len(features_raw)
+        for current, feat in enumerate(features_raw):
             if feedback.isCanceled():
                 break
-            xv = feat[field_x]
-            yv = feat[field_y]
-            if xv is None or yv is None:
-                col_idx, row_idx = 0, 0
-            else:
-                col_idx = _break_index(float(xv), x_breaks)
-                row_idx = _break_index(float(yv), y_breaks)
+            col_idx = _break_index(float(feat[field_x]), x_breaks)
+            row_idx = _break_index(float(feat[field_y]), y_breaks)
 
-            colour = colour_matrix[row_idx][col_idx]
+            attrs = feat.attributes()[:]
+            attrs.append(col_idx)
+            attrs.append(row_idx)
+            attrs.append(f"({col_idx},{row_idx})")
 
-            new_feat = feat.clone()
-            new_feat["bivar_x_class"] = col_idx
-            new_feat["bivar_y_class"] = row_idx
-            new_feat["bivar_class"] = f"({col_idx},{row_idx})"
+            new_feat = QgsFeature(out_fields)
+            new_feat.setGeometry(feat.geometry())
+            new_feat.setAttributes(attrs)
             sink.addFeature(new_feat, QgsFeatureSink.FastInsert)
             feedback.setProgress(int(100 * current / total))
 
