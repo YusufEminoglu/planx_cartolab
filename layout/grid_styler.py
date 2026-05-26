@@ -49,7 +49,7 @@ def apply_minimalist_grid(
     # grid lines: thin, light grey
     grid.setGridLineColor(QColor("#cccccc"))
     grid.setGridLinePenSize(0.2)
-    grid.setGridLineStyle(Qt.SolidLine)
+    grid.setGridLineStyle(Qt.PenStyle.SolidLine)
 
     # annotation
     grid.setAnnotationEnabled(True)
@@ -69,5 +69,5 @@ def create_cross_grid_style(
     """Configure an existing grid to draw subtle inner crosses (not full gridlines)."""
     grid.setGridLineColor(QColor(colour))
     grid.setGridLinePenSize(line_width)
-    grid.setGridLineStyle(Qt.DashLine)
+    grid.setGridLineStyle(Qt.PenStyle.DashLine)
     grid.setAnnotationEnabled(True)

@@ -29,6 +29,7 @@ from qgis.PyQt.QtWidgets import (
     QPushButton,
     QListWidget,
     QMessageBox,
+    QAbstractItemView,
     QScrollArea,
     QTabWidget,
     QTextBrowser,
@@ -183,7 +184,7 @@ class CartoLabDashboard(QDialog):
 
     def _make_group(self, title: str) -> QGroupBox:
         gb = QGroupBox(title)
-        gb.setFont(QFont("Inter, Segoe UI", 9, QFont.Bold))
+        gb.setFont(QFont("Inter, Segoe UI", 9, QFont.Weight.Bold))
         gb.setStyleSheet(
             "QGroupBox { border: 1px solid #ccc; border-radius: 6px; "
             "margin-top: 8px; padding: 8px; }"
@@ -502,7 +503,9 @@ class CartoLabDashboard(QDialog):
 
         gl.addWidget(QLabel("Isometric stack layers (check to include):"))
         self.iso_layer_list = QListWidget()
-        self.iso_layer_list.setSelectionMode(QListWidget.MultiSelection)
+        self.iso_layer_list.setSelectionMode(
+            QAbstractItemView.SelectionMode.MultiSelection
+        )
         self.iso_layer_list.setMaximumHeight(120)
         gl.addWidget(self.iso_layer_list)
 
@@ -721,8 +724,13 @@ class CartoLabDashboard(QDialog):
             + "\n".join(f"  - {p}" for p in all_missing)
             + "\n\nQGIS restart recommended afterwards.\n\nContinue?"
         )
-        if QMessageBox.question(self, "Install Dependencies", msg,
-                                 QMessageBox.Yes | QMessageBox.No, QMessageBox.No) != QMessageBox.Yes:
+        if QMessageBox.question(
+            self,
+            "Install Dependencies",
+            msg,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        ) != QMessageBox.StandardButton.Yes:
             return
         self.setup_status.setPlainText("Installing... this may take a few minutes.\n")
         ok, output = install_packages(all_missing)

@@ -33,13 +33,13 @@ def apply_typography_hierarchy(layout: QgsLayout) -> None:
         if "mono" in item_id_lower or "code" in item_id_lower:
             font.setFamily(FONT_STACK_MONO.split(",")[0])
             font.setPointSize(max(8, font.pointSize()))
-            font.setWeight(QFont.Normal)
+            font.setWeight(QFont.Weight.Normal)
         elif font.pointSize() >= 16 or "title" in item_id_lower:
             font.setFamily(FONT_STACK_TITLE.split(",")[0])
-            font.setWeight(QFont.Bold)
+            font.setWeight(QFont.Weight.Bold)
         else:
             font.setFamily(FONT_STACK_BODY.split(",")[0])
-            font.setWeight(QFont.Normal)
+            font.setWeight(QFont.Weight.Normal)
 
         item.setFont(font)
         item.adjustSizeToText()

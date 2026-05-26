@@ -29,7 +29,9 @@ class AnnotationDialog(QDialog):
         self.setMinimumSize(340, 280)
         self.resize(380, 340)
         self.setWindowFlags(
-            Qt.Dialog | Qt.WindowCloseButtonHint | Qt.WindowTitleHint
+            Qt.WindowType.Dialog
+            | Qt.WindowType.WindowCloseButtonHint
+            | Qt.WindowType.WindowTitleHint
         )
         self._build(html)
 
@@ -61,7 +63,7 @@ class AnnotationDialog(QDialog):
             # pure text fallback
             lbl = QLabel("HTML rendering not available.\n\nInstall PyQtWebEngine for rich charts.")
             lbl.setWordWrap(True)
-            lbl.setAlignment(Qt.AlignCenter)
+            lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
             layout.addWidget(lbl)
         else:
             layout.addWidget(web_view, 1)
@@ -89,13 +91,13 @@ class FloatingAnnotationTool(QgsMapTool):
         super().__init__(canvas)
         self.iface = iface
         self.canvas = canvas
-        self.cursor = Qt.CrossCursor
+        self.cursor = Qt.CursorShape.CrossCursor
 
     def activate(self):
-        self.canvas.setCursor(Qt.CrossCursor)
+        self.canvas.setCursor(Qt.CursorShape.CrossCursor)
 
     def deactivate(self):
-        self.canvas.setCursor(Qt.ArrowCursor)
+        self.canvas.setCursor(Qt.CursorShape.ArrowCursor)
 
     def canvasReleaseEvent(self, event):
         point = self.toMapCoordinates(event.pos())
