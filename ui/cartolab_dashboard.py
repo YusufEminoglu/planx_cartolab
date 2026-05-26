@@ -274,6 +274,7 @@ class CartoLabDashboard(QDialog):
         ql = QVBoxLayout(qa_tab)
         ql.setContentsMargins(12, 12, 12, 12)
         quick = [
+            ("Inspect Features (Radar Chart on Click)", self._on_activate_annotation),
             ("Run Bivariate Choropleth", lambda: self._run_algorithm("planx_cartolab:bivariate_choropleth", "Bivariate")),
             ("Run Geometric Interval Classification", lambda: self._run_algorithm("planx_cartolab:geometric_interval_classification", "GIC")),
             ("Run Cartogram", lambda: self._run_algorithm("planx_cartolab:compute_cartogram", "Cartogram")),
@@ -442,6 +443,16 @@ class CartoLabDashboard(QDialog):
     def _clear_runlog(self) -> None:
         self.recent_runs = []
         self._refresh_runlog()
+
+    def _on_activate_annotation(self) -> None:
+        """Activate the floating annotation map tool."""
+        from ..ui.floating_annotation import FloatingAnnotationTool
+        canvas = self.iface.mapCanvas()
+        tool = FloatingAnnotationTool(self.iface, canvas)
+        canvas.setMapTool(tool)
+        self.iface.messageBar().pushInfo(
+            "CartoLab", "Click any feature on the map to inspect its attributes."
+        )
 
     # ── Layout Tools ──────────────────────────────────────────────────
 
