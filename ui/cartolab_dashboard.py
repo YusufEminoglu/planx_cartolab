@@ -280,6 +280,7 @@ class CartoLabDashboard(QDialog):
             ("Run Cartogram", lambda: self._run_algorithm("planx_cartolab:compute_cartogram", "Cartogram")),
             ("Run Ridge Map", lambda: self._run_algorithm("planx_cartolab:ridge_map", "Ridge Map")),
             ("Run Value-by-Alpha", lambda: self._run_algorithm("planx_cartolab:value_by_alpha", "VbA")),
+            ("Copy Project Diagnostics", self._on_copy_diagnostics),
         ]
         for label, fn in quick:
             b = QPushButton(label)
@@ -444,6 +445,26 @@ class CartoLabDashboard(QDialog):
         self.recent_runs = []
         self._refresh_runlog()
 
+    def _on_copy_diagnostics(self) -> None:
+        """Copy project diagnostics to clipboard."""
+        from ..core.dependency_manager import check_packages, CARTO_LAB_DEPS
+        avail, miss_req, miss_opt = check_packages(CARTO_LAB_DEPS)
+        layers = list(QgsProject.instance().mapLayers().values())
+        reg = QgsApplication.processingRegistry()
+        missing = [aid for aid in REQUIRED_IDS if reg.algorithmById(aid) is None]
+        txt = (
+            "PlanX CartoLab — Project Diagnostics\n"
+            "=====================================\n"
+            f"QGIS layers: {len(layers)}\n"
+            f"Algorithms ready: {len(REQUIRED_IDS) - len(missing)}/{len(REQUIRED_IDS)}\n"
+            f"Missing: {', '.join(missing) if missing else 'None'}\n"
+            f"Packages OK: {', '.join(avail)}\n"
+            f"Missing required: {', '.join(miss_req) if miss_req else 'None'}\n"
+            f"Missing optional: {', '.join(miss_opt) if miss_opt else 'None'}\n"
+        )
+        QApplication.clipboard().setText(txt)
+        self.iface.messageBar().pushSuccess("CartoLab", "Diagnostics copied to clipboard.")
+
     def _on_activate_annotation(self) -> None:
         """Activate the floating annotation map tool."""
         from ..ui.floating_annotation import FloatingAnnotationTool
@@ -465,21 +486,28 @@ class CartoLabDashboard(QDialog):
         gl = QVBoxLayout(gb)
 
         gl.addWidget(QLabel(
-            "Create publication-ready print layouts with one click.\n"
-            "Requires at least one map layer loaded in the project."))
+            "Create publication-ready print layouts with one click."))
+
+        gl.addWidget(QLabel("Isometric stack layers (check to include):"))
+        self.iso_layer_list = QListWidget()
+        self.iso_layer_list.setSelectionMode(QListWidget.MultiSelection)
+        self.iso_layer_list.setMaximumHeight(120)
+        gl.addWidget(self.iso_layer_list)
 
         btn_iso = QPushButton("Create Isometric Layer Stack")
-        btn_iso.setToolTip("Stack selected layers as floating 2.5D planes in a Print Layout")
         btn_iso.clicked.connect(self._on_isometric_stack)
         gl.addWidget(btn_iso)
 
+        btn_legend = QPushButton("Add Bivariate Legend to Layout")
+        btn_legend.setToolTip("Add a colour-matrix legend to the first print layout")
+        btn_legend.clicked.connect(self._on_bivariate_legend)
+        gl.addWidget(btn_legend)
+
         btn_typo = QPushButton("Apply Swiss Typography")
-        btn_typo.setToolTip("Set Inter/IBM Plex Mono font hierarchy on all layouts")
         btn_typo.clicked.connect(self._on_typography)
         gl.addWidget(btn_typo)
 
         btn_grid = QPushButton("Add Minimalist Grid")
-        btn_grid.setToolTip("Add thin cross-hair coordinate grid to first map item")
         btn_grid.clicked.connect(self._on_grid_style)
         gl.addWidget(btn_grid)
 
@@ -488,18 +516,37 @@ class CartoLabDashboard(QDialog):
         self.tabs.addTab(w, "Layout")
 
     def _on_isometric_stack(self) -> None:
-        layers = list(QgsProject.instance().mapLayers().values())
-        if len(layers) < 2:
+        selected_items = self.iso_layer_list.selectedItems()
+        if len(selected_items) < 2:
             QMessageBox.warning(self, "Isometric Stack",
-                                "Need at least 2 layers in the project.")
+                                "Select at least 2 layers from the list above.")
             return
+        selected_names = [item.text() for item in selected_items]
+        all_layers = QgsProject.instance().mapLayers()
+        layers = [lyr for name, lyr in all_layers.items() if lyr.name() in selected_names]
         try:
             from ..layout.isometric_stacker import create_isometric_stack_layout
-            create_isometric_stack_layout(layers[:6])  # max 6 layers
+            create_isometric_stack_layout(layers[:8])
             self.iface.messageBar().pushSuccess("CartoLab",
                 "Isometric layout created. Open Layout Manager to view.")
         except Exception as exc:
             QMessageBox.critical(self, "Layout Error", str(exc))
+
+    def _on_bivariate_legend(self) -> None:
+        project = QgsProject.instance()
+        manager = project.layoutManager()
+        layouts = manager.layouts()
+        if not layouts:
+            QMessageBox.information(self, "Bivariate Legend",
+                "No print layouts found. Create one first in Project → Layout Manager.")
+            return
+        try:
+            from ..layout.legend_decorator import add_bivariate_legend_to_layout
+            add_bivariate_legend_to_layout(layouts[0])
+            self.iface.messageBar().pushSuccess("CartoLab",
+                "Bivariate legend added to layout.")
+        except Exception as exc:
+            QMessageBox.critical(self, "Legend Error", str(exc))
 
     def _on_typography(self) -> None:
         project = QgsProject.instance()
@@ -543,6 +590,12 @@ class CartoLabDashboard(QDialog):
         layers = list(QgsProject.instance().mapLayers().values())
         reg = QgsApplication.processingRegistry()
         missing = [aid for aid in REQUIRED_IDS if reg.algorithmById(aid) is None]
+
+        # repopulate layer list for layout tab
+        if hasattr(self, "iso_layer_list"):
+            self.iso_layer_list.clear()
+            for layer in layers:
+                self.iso_layer_list.addItem(layer.name())
 
         for card in self.card_widgets:
             is_ready = reg.algorithmById(card.algo_id) is not None
