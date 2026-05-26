@@ -1,0 +1,40 @@
+# -*- coding: utf-8 -*-
+"""QgsProcessingProvider for PlanX CartoLab."""
+from __future__ import annotations
+
+import os
+
+from qgis.PyQt.QtGui import QIcon
+from qgis.core import QgsProcessingProvider
+
+from .alg_geometric_interval import GeometricIntervalAlgorithm
+from .alg_bivariate import BivariateChoroplethAlgorithm
+from .alg_cartogram import CartogramAlgorithm
+from .alg_ridge_map import RidgeMapAlgorithm
+from .alg_value_by_alpha import ValueByAlphaAlgorithm
+
+
+class CartoLabProvider(QgsProcessingProvider):
+    PROVIDER_ID = "planx_cartolab"
+    PROVIDER_NAME = "PlanX CartoLab"
+
+    def id(self) -> str:
+        return self.PROVIDER_ID
+
+    def name(self) -> str:
+        return self.PROVIDER_NAME
+
+    def longName(self) -> str:
+        return "PlanX CartoLab — Advanced Cartography Suite"
+
+    def icon(self) -> QIcon:
+        base = os.path.dirname(os.path.dirname(__file__))
+        path = os.path.join(base, "icons", "icon.png")
+        return QIcon(path) if os.path.exists(path) else super().icon()
+
+    def loadAlgorithms(self) -> None:
+        self.addAlgorithm(GeometricIntervalAlgorithm())
+        self.addAlgorithm(BivariateChoroplethAlgorithm())
+        self.addAlgorithm(CartogramAlgorithm())
+        self.addAlgorithm(RidgeMapAlgorithm())
+        self.addAlgorithm(ValueByAlphaAlgorithm())

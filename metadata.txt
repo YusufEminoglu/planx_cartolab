@@ -1,0 +1,29 @@
+[general]
+name=PlanX CartoLab
+version=0.1.0
+hasProcessingProvider=yes
+
+category=Vector
+tags=cartography, cartogram, bivariate, geometric-interval, ridge-maps, value-by-alpha, isometric, thematics, planx
+
+description=Advanced generative cartography suite: bivariate choropleth, cartograms, ridge maps, Value-by-Alpha, and isometric layout stacking for QGIS.
+about=PlanX CartoLab is a next-generation thematic mapping engine that goes far beyond simple choropleth rendering. It integrates adaptive Geometric Interval Classification (GIC), continuous-area cartogram distortion, Value-by-Alpha uncertainty visualisation, ridge-line (Joyplot) vector mesh generation, stacked isometric layout compositing, and floating HTML/Tailwind chart annotations. Built for academic-grade publication cartography within the PlanX ecosystem.
+
+homepage=https://github.com/YusufEminoglu/planx_cartolab
+repository=https://github.com/YusufEminoglu/planx_cartolab
+tracker=https://github.com/YusufEminoglu/planx_cartolab/issues
+
+author=Yusuf Eminoglu
+email=yusuf.eminoglu@deu.edu.tr
+
+icon=icons/icon.png
+
+qgisMinimumVersion=3.28
+qgisMaximumVersion=4.99
+
+changelog=
+    PlanX CartoLab 0.1.0 — Initial release: bivariate engine, cartogram, geometric interval, ridge maps, VbA, isometric stacking, HTML annotations.
+
+experimental=False
+deprecated=False
+license=GPL-3
