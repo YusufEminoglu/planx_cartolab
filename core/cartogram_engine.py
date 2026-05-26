@@ -167,7 +167,16 @@ class CartogramEngine:
         """Execute the diffusion cartogram algorithm. Returns (iterations, avg_error)."""
         self._load_features()
         n = len(self.features)
-        damping = 0.25
+        if n < 2:
+            return 0, 1.0
+
+        # precompute max radius for distance cutoff
+        max_radius = max(f.radius for f in self.features)
+        cutoff = max_radius * 6.0  # ignore features farther than 6x max radius
+        sigma2 = (max_radius * 2.0) ** 2  # Gaussian sigma squared
+
+        prev_error = float("inf")
+        damping = 0.3
 
         for iteration in range(self.max_iter):
             if feedback and feedback.isCanceled():
@@ -190,7 +199,7 @@ class CartogramEngine:
             if feedback:
                 progress_pct = int(100 * iteration / self.max_iter)
                 feedback.setProgress(progress_pct)
-                if iteration % 5 == 0 or avg_error <= self.max_error:
+                if iteration % 3 == 0 or avg_error <= self.max_error:
                     feedback.pushInfo(
                         f"Cartogram iter {iteration + 1}/{self.max_iter}, "
                         f"avg error: {(avg_error - 1) * 100:.2f}%"
@@ -199,7 +208,13 @@ class CartogramEngine:
             if avg_error <= self.max_error:
                 break
 
-            self._diffusion_step(damping)
+            # adaptive damping: reduce if error stagnates
+            if avg_error >= prev_error * 0.995:
+                damping *= 0.85
+                damping = max(damping, 0.05)
+            prev_error = avg_error
+
+            self._diffusion_step(damping, cutoff, sigma2)
 
             # recompute areas from rebuilt WKT
             for f in self.features:
@@ -207,14 +222,14 @@ class CartogramEngine:
 
         return min(iteration + 1, self.max_iter), avg_error
 
-    def _diffusion_step(self, damping: float) -> None:
+    def _diffusion_step(self, damping: float, cutoff: float, sigma2: float) -> None:
         """
-        Single diffusion step: each feature's boundary vertices are pushed
-        outward (too-small features) or pulled inward (too-large features)
-        relative to every other feature's centroid.
+        Single diffusion step with Gaussian-weighted force kernel.
 
-        The force from feature j on a vertex of feature i is proportional to
-        j.mass * j.radius / distance(vertex_i, centroid_j).
+        Features that are too small (positive mass) push their boundaries
+        outward; too-large features (negative mass) pull inward. The force
+        from feature_j on a vertex of feature_i is weighted by a Gaussian
+        of the distance between the vertex and feature_j's centroid.
         """
         n = len(self.features)
         for i, f_i in enumerate(self.features):
@@ -222,15 +237,28 @@ class CartogramEngine:
             for vx, vy in f_i.coords:
                 fx, fy = 0.0, 0.0
                 for j, f_j in enumerate(self.features):
-                    if i == j:
+                    if i == j or abs(f_j.mass) < 1e-15:
                         continue
                     dist = math.hypot(vx - f_j.cx, vy - f_j.cy)
+                    if dist > cutoff:
+                        continue
                     if dist < 1e-12:
                         dist = 1e-12
-                    # force magnitude decays with distance
-                    influence = f_j.mass * f_j.radius * damping / dist
-                    fx += influence * (vx - f_j.cx) / dist
-                    fy += influence * (vy - f_j.cy) / dist
+                    # Gaussian distance weight: smooth, bounded influence
+                    weight = math.exp(-dist * dist / (2.0 * sigma2))
+                    influence = f_j.mass * f_j.radius * damping * weight
+                    # direction from centroid_j to vertex_i
+                    dx = (vx - f_j.cx) / dist
+                    dy = (vy - f_j.cy) / dist
+                    fx += influence * dx
+                    fy += influence * dy
+                # clamp displacement per iteration to prevent oscillation
+                max_disp = f_i.radius * 0.3
+                disp = math.hypot(fx, fy)
+                if disp > max_disp:
+                    scale = max_disp / disp
+                    fx *= scale
+                    fy *= scale
                 new_coords.append((vx + fx, vy + fy))
             f_i.coords = new_coords
             f_i.writeback_coords()

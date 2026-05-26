@@ -1,6 +1,6 @@
 [general]
 name=PlanX CartoLab
-version=0.1.0
+version=0.2.0
 hasProcessingProvider=yes
 
 category=Vector
@@ -22,6 +22,7 @@ qgisMinimumVersion=3.28
 qgisMaximumVersion=4.99
 
 changelog=
+    PlanX CartoLab 0.2.0 — Production dashboard, floating annotation map tool, layout automation (isometric/typography/grid/legend), improved cartogram kernel (Gaussian-weighted diffusion with adaptive damping), graduated symbology, dependency manager with pip installer, 71 unit tests.
     PlanX CartoLab 0.1.0 — Initial release: bivariate engine, cartogram, geometric interval, ridge maps, VbA, isometric stacking, HTML annotations.
 
 experimental=False
