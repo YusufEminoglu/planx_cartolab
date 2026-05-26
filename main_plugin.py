@@ -1,75 +1,57 @@
 # -*- coding: utf-8 -*-
-"""PlanX CartoLab — Main plugin orchestrator (Processing provider + dock UI)."""
+"""PlanX CartoLab — Main plugin (Processing provider + production dashboard)."""
 from __future__ import annotations
 
 import os
-from qgis.PyQt.QtWidgets import QAction, QMenu
+
+from qgis.core import Qgis, QgsApplication
 from qgis.PyQt.QtGui import QIcon
-from qgis.core import QgsApplication
+from qgis.PyQt.QtWidgets import QAction
 
 from .processing.cartolab_provider import CartoLabProvider
 
 
+IS_QGIS4 = int(getattr(Qgis, "QGIS_VERSION_INT", 0)) >= 40000
+
+
 class PlanXCartoLab:
-    """Top-level QGIS plugin: registers Processing provider and menu/dock."""
+    """Top-level QGIS plugin: toolbar icon + menu + Processing provider + dashboard."""
 
     def __init__(self, iface):
         self.iface = iface
-        self.plugin_dir = os.path.dirname(__file__)
-        self.provider: CartoLabProvider | None = None
-        self.menu: QMenu | None = None
-        self.actions: list[QAction] = []
-        self.dock = None
+        self.provider = None
+        self.action = None
+        self.dialog = None
 
-    def initGui(self) -> None:
-        icon_path = os.path.join(self.plugin_dir, "icons", "icon.png")
-        menu_icon = QIcon(icon_path) if os.path.exists(icon_path) else QIcon()
-
-        # --- processing provider ---
+    def initProcessing(self) -> None:
+        if self.provider is not None:
+            return
         self.provider = CartoLabProvider()
         QgsApplication.processingRegistry().addProvider(self.provider)
 
-        # --- PlanX sub-menu ---
-        self.menu = QMenu("CartoLab", self.iface.mainWindow().menuBar())
-        self.menu.menuAction().setIcon(menu_icon)
-
-        # find or create parent PlanX menu
-        parent_menu = None
-        for action in self.iface.mainWindow().menuBar().actions():
-            if action.text() == "PlanX":
-                parent_menu = action.menu()
-                break
-        if parent_menu:
-            parent_menu.addMenu(self.menu)
-        else:
-            self.iface.mainWindow().menuBar().addMenu(self.menu)
-
-        self._add_action("cartolab_dock", "CartoLab Panel", self._toggle_dock, "bivariate.png")
-
-    def _add_action(self, key: str, label: str, callback, icon_name: str) -> None:
-        icon_path = os.path.join(self.plugin_dir, "icons", icon_name)
+    def initGui(self) -> None:
+        self.initProcessing()
+        if not self.iface:
+            return
+        icon_path = os.path.join(os.path.dirname(__file__), "icons", "icon.png")
         icon = QIcon(icon_path) if os.path.exists(icon_path) else QIcon()
-        action = QAction(icon, label, self.iface.mainWindow())
-        action.triggered.connect(callback)
-        self.menu.addAction(action)
-        self.actions.append(action)
+        self.action = QAction(icon, "PlanX CartoLab", self.iface.mainWindow())
+        self.action.triggered.connect(self.open_dashboard)
+        self.iface.addToolBarIcon(self.action)
+        self.iface.addPluginToMenu("&PlanX CartoLab", self.action)
 
-    def _toggle_dock(self) -> None:
-        if self.dock is None:
-            from .ui.cartolab_dock import CartoLabDock
-            self.dock = CartoLabDock(self.iface)
-            self.iface.addDockWidget(2, self.dock)  # Qt.RightDockWidgetArea
-        self.dock.setVisible(not self.dock.isVisible())
+    def open_dashboard(self) -> None:
+        if self.dialog is None:
+            from .ui.cartolab_dashboard import CartoLabDashboard
+            self.dialog = CartoLabDashboard(self.iface, self.iface.mainWindow())
+        self.dialog.show()
+        self.dialog.raise_()
+        self.dialog.activateWindow()
 
     def unload(self) -> None:
+        if self.iface and self.action:
+            self.iface.removePluginMenu("&PlanX CartoLab", self.action)
+            self.iface.removeToolBarIcon(self.action)
         if self.provider:
             QgsApplication.processingRegistry().removeProvider(self.provider)
-        if self.menu:
-            self.iface.mainWindow().menuBar().removeAction(self.menu.menuAction())
-        for action in self.actions:
-            self.menu.removeAction(action)
-        self.actions.clear()
-        if self.dock:
-            self.iface.removeDockWidget(self.dock)
-            self.dock.deleteLater()
-            self.dock = None
+            self.provider = None
