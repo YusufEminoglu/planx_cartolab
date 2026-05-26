@@ -6,10 +6,11 @@ import math
 
 from qgis.core import (
     QgsFeature, QgsFeatureSink, QgsField, QgsFields,
-    QgsProcessing, QgsProcessingAlgorithm, QgsProcessingException,
-    QgsProcessingParameterFeatureSink, QgsProcessingParameterFeatureSource,
-    QgsProcessingParameterField, QgsProcessingParameterNumber,
-    QgsProcessingParameterEnum,
+    QgsGraduatedSymbolRenderer, QgsProcessing, QgsProcessingAlgorithm,
+    QgsProcessingException, QgsProcessingParameterFeatureSink,
+    QgsProcessingParameterFeatureSource, QgsProcessingParameterField,
+    QgsProcessingParameterNumber, QgsProcessingParameterEnum,
+    QgsRendererRange, QgsSymbol,
 )
 from qgis.PyQt.QtCore import QVariant
 from qgis.PyQt.QtGui import QColor
@@ -136,5 +137,28 @@ class GeometricIntervalAlgorithm(QgsProcessingAlgorithm):
             new_feat.setAttributes(attrs)
             sink.addFeature(new_feat, QgsFeatureSink.FastInsert)
             feedback.setProgress(int(100 * current / total))
+
+        # Apply graduated symbology
+        try:
+            out_layer = context.getMapLayer(dest_id)
+            if out_layer:
+                colours = [
+                    QColor("#440154"), QColor("#3b528b"), QColor("#21918c"),
+                    QColor("#5ec962"), QColor("#fde725"),
+                ]
+                ranges = []
+                for i in range(len(breaks) - 1):
+                    sym = QgsSymbol.defaultSymbol(out_layer.geometryType())
+                    col = colours[min(i, len(colours) - 1)]
+                    sym.setColor(col)
+                    sym.setOpacity(0.85)
+                    label = f"{breaks[i]:.2f} – {breaks[i+1]:.2f}"
+                    ranges.append(QgsRendererRange(breaks[i], breaks[i+1], sym, label))
+                renderer = QgsGraduatedSymbolRenderer("gic_class", ranges)
+                renderer.setMode(QgsGraduatedSymbolRenderer.Custom)
+                out_layer.setRenderer(renderer)
+                out_layer.triggerRepaint()
+        except Exception:
+            pass  # renderer is cosmetic; don't fail the algorithm
 
         return {self.OUTPUT: dest_id}
