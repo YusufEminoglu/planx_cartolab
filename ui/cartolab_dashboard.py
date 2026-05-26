@@ -34,7 +34,7 @@ from qgis.PyQt.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from qgis.core import Qgis, QgsApplication, QgsProject
+from qgis.core import Qgis, QgsApplication, QgsProject, QgsMapLayer
 
 
 IS_QGIS4 = int(getattr(Qgis, "QGIS_VERSION_INT", 0)) >= 40000
@@ -629,12 +629,36 @@ class CartoLabDashboard(QDialog):
             cat_rows.append((gname, found, total, pct))
         score = 100 * cat_ok_total / cat_total if cat_total else 0
 
+        # Layer type counts for compatibility hints
+        polygons = sum(1 for lyr in layers
+                       if lyr.type() == QgsMapLayer.VectorLayer
+                       and hasattr(lyr, 'geometryType')
+                       and lyr.geometryType() == 2)
+        rasters = sum(1 for lyr in layers
+                      if lyr.type() == QgsMapLayer.RasterLayer)
+        vectors = sum(1 for lyr in layers
+                      if lyr.type() == QgsMapLayer.VectorLayer)
+
+        compat_lines = []
+        if polygons:
+            compat_lines.append(f"{polygons} polygon → Cartogram, Bivariate, Classification, VbA")
+        if rasters:
+            compat_lines.append(f"{rasters} raster → Ridge Map")
+        if vectors and not polygons:
+            compat_lines.append(f"{vectors} vector → Classification, Bivariate, VbA")
+        if not compat_lines:
+            compat_lines.append("No layers loaded — load data to use algorithms.")
+
         self.overview.setHtml(
             "<h2>PlanX CartoLab</h2>"
             "<p><b>Advanced cartography suite for QGIS.</b> Bivariate choropleth, "
             "continuous-area cartograms, ridge maps, Value-by-Alpha uncertainty "
             "visualisation, and isometric layout stacking.</p>"
-            f"<p><b>Loaded layers:</b> {len(layers)}</p>"
+            f"<p><b>Loaded layers:</b> {len(layers)} "
+            f"(polygon: {polygons}, raster: {rasters}, vector: {vectors})</p>"
+            "<p><b>Compatibility:</b><br>&nbsp;&nbsp;"
+            + "<br>&nbsp;&nbsp;".join(compat_lines)
+            + "</p>"
             f"<p><b>System health:</b> {score:.0f}% ({cat_ok_total}/{cat_total} algorithms)</p>"
             + (f"<p><b>Missing:</b> {', '.join(missing)}</p>" if missing else "<p>All modules ready.</p>")
             + "<p><b>Get started:</b> Open the <b>Modules</b> tab, pick an algorithm, and click <b>Run</b>.</p>"
