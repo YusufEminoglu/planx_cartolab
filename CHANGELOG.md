@@ -1,5 +1,9 @@
 # Changelog — PlanX CartoLab
 
+## [1.1.0] - 2026-05-29
+
+- Official 1.1.0 release: full print layout support with rotated diamond and square legends, and Forecasting Studio export controls
+
 ## [1.1.0-beta.1] - 2026-05-29
 
 - Beta-1 release with dynamic bivariate palettes, custom corner colors, and polished radar charts
