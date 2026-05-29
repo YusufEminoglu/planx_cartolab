@@ -232,26 +232,52 @@ class CartogramEngine:
         of the distance between the vertex and feature_j's centroid.
         """
         n = len(self.features)
+
+        # Spatial hash grid for feature centroids using cell_size = cutoff
+        grid = {}
+        cell_size = max(cutoff, 1e-5)
+        for j, f_j in enumerate(self.features):
+            if abs(f_j.mass) < 1e-15:
+                continue
+            gx = int(math.floor(f_j.cx / cell_size))
+            gy = int(math.floor(f_j.cy / cell_size))
+            key = (gx, gy)
+            if key not in grid:
+                grid[key] = []
+            grid[key].append((j, f_j))
+
         for i, f_i in enumerate(self.features):
             new_coords = []
             for vx, vy in f_i.coords:
                 fx, fy = 0.0, 0.0
-                for j, f_j in enumerate(self.features):
-                    if i == j or abs(f_j.mass) < 1e-15:
-                        continue
-                    dist = math.hypot(vx - f_j.cx, vy - f_j.cy)
-                    if dist > cutoff:
-                        continue
-                    if dist < 1e-12:
-                        dist = 1e-12
-                    # Gaussian distance weight: smooth, bounded influence
-                    weight = math.exp(-dist * dist / (2.0 * sigma2))
-                    influence = f_j.mass * f_j.radius * damping * weight
-                    # direction from centroid_j to vertex_i
-                    dx = (vx - f_j.cx) / dist
-                    dy = (vy - f_j.cy) / dist
-                    fx += influence * dx
-                    fy += influence * dy
+
+                # Query cell coordinates of the vertex
+                vgx = int(math.floor(vx / cell_size))
+                vgy = int(math.floor(vy / cell_size))
+
+                # Check current cell and 8 neighboring cells
+                for dx in (-1, 0, 1):
+                    for dy in (-1, 0, 1):
+                        cell_features = grid.get((vgx + dx, vgy + dy))
+                        if not cell_features:
+                            continue
+                        for j, f_j in cell_features:
+                            if i == j:
+                                continue
+                            dist = math.hypot(vx - f_j.cx, vy - f_j.cy)
+                            if dist > cutoff:
+                                continue
+                            if dist < 1e-12:
+                                dist = 1e-12
+                            # Gaussian distance weight: smooth, bounded influence
+                            weight = math.exp(-dist * dist / (2.0 * sigma2))
+                            influence = f_j.mass * f_j.radius * damping * weight
+                            # direction from centroid_j to vertex_i
+                            dir_x = (vx - f_j.cx) / dist
+                            dir_y = (vy - f_j.cy) / dist
+                            fx += influence * dir_x
+                            fy += influence * dir_y
+
                 # clamp displacement per iteration to prevent oscillation
                 max_disp = f_i.radius * 0.3
                 disp = math.hypot(fx, fy)

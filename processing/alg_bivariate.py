@@ -9,13 +9,73 @@ from qgis.core import (
     QgsProcessing, QgsProcessingAlgorithm, QgsProcessingException,
     QgsProcessingParameterFeatureSink, QgsProcessingParameterFeatureSource,
     QgsProcessingParameterField, QgsProcessingParameterNumber,
-    QgsProcessingParameterEnum,
+    QgsProcessingParameterEnum, QgsProcessingLayerPostProcessorInterface,
+    QgsProcessingParameterColor,
 )
 from qgis.PyQt.QtCore import QVariant
+from qgis.PyQt.QtGui import QColor
 
 from ..core.bivariate_engine import (
     geometric_interval_breaks, fisher_jenks_breaks, bivariate_colour_matrix,
 )
+
+
+class BivariateSymbologyPostProcessor(QgsProcessingLayerPostProcessorInterface):
+    """Post-processor to automatically apply the bivariate NxN style to the output layer."""
+
+    def __init__(self, n_classes: int, color_ll: str, color_lh: str, color_hl: str, color_hh: str):
+        super().__init__()
+        self.n_classes = n_classes
+        self.color_ll = color_ll
+        self.color_lh = color_lh
+        self.color_hl = color_hl
+        self.color_hh = color_hh
+
+    def postProcessLayer(self, layer, context, feedback) -> None:
+        if not layer:
+            return
+
+        from qgis.PyQt.QtGui import QColor
+        from qgis.core import QgsCategorizedSymbolRenderer, QgsRendererCategory, QgsSymbol
+
+        matrix = bivariate_colour_matrix(self.n_classes, self.color_ll, self.color_lh, self.color_hl, self.color_hh)
+        categories = []
+
+        for r in range(self.n_classes):
+            for c in range(self.n_classes):
+                val = f"({c},{r})"
+                color = matrix[r][c]
+
+                # Human-readable labels:
+                label_parts = [f"X:{c+1}, Y:{r+1}"]
+                if r == 0 and c == 0:
+                    label_parts.append("(Low-Low)")
+                elif r == 0 and c == self.n_classes - 1:
+                    label_parts.append("(High-Low)")
+                elif r == self.n_classes - 1 and c == 0:
+                    label_parts.append("(Low-High)")
+                elif r == self.n_classes - 1 and c == self.n_classes - 1:
+                    label_parts.append("(High-High)")
+                label = " ".join(label_parts)
+
+                symbol = QgsSymbol.defaultSymbol(layer.geometryType())
+                if symbol:
+                    symbol.setColor(color)
+                    # For polygon layers, use clean semi-transparent white outlines
+                    if layer.geometryType() == 2:
+                        for idx in range(symbol.symbolLayerCount()):
+                            sl = symbol.symbolLayer(idx)
+                            if hasattr(sl, 'setStrokeColor'):
+                                sl.setStrokeColor(QColor(255, 255, 255, 140))
+                            if hasattr(sl, 'setStrokeWidth'):
+                                sl.setStrokeWidth(0.2)
+
+                    cat = QgsRendererCategory(val, symbol, label)
+                    categories.append(cat)
+
+        renderer = QgsCategorizedSymbolRenderer("bivar_class", categories)
+        layer.setRenderer(renderer)
+        layer.triggerRepaint()
 
 
 class BivariateChoroplethAlgorithm(QgsProcessingAlgorithm):
@@ -24,6 +84,10 @@ class BivariateChoroplethAlgorithm(QgsProcessingAlgorithm):
     FIELD_Y = "FIELD_Y"
     CLASSES = "CLASSES"
     METHOD = "METHOD"
+    COLOR_LL = "COLOR_LL"
+    COLOR_LH = "COLOR_LH"
+    COLOR_HL = "COLOR_HL"
+    COLOR_HH = "COLOR_HH"
     OUTPUT = "OUTPUT"
 
     METHODS = [("Geometric Interval", "geometric"), ("Fisher-Jenks", "fisher_jenks")]
@@ -48,7 +112,8 @@ class BivariateChoroplethAlgorithm(QgsProcessingAlgorithm):
             "Create a bivariate choropleth map by classifying two numeric fields "
             "into an NxN colour matrix.\n\n"
             "Output adds three fields: bivar_x_class (int), bivar_y_class (int), "
-            "bivar_class (string). Use bivar_class for symbology."
+            "bivar_class (string). The output layer is automatically styled with "
+            "the computed bivariate colour matrix."
         )
 
     def initAlgorithm(self, config=None):
@@ -66,6 +131,18 @@ class BivariateChoroplethAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterEnum(
             self.METHOD, "Classification method",
             options=[m[0] for m in self.METHODS], defaultValue=0))
+        self.addParameter(QgsProcessingParameterColor(
+            self.COLOR_LL, "Low X - Low Y Colour", defaultValue=QColor("#e8e8e8")
+        ))
+        self.addParameter(QgsProcessingParameterColor(
+            self.COLOR_LH, "Low X - High Y Colour", defaultValue=QColor("#5ab4ac")
+        ))
+        self.addParameter(QgsProcessingParameterColor(
+            self.COLOR_HL, "High X - Low Y Colour", defaultValue=QColor("#d8b365")
+        ))
+        self.addParameter(QgsProcessingParameterColor(
+            self.COLOR_HH, "High X - High Y Colour", defaultValue=QColor("#8c510a")
+        ))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUTPUT, "Bivariate output"))
 
@@ -76,6 +153,16 @@ class BivariateChoroplethAlgorithm(QgsProcessingAlgorithm):
         n_classes = self.parameterAsInt(parameters, self.CLASSES, context)
         method_idx = self.parameterAsEnum(parameters, self.METHOD, context)
         method = self.METHODS[method_idx][1]
+
+        color_ll_q = self.parameterAsColor(parameters, self.COLOR_LL, context)
+        color_lh_q = self.parameterAsColor(parameters, self.COLOR_LH, context)
+        color_hl_q = self.parameterAsColor(parameters, self.COLOR_HL, context)
+        color_hh_q = self.parameterAsColor(parameters, self.COLOR_HH, context)
+
+        color_ll = color_ll_q.name()
+        color_lh = color_lh_q.name()
+        color_hl = color_hl_q.name()
+        color_hh = color_hh_q.name()
 
         # collect paired values
         x_vals, y_vals = [], []
@@ -130,6 +217,17 @@ class BivariateChoroplethAlgorithm(QgsProcessingAlgorithm):
             new_feat.setAttributes(attrs)
             sink.addFeature(new_feat, QgsFeatureSink.FastInsert)
             feedback.setProgress(int(100 * current / total))
+
+        # Register post-processor for automatic layer styling
+        try:
+            if context.willLoadLayerOnCompletion(dest_id):
+                layer_details = context.layerToLoadOnCompletionDetails(dest_id)
+                layer_details.setPostProcessor(BivariateSymbologyPostProcessor(n_classes, color_ll, color_lh, color_hl, color_hh))
+            elif context.willLoadLayerOnCompletion(self.OUTPUT):
+                layer_details = context.layerToLoadOnCompletionDetails(self.OUTPUT)
+                layer_details.setPostProcessor(BivariateSymbologyPostProcessor(n_classes, color_ll, color_lh, color_hl, color_hh))
+        except Exception as exc:
+            feedback.pushWarning(f"Could not apply automatic bivariate symbology: {exc}")
 
         return {self.OUTPUT: dest_id}
 

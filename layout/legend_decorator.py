@@ -22,13 +22,17 @@ def add_bivariate_legend_to_layout(
     grid_size: int = 4,
     position: tuple = (10, 10),
     size_mm: tuple = (60, 60),
+    color_ll: str = "#e8e8e8",
+    color_lh: str = "#5ab4ac",
+    color_hl: str = "#d8b365",
+    color_hh: str = "#8c510a",
 ) -> None:
     """
     Insert a bivariate colour-matrix legend into a QGIS Print Layout.
 
     Renders the legend as an embedded SVG picture item.
     """
-    matrix = bivariate_colour_matrix(grid_size)
+    matrix = bivariate_colour_matrix(grid_size, color_ll, color_lh, color_hl, color_hh)
     hex_matrix = [[c.name() for c in row] for row in matrix]
 
     html = build_bivariate_legend_html(x_label, y_label, hex_matrix)

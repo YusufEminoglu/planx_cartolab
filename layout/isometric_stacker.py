@@ -118,5 +118,38 @@ def create_isometric_stack_layout(
 
         layout.addLayoutItem(map_item)
 
+    # Draw connector lines between adjacent map layers
+    from qgis.PyQt.QtCore import QPointF
+    from qgis.PyQt.QtGui import QPolygonF
+    from qgis.core import QgsLayoutItemPolyline, QgsLineSymbol
+
+    for i in range(len(layers) - 1):
+        dx1, dy1 = offsets[i]
+        dx2, dy2 = offsets[i + 1]
+
+        corners1 = [
+            (center_x + dx1, center_y - dy1),
+            (center_x + dx1 + map_width, center_y - dy1),
+            (center_x + dx1, center_y - dy1 + map_height),
+            (center_x + dx1 + map_width, center_y - dy1 + map_height),
+        ]
+        corners2 = [
+            (center_x + dx2, center_y - dy2),
+            (center_x + dx2 + map_width, center_y - dy2),
+            (center_x + dx2, center_y - dy2 + map_height),
+            (center_x + dx2 + map_width, center_y - dy2 + map_height),
+        ]
+
+        for pt1, pt2 in zip(corners1, corners2):
+            polygon = QPolygonF([QPointF(pt1[0], pt1[1]), QPointF(pt2[0], pt2[1])])
+            line_item = QgsLayoutItemPolyline(polygon, layout)
+            symbol = QgsLineSymbol.createSimple({
+                "color": "#9ebbca",
+                "width": "0.3",
+                "style": "dash"
+            })
+            line_item.setSymbol(symbol)
+            layout.addLayoutItem(line_item)
+
     project.layoutManager().addLayout(layout)
     return layout

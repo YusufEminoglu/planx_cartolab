@@ -244,7 +244,13 @@ def fisher_jenks_breaks(values: List[float], n_classes: int = 5) -> List[float]:
 # Bivariate colour matrix (4×4, 5×5, etc.)
 # ---------------------------------------------------------------------------
 
-def bivariate_colour_matrix(size: int = 4) -> List[List[QColor]]:
+def bivariate_colour_matrix(
+    size: int = 4,
+    color_ll: str | QColor = "#e8e8e8",
+    color_lh: str | QColor = "#5ab4ac",
+    color_hl: str | QColor = "#d8b365",
+    color_hh: str | QColor = "#8c510a",
+) -> List[List[QColor]]:
     """
     Generate a size×size bivariate colour legend matrix.
 
@@ -253,11 +259,10 @@ def bivariate_colour_matrix(size: int = 4) -> List[List[QColor]]:
 
     Returns a nested list [row][col] of QColor.
     """
-    # corner colours (ColorBrewer-inspired)
-    c_ll = QColor("#e8e8e8")  # low-low: light grey
-    c_lh = QColor("#5ab4ac")  # low-high: teal
-    c_hl = QColor("#d8b365")  # high-low: tan
-    c_hh = QColor("#8c510a")  # high-high: dark brown
+    c_ll = QColor(color_ll) if isinstance(color_ll, str) else color_ll
+    c_lh = QColor(color_lh) if isinstance(color_lh, str) else color_lh
+    c_hl = QColor(color_hl) if isinstance(color_hl, str) else color_hl
+    c_hh = QColor(color_hh) if isinstance(color_hh, str) else color_hh
 
     matrix = []
     for row in range(size):

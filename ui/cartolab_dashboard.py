@@ -513,6 +513,14 @@ class CartoLabDashboard(QDialog):
         btn_iso.clicked.connect(self._on_isometric_stack)
         gl.addWidget(btn_iso)
 
+        gl.addWidget(QLabel("Bivariate Legend Palette:"))
+        self.bivar_palette_combo = QComboBox()
+        self.bivar_palette_combo.addItem("Teal-Brown (Default)", "teal_brown")
+        self.bivar_palette_combo.addItem("Purple-Green", "purple_green")
+        self.bivar_palette_combo.addItem("Blue-Orange", "blue_orange")
+        self.bivar_palette_combo.addItem("Pink-Green", "pink_green")
+        gl.addWidget(self.bivar_palette_combo)
+
         btn_legend = QPushButton("Add Bivariate Legend to Layout")
         btn_legend.setToolTip("Add a colour-matrix legend to the first print layout")
         btn_legend.clicked.connect(self._on_bivariate_legend)
@@ -555,9 +563,25 @@ class CartoLabDashboard(QDialog):
             QMessageBox.information(self, "Bivariate Legend",
                 "No print layouts found. Create one first in Project → Layout Manager.")
             return
+
+        # Determine colors from selected preset
+        preset = self.bivar_palette_combo.currentData()
+        colors = {
+            "teal_brown": ("#e8e8e8", "#5ab4ac", "#d8b365", "#8c510a"),
+            "purple_green": ("#e8e8e8", "#7fbf7b", "#af8dc3", "#762a83"),
+            "blue_orange": ("#e8e8e8", "#fdae61", "#abd9e9", "#2c7bb6"),
+            "pink_green": ("#e8e8e8", "#a1d76a", "#e9a3c9", "#c51b7d"),
+        }.get(preset, ("#e8e8e8", "#5ab4ac", "#d8b365", "#8c510a"))
+
         try:
             from ..layout.legend_decorator import add_bivariate_legend_to_layout
-            add_bivariate_legend_to_layout(layouts[0])
+            add_bivariate_legend_to_layout(
+                layouts[0],
+                color_ll=colors[0],
+                color_lh=colors[1],
+                color_hl=colors[2],
+                color_hh=colors[3]
+            )
             self.iface.messageBar().pushSuccess("CartoLab",
                 "Bivariate legend added to layout.")
         except Exception as exc:
