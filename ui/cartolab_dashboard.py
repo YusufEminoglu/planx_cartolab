@@ -13,13 +13,20 @@ from __future__ import annotations
 import os
 from datetime import datetime
 
-import processing
+try:
+    import processing
+except ImportError:
+    processing = None
 from qgis.PyQt.QtCore import QSettings, Qt, QUrl
-from qgis.PyQt.QtGui import QDesktopServices, QFont
+from qgis.PyQt.QtGui import QColor, QDesktopServices, QFont
 from qgis.PyQt.QtWidgets import (
     QApplication,
+    QCheckBox,
+    QColorDialog,
     QComboBox,
     QDialog,
+    QDoubleSpinBox,
+    QFileDialog,
     QFrame,
     QGridLayout,
     QGroupBox,
@@ -38,6 +45,16 @@ from qgis.PyQt.QtWidgets import (
 )
 from qgis.core import Qgis, QgsApplication, QgsProject, QgsMapLayer
 
+from ..core.qgis_25d_style import (
+    STYLE_25D_PRESETS,
+    Style25DConfig,
+    apply_25d_renderer,
+    build_style_summary,
+    field_is_numeric,
+    normalise_hex_color,
+    preset_config,
+)
+
 
 IS_QGIS4 = int(getattr(Qgis, "QGIS_VERSION_INT", 0)) >= 40000
 DASHBOARD_SIZE = (1100, 760) if IS_QGIS4 else (1180, 800)
@@ -47,11 +64,19 @@ DEFAULT_CARD_COLUMNS = 2 if IS_QGIS4 else 3
 
 ALGO_GROUPS = [
     (
+        "2.5D Styling",
+        "#9b6b43",
+        [
+            ("Apply 2.5D Building Style", "planx_cartolab:building_25d_style",
+             "Native QGIS 2.5D extrusion from a height field with CartoLab lighting presets and shadows."),
+        ],
+    ),
+    (
         "Classification",
         "#2f7aa8",
         [
             ("Geometric Interval Classification", "planx_cartolab:geometric_interval_classification",
-             "Adaptive GIC, Head/Tail Breaks, Fisher-Jenks — optimal for skewed and heavy-tailed distributions."),
+             "Adaptive GIC, Head/Tail Breaks, Fisher-Jenks - optimal for skewed and heavy-tailed distributions."),
         ],
     ),
     (
@@ -59,11 +84,11 @@ ALGO_GROUPS = [
         "#357a5f",
         [
             ("Bivariate Choropleth Map", "planx_cartolab:bivariate_choropleth",
-             "N×N colour matrix from two numeric fields with bilinear interpolation."),
+             "NxN colour matrix from two numeric fields with bilinear interpolation."),
             ("Value-by-Alpha (VbA) Map", "planx_cartolab:value_by_alpha",
-             "Encode reliability/uncertainty as opacity — unreliable data fades into background."),
+             "Encode reliability/uncertainty as opacity - unreliable data fades into background."),
             ("Ridge Map (Joyplot)", "planx_cartolab:ridge_map",
-             "Raster-to-vector scanline deformation — Joy Division style wave profiles."),
+             "Raster-to-vector scanline deformation - Joy Division style wave profiles."),
         ],
     ),
     (
@@ -71,7 +96,7 @@ ALGO_GROUPS = [
         "#7359a8",
         [
             ("Continuous-Area Cartogram", "planx_cartolab:compute_cartogram",
-             "Diffusion method (Gastner & Newman) — polygon areas proportional to field value."),
+             "Diffusion method (Gastner & Newman) - polygon areas proportional to field value."),
         ],
     ),
 ]
@@ -79,6 +104,9 @@ ALGO_GROUPS = [
 REQUIRED_IDS = [aid for _, _, items in ALGO_GROUPS for _, aid, _ in items]
 
 CATEGORY_GROUPS = {
+    "2.5D Styling": [
+        "planx_cartolab:building_25d_style",
+    ],
     "Classification Engine": [
         "planx_cartolab:geometric_interval_classification",
     ],
@@ -107,7 +135,7 @@ class CartoLabDashboard(QDialog):
             self.settings.value("planx_cartolab/favorites", [], type=list) or []
         )
 
-        self.setWindowTitle("PlanX CartoLab — Advanced Cartography Suite")
+        self.setWindowTitle("PlanX CartoLab - Advanced Cartography Suite")
         self.resize(*DASHBOARD_SIZE)
         self._apply_style()
         self._build_ui()
@@ -163,6 +191,10 @@ class CartoLabDashboard(QDialog):
             QComboBox {{
                 background: #ffffff; border: 1px solid #c9d9de; border-radius: 8px; padding: 6px; color: #17323a;
             }}
+            QDoubleSpinBox {{
+                background: #ffffff; border: 1px solid #c9d9de; border-radius: 8px; padding: 5px; color: #17323a;
+            }}
+            QCheckBox {{ color: #17323a; padding: 3px; }}
             QFrame[classCard="true"] {{
                 background: #fbfefe; border: 1px solid #d3e3e7; border-radius: {r}px;
             }}
@@ -207,7 +239,7 @@ class CartoLabDashboard(QDialog):
         ttl = QVBoxLayout()
         title = QLabel("PlanX CartoLab")
         title.setObjectName("heroTitle")
-        sub = QLabel("Advanced cartography suite: bivariate, cartogram, ridge maps, Value-by-Alpha, isometric stacking | Ilieri haritacilik: bivariate, cartogram, ridge, VbA")
+        sub = QLabel("Advanced cartography suite: 2.5D styling, bivariate maps, cartograms, ridge maps, Value-by-Alpha, and layout automation.")
         sub.setObjectName("heroSub")
         ttl.addWidget(title)
         ttl.addWidget(sub)
@@ -232,7 +264,7 @@ class CartoLabDashboard(QDialog):
 
         filter_row = QHBoxLayout()
         self.search = QLineEdit()
-        self.search.setPlaceholderText("Filter modules / Modulleri filtrele...")
+        self.search.setPlaceholderText("Filter modules...")
         self.search.textChanged.connect(self._filter_cards)
         filter_row.addWidget(self.search, 1)
         self.group_filter = QComboBox()
@@ -287,7 +319,9 @@ class CartoLabDashboard(QDialog):
         ql = QVBoxLayout(qa_tab)
         ql.setContentsMargins(12, 12, 12, 12)
         quick = [
+            ("Open 2.5D Styling Panel", self.show_25d_panel),
             ("Inspect Features (Radar Chart on Click)", self._on_activate_annotation),
+            ("Run 2.5D Building Style", lambda: self._run_algorithm("planx_cartolab:building_25d_style", "2.5D Building Style")),
             ("Run Bivariate Choropleth", lambda: self._run_algorithm("planx_cartolab:bivariate_choropleth", "Bivariate")),
             ("Run Geometric Interval Classification", lambda: self._run_algorithm("planx_cartolab:geometric_interval_classification", "GIC")),
             ("Run Cartogram", lambda: self._run_algorithm("planx_cartolab:compute_cartogram", "Cartogram")),
@@ -301,6 +335,9 @@ class CartoLabDashboard(QDialog):
             ql.addWidget(b)
         ql.addStretch()
         self.tabs.addTab(qa_tab, "Quick Actions")
+
+        # 2.5D Styling tab
+        self._build_25d_tab()
 
         # Layout Tools tab
         self._build_layout_tab()
@@ -425,6 +462,13 @@ class CartoLabDashboard(QDialog):
     # ── Algorithm execution ──────────────────────────────────────────
 
     def _run_algorithm(self, algo_id: str, label: str) -> None:
+        if processing is None:
+            QMessageBox.warning(
+                self, "Processing Unavailable",
+                "The QGIS Processing framework is not available in this session. "
+                "Enable the Processing plugin and restart QGIS."
+            )
+            return
         reg = QgsApplication.processingRegistry()
         if reg.algorithmById(algo_id) is None:
             QMessageBox.warning(
@@ -466,7 +510,7 @@ class CartoLabDashboard(QDialog):
         reg = QgsApplication.processingRegistry()
         missing = [aid for aid in REQUIRED_IDS if reg.algorithmById(aid) is None]
         txt = (
-            "PlanX CartoLab — Project Diagnostics\n"
+            "PlanX CartoLab - Project Diagnostics\n"
             "=====================================\n"
             f"QGIS layers: {len(layers)}\n"
             f"Algorithms ready: {len(REQUIRED_IDS) - len(missing)}/{len(REQUIRED_IDS)}\n"
@@ -489,6 +533,284 @@ class CartoLabDashboard(QDialog):
         )
 
     # ── Layout Tools ──────────────────────────────────────────────────
+
+    # 2.5D Styling
+
+    def _build_25d_tab(self) -> None:
+        self.tab_25d = QWidget()
+        lyt = QVBoxLayout(self.tab_25d)
+        lyt.setContentsMargins(12, 12, 12, 12)
+        lyt.setSpacing(10)
+
+        source_group = self._make_group("Layer and Height")
+        source_layout = QGridLayout(source_group)
+        source_layout.addWidget(QLabel("Polygon layer:"), 0, 0)
+        self.layer25d_combo = QComboBox()
+        self.layer25d_combo.currentIndexChanged.connect(self._refresh_25d_fields)
+        source_layout.addWidget(self.layer25d_combo, 0, 1)
+        refresh_layers = QPushButton("Refresh Layers")
+        refresh_layers.setObjectName("ghost")
+        refresh_layers.clicked.connect(self._refresh_25d_layers)
+        source_layout.addWidget(refresh_layers, 0, 2)
+
+        source_layout.addWidget(QLabel("Height field:"), 1, 0)
+        self.height25d_combo = QComboBox()
+        source_layout.addWidget(self.height25d_combo, 1, 1, 1, 2)
+
+        source_layout.addWidget(QLabel("Visual preset:"), 2, 0)
+        self.preset25d_combo = QComboBox()
+        for key, preset in STYLE_25D_PRESETS.items():
+            self.preset25d_combo.addItem(preset["label"], key)
+        self.preset25d_combo.currentIndexChanged.connect(self._on_25d_preset_changed)
+        source_layout.addWidget(self.preset25d_combo, 2, 1, 1, 2)
+        lyt.addWidget(source_group)
+
+        geom_group = self._make_group("Extrusion Geometry")
+        geom_layout = QGridLayout(geom_group)
+        self.angle25d_spin = self._make_double_spin(0, 359, 110, 1, " degrees")
+        self.scale25d_spin = self._make_double_spin(0.01, 100, 1, 0.1, "x")
+        self.max25d_spin = self._make_double_spin(0, 1000000, 0, 1, " map units")
+        self.step25d_check = QCheckBox("Snap heights to stepped floors")
+        self.step25d_spin = self._make_double_spin(0.01, 100000, 3.5, 0.1, " map units")
+
+        geom_layout.addWidget(QLabel("Projection angle:"), 0, 0)
+        geom_layout.addWidget(self.angle25d_spin, 0, 1)
+        geom_layout.addWidget(QLabel("Height scale:"), 0, 2)
+        geom_layout.addWidget(self.scale25d_spin, 0, 3)
+        geom_layout.addWidget(QLabel("Maximum height:"), 1, 0)
+        geom_layout.addWidget(self.max25d_spin, 1, 1)
+        geom_layout.addWidget(self.step25d_check, 1, 2)
+        geom_layout.addWidget(self.step25d_spin, 1, 3)
+        lyt.addWidget(geom_group)
+
+        light_group = self._make_group("Lighting and Materials")
+        light_layout = QGridLayout(light_group)
+        self.roof25d_btn = self._make_color_button("#f2cf96")
+        self.wall25d_btn = self._make_color_button("#b36f43")
+        self.shadow25d_btn = self._make_color_button("#202833")
+        self.shadow25d_check = QCheckBox("Enable soft shadow")
+        self.shadow25d_check.setChecked(True)
+        self.wall_shading25d_check = QCheckBox("Enable directional wall shading")
+        self.wall_shading25d_check.setChecked(True)
+        self.shadow_spread25d_spin = self._make_double_spin(0, 100000, 3.5, 0.5, " map units")
+
+        self.roof25d_btn.clicked.connect(lambda: self._pick_25d_color(self.roof25d_btn, "Roof Color"))
+        self.wall25d_btn.clicked.connect(lambda: self._pick_25d_color(self.wall25d_btn, "Wall Color"))
+        self.shadow25d_btn.clicked.connect(lambda: self._pick_25d_color(self.shadow25d_btn, "Shadow Color"))
+
+        light_layout.addWidget(QLabel("Roof color:"), 0, 0)
+        light_layout.addWidget(self.roof25d_btn, 0, 1)
+        light_layout.addWidget(QLabel("Wall color:"), 0, 2)
+        light_layout.addWidget(self.wall25d_btn, 0, 3)
+        light_layout.addWidget(QLabel("Shadow color:"), 1, 0)
+        light_layout.addWidget(self.shadow25d_btn, 1, 1)
+        light_layout.addWidget(QLabel("Shadow spread:"), 1, 2)
+        light_layout.addWidget(self.shadow_spread25d_spin, 1, 3)
+        light_layout.addWidget(self.shadow25d_check, 2, 0, 1, 2)
+        light_layout.addWidget(self.wall_shading25d_check, 2, 2, 1, 2)
+        lyt.addWidget(light_group)
+
+        action_row = QHBoxLayout()
+        apply_btn = QPushButton("Apply 2.5D Style")
+        apply_btn.clicked.connect(self._on_apply_25d_style)
+        action_row.addWidget(apply_btn)
+        save_btn = QPushButton("Save QML Style")
+        save_btn.setObjectName("ghost")
+        save_btn.clicked.connect(self._on_save_25d_qml)
+        action_row.addWidget(save_btn)
+        copy_btn = QPushButton("Copy Style Summary")
+        copy_btn.setObjectName("ghost")
+        copy_btn.clicked.connect(self._on_copy_25d_summary)
+        action_row.addWidget(copy_btn)
+        action_row.addStretch()
+        lyt.addLayout(action_row)
+
+        self.style25d_status = QTextBrowser()
+        self.style25d_status.setMaximumHeight(150)
+        lyt.addWidget(self.style25d_status)
+        lyt.addStretch()
+
+        self.tabs.addTab(self.tab_25d, "2.5D Styling")
+        self._refresh_25d_layers()
+        self._on_25d_preset_changed()
+
+    def _make_double_spin(self, minimum: float, maximum: float, value: float, step: float, suffix: str) -> QDoubleSpinBox:
+        spin = QDoubleSpinBox()
+        spin.setRange(minimum, maximum)
+        spin.setDecimals(2)
+        spin.setSingleStep(step)
+        spin.setValue(value)
+        spin.setSuffix(suffix)
+        return spin
+
+    def _make_color_button(self, color: str) -> QPushButton:
+        btn = QPushButton()
+        btn.setMinimumWidth(118)
+        self._set_color_button(btn, color)
+        return btn
+
+    def _set_color_button(self, button: QPushButton, color: str) -> None:
+        color = normalise_hex_color(color, "#888888")
+        qcolor = QColor(color)
+        luminance = qcolor.red() * 0.299 + qcolor.green() * 0.587 + qcolor.blue() * 0.114
+        text_color = "#ffffff" if luminance < 150 else "#17232a"
+        button.setProperty("hexColor", color)
+        button.setText(color.upper())
+        button.setStyleSheet(
+            f"background:{color}; color:{text_color}; border:1px solid #203040; border-radius:8px; padding:7px 12px;"
+        )
+
+    def _pick_25d_color(self, button: QPushButton, title: str) -> None:
+        current = QColor(button.property("hexColor") or "#888888")
+        color = QColorDialog.getColor(current, self, title)
+        if color.isValid():
+            self._set_color_button(button, color.name())
+
+    def show_25d_panel(self) -> None:
+        if hasattr(self, "tab_25d"):
+            self.tabs.setCurrentWidget(self.tab_25d)
+            self._refresh_25d_layers()
+
+    def _polygon_layers(self):
+        layers = []
+        for layer in QgsProject.instance().mapLayers().values():
+            if (layer.type() == QgsMapLayer.VectorLayer
+                    and hasattr(layer, "geometryType")
+                    and layer.geometryType() == 2):
+                layers.append(layer)
+        return layers
+
+    def _layer_by_id(self, layer_id: str):
+        if not layer_id:
+            return None
+        return QgsProject.instance().mapLayer(layer_id)
+
+    def _selected_25d_layer(self):
+        if not hasattr(self, "layer25d_combo"):
+            return None
+        return self._layer_by_id(self.layer25d_combo.currentData())
+
+    def _refresh_25d_layers(self) -> None:
+        if not hasattr(self, "layer25d_combo"):
+            return
+        current = self.layer25d_combo.currentData()
+        self.layer25d_combo.blockSignals(True)
+        self.layer25d_combo.clear()
+        for layer in self._polygon_layers():
+            self.layer25d_combo.addItem(layer.name(), layer.id())
+        if current:
+            idx = self.layer25d_combo.findData(current)
+            if idx >= 0:
+                self.layer25d_combo.setCurrentIndex(idx)
+        self.layer25d_combo.blockSignals(False)
+        self._refresh_25d_fields()
+
+    def _refresh_25d_fields(self) -> None:
+        if not hasattr(self, "height25d_combo"):
+            return
+        layer = self._selected_25d_layer()
+        current = self.height25d_combo.currentData()
+        self.height25d_combo.blockSignals(True)
+        self.height25d_combo.clear()
+        if layer:
+            fields = list(layer.fields())
+            numeric_fields = [f for f in fields if field_is_numeric(f)]
+            for field in numeric_fields or fields:
+                self.height25d_combo.addItem(field.name(), field.name())
+            preferred = ["Hmax", "Height", "height", "Heights", "building_height", "Yukseklik", "Kat_Sayisi"]
+            target = current if current else next((name for name in preferred if self.height25d_combo.findData(name) >= 0), None)
+            if target:
+                idx = self.height25d_combo.findData(target)
+                if idx >= 0:
+                    self.height25d_combo.setCurrentIndex(idx)
+        self.height25d_combo.blockSignals(False)
+        self._update_25d_status_preview()
+
+    def _on_25d_preset_changed(self) -> None:
+        if not hasattr(self, "preset25d_combo"):
+            return
+        preset_key = self.preset25d_combo.currentData() or "warm_civic"
+        preset = STYLE_25D_PRESETS.get(preset_key, STYLE_25D_PRESETS["warm_civic"])
+        self._set_color_button(self.roof25d_btn, preset["roof"])
+        self._set_color_button(self.wall25d_btn, preset["wall"])
+        self._set_color_button(self.shadow25d_btn, preset["shadow"])
+        self.shadow_spread25d_spin.setValue(float(preset["shadow_spread"]))
+        self._update_25d_status_preview()
+
+    def _current_25d_config(self) -> Style25DConfig:
+        height_field = self.height25d_combo.currentData()
+        if not height_field:
+            raise ValueError("Select a numeric height field.")
+        return Style25DConfig(
+            height_field=height_field,
+            preset=self.preset25d_combo.currentData() or "warm_civic",
+            roof_color=normalise_hex_color(self.roof25d_btn.property("hexColor"), "#f2cf96"),
+            wall_color=normalise_hex_color(self.wall25d_btn.property("hexColor"), "#b36f43"),
+            shadow_color=normalise_hex_color(self.shadow25d_btn.property("hexColor"), "#202833"),
+            angle=self.angle25d_spin.value(),
+            height_scale=self.scale25d_spin.value(),
+            max_height=self.max25d_spin.value(),
+            stepped=self.step25d_check.isChecked(),
+            step_height=self.step25d_spin.value(),
+            shadow_enabled=self.shadow25d_check.isChecked(),
+            shadow_spread=self.shadow_spread25d_spin.value(),
+            wall_shading=self.wall_shading25d_check.isChecked(),
+        )
+
+    def _update_25d_status_preview(self) -> None:
+        if not hasattr(self, "style25d_status"):
+            return
+        layer = self._selected_25d_layer()
+        if not layer:
+            self.style25d_status.setPlainText("Load or select a polygon layer to apply 2.5D styling.")
+            return
+        try:
+            summary = build_style_summary(layer.name(), self._current_25d_config())
+        except Exception as exc:
+            summary = str(exc)
+        self.style25d_status.setPlainText(summary)
+
+    def _on_apply_25d_style(self) -> None:
+        layer = self._selected_25d_layer()
+        try:
+            summary = apply_25d_renderer(layer, self._current_25d_config())
+            if hasattr(self.iface, "layerTreeView"):
+                self.iface.layerTreeView().refreshLayerSymbology(layer.id())
+            self.style25d_status.setPlainText(summary)
+            self.iface.messageBar().pushSuccess("CartoLab", f"2.5D style applied to {layer.name()}.")
+        except Exception as exc:
+            QMessageBox.critical(self, "2.5D Styling Error", str(exc))
+
+    def _on_save_25d_qml(self) -> None:
+        layer = self._selected_25d_layer()
+        if not layer:
+            QMessageBox.warning(self, "Save QML Style", "Select a polygon layer first.")
+            return
+        default_name = f"{layer.name()}_planx_25d.qml".replace(" ", "_")
+        path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save QGIS Layer Style",
+            os.path.join(os.path.expanduser("~"), "Desktop", default_name),
+            "QGIS Layer Style (*.qml)",
+        )
+        if not path:
+            return
+        if not path.lower().endswith(".qml"):
+            path += ".qml"
+        try:
+            apply_25d_renderer(layer, self._current_25d_config())
+            message, ok = layer.saveNamedStyle(path)
+            if not ok:
+                raise RuntimeError(message)
+            self.iface.messageBar().pushSuccess("CartoLab", f"QML style saved: {path}")
+            self.style25d_status.append(f"\nSaved QML style: {path}")
+        except Exception as exc:
+            QMessageBox.critical(self, "Save QML Style", str(exc))
+
+    def _on_copy_25d_summary(self) -> None:
+        self._update_25d_status_preview()
+        QApplication.clipboard().setText(self.style25d_status.toPlainText())
+        self.iface.messageBar().pushSuccess("CartoLab", "2.5D style summary copied to clipboard.")
 
     def _build_layout_tab(self) -> None:
         w = QWidget()
@@ -567,7 +889,7 @@ class CartoLabDashboard(QDialog):
         layouts = manager.layouts()
         if not layouts:
             QMessageBox.information(self, "Bivariate Legend",
-                "No print layouts found. Create one first in Project → Layout Manager.")
+                "No print layouts found. Create one first in Project > Layout Manager.")
             return
 
         preset = self.bivar_palette_combo.currentData()
@@ -609,7 +931,7 @@ class CartoLabDashboard(QDialog):
                     f"Typography applied to {count} layout(s).")
             else:
                 QMessageBox.information(self, "Typography",
-                    "No print layouts found. Create one first in Project → Layout Manager.")
+                    "No print layouts found. Create one first in Project > Layout Manager.")
         except Exception as exc:
             QMessageBox.critical(self, "Typography Error", str(exc))
 
@@ -638,7 +960,9 @@ class CartoLabDashboard(QDialog):
         reg = QgsApplication.processingRegistry()
         missing = [aid for aid in REQUIRED_IDS if reg.algorithmById(aid) is None]
 
-        # repopulate layer list for layout tab
+        # repopulate layer lists for style/layout tabs
+        if hasattr(self, "layer25d_combo"):
+            self._refresh_25d_layers()
         if hasattr(self, "iso_layer_list"):
             self.iso_layer_list.clear()
             for layer in layers:
@@ -688,17 +1012,17 @@ class CartoLabDashboard(QDialog):
 
         compat_lines = []
         if polygons:
-            compat_lines.append(f"{polygons} polygon → Cartogram, Bivariate, Classification, VbA")
+            compat_lines.append(f"{polygons} polygon -> 2.5D Styling, Cartogram, Bivariate, Classification, VbA")
         if rasters:
-            compat_lines.append(f"{rasters} raster → Ridge Map")
+            compat_lines.append(f"{rasters} raster -> Ridge Map")
         if vectors and not polygons:
-            compat_lines.append(f"{vectors} vector → Classification, Bivariate, VbA")
+            compat_lines.append(f"{vectors} vector -> Classification, Bivariate, VbA")
         if not compat_lines:
-            compat_lines.append("No layers loaded — load data to use algorithms.")
+            compat_lines.append("No layers loaded - load data to use algorithms.")
 
         self.overview.setHtml(
             "<h2>PlanX CartoLab</h2>"
-            "<p><b>Advanced cartography suite for QGIS.</b> Bivariate choropleth, "
+            "<p><b>Advanced cartography suite for QGIS.</b> 2.5D building styling, bivariate choropleth, "
             "continuous-area cartograms, ridge maps, Value-by-Alpha uncertainty "
             "visualisation, and isometric layout stacking.</p>"
             f"<p><b>Loaded layers:</b> {len(layers)} "

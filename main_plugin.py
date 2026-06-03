@@ -21,6 +21,7 @@ class PlanXCartoLab:
         self.iface = iface
         self.provider = None
         self.action_dashboard = None
+        self.action_25d = None
         self.action_annotate = None
         self.dialog = None
         self.annotation_tool = None
@@ -46,6 +47,11 @@ class PlanXCartoLab:
         self.iface.addToolBarIcon(self.action_dashboard)
         self.iface.addPluginToMenu("&PlanX CartoLab", self.action_dashboard)
 
+        # 2.5D styling panel action
+        self.action_25d = QAction(icon, "2.5D Styling Panel", self.iface.mainWindow())
+        self.action_25d.triggered.connect(self.open_25d_panel)
+        self.iface.addPluginToMenu("&PlanX CartoLab", self.action_25d)
+
         # Annotation tool action
         bivar_icon_path = os.path.join(icon_dir, "bivariate.png")
         annotate_icon = QIcon(bivar_icon_path) if os.path.exists(bivar_icon_path) else icon
@@ -62,6 +68,11 @@ class PlanXCartoLab:
         self.dialog.show()
         self.dialog.raise_()
         self.dialog.activateWindow()
+
+    def open_25d_panel(self) -> None:
+        self.open_dashboard()
+        if self.dialog and hasattr(self.dialog, "show_25d_panel"):
+            self.dialog.show_25d_panel()
 
     def _toggle_annotation_tool(self, checked: bool) -> None:
         if checked:
@@ -85,6 +96,8 @@ class PlanXCartoLab:
             if self.action_dashboard:
                 self.iface.removePluginMenu("&PlanX CartoLab", self.action_dashboard)
                 self.iface.removeToolBarIcon(self.action_dashboard)
+            if self.action_25d:
+                self.iface.removePluginMenu("&PlanX CartoLab", self.action_25d)
             if self.action_annotate:
                 self.iface.removePluginMenu("&PlanX CartoLab", self.action_annotate)
         if self.provider:

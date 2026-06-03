@@ -108,6 +108,7 @@ from planx_cartolab.core import bivariate_engine as be
 from planx_cartolab.core import dependency_manager as dm
 from planx_cartolab.core import affine_matrix as am
 from planx_cartolab.core import cartogram_engine as ce
+from planx_cartolab.core import qgis_25d_style as s25d
 
 # ---------------------------------------------------------------------------
 # Test framework
@@ -308,6 +309,37 @@ check("install_packages empty list succeeds", ok and "No packages" in msg)
 
 result = dm.ensure_required(dm.CARTO_LAB_DEPS, auto_install=False)
 check("ensure_required returns bool", isinstance(result, bool))
+
+# ===================================================================
+# 6. QGIS 2.5D STYLE
+# ===================================================================
+section("QGIS 2.5D Style")
+
+cfg = s25d.Style25DConfig(
+    height_field="Hmax",
+    height_scale=1.5,
+    max_height=60,
+    stepped=True,
+    step_height=3.5,
+)
+expr = s25d.build_height_expression(cfg)
+check("25D expression quotes field", '"Hmax"' in expr, expr)
+check("25D expression scales height", "* 1.5" in expr, expr)
+check("25D expression steps height", "round(" in expr and "/ 3.5" in expr, expr)
+check("25D expression clamps height", "least(60" in expr and "greatest(0" in expr, expr)
+
+summary = s25d.build_style_summary("Buildings", cfg)
+check("25D summary names layer", "Buildings" in summary)
+check("25D summary names field", "Hmax" in summary)
+
+order_expr = s25d.build_order_by_expression()
+check("25D order expression uses map extent", "@map_extent_center" in order_expr)
+check("25D presets exist", len(s25d.STYLE_25D_PRESETS) >= 4)
+check("25D preset colours are valid", all(
+    s25d.HEX_COLOR_RE.match(p["roof"]) and s25d.HEX_COLOR_RE.match(p["wall"]) and s25d.HEX_COLOR_RE.match(p["shadow"])
+    for p in s25d.STYLE_25D_PRESETS.values()
+))
+check("25D colour fallback", s25d.normalise_hex_color("bad", "#123456") == "#123456")
 
 # ===================================================================
 # SUMMARY

@@ -12,6 +12,7 @@ from .alg_bivariate import BivariateChoroplethAlgorithm
 from .alg_cartogram import CartogramAlgorithm
 from .alg_ridge_map import RidgeMapAlgorithm
 from .alg_value_by_alpha import ValueByAlphaAlgorithm
+from .alg_25d_style import Building25DStyleAlgorithm
 
 
 class CartoLabProvider(QgsProcessingProvider):
@@ -25,7 +26,7 @@ class CartoLabProvider(QgsProcessingProvider):
         return self.PROVIDER_NAME
 
     def longName(self) -> str:
-        return "PlanX CartoLab — Advanced Cartography Suite"
+        return "PlanX CartoLab - Advanced Cartography Suite"
 
     def icon(self) -> QIcon:
         base = os.path.dirname(os.path.dirname(__file__))
@@ -38,3 +39,4 @@ class CartoLabProvider(QgsProcessingProvider):
         self.addAlgorithm(CartogramAlgorithm())
         self.addAlgorithm(RidgeMapAlgorithm())
         self.addAlgorithm(ValueByAlphaAlgorithm())
+        self.addAlgorithm(Building25DStyleAlgorithm())

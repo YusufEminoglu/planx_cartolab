@@ -1,4 +1,16 @@
-# Changelog — PlanX CartoLab
+# Changelog - PlanX CartoLab
+
+## [1.2.0] - 2026-06-03
+
+### Added
+- Native QGIS 2.5D building styling engine with height-field extrusion, material presets, soft shadows, wall shading, optional stepped floors, and QML export.
+- Dashboard 2.5D Styling tab plus a direct PlanX CartoLab menu action.
+- Processing Toolbox algorithm: Apply 2.5D Building Style.
+- GitHub Pages showcase, documentation set, and issue/PR templates for a more polished repository presentation.
+
+### Changed
+- Main dashboard copy and project diagnostics now use English-only visible text for the newly touched surfaces.
+- GitHub showcase and repository support files are excluded from the QGIS Plugin Hub ZIP through `.zipignore`.
 
 ## [1.1.0] - 2026-05-29
 
@@ -22,20 +34,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Qt6-compatible enum usage in the dashboard, floating annotation dialog, layout grid styler, and typography engine.
 
-## [0.2.0] — 2026-05-26
+## [0.2.0] - 2026-05-26
 
 ### Added
 - Production dashboard with module cards, dependency health, quick actions, and layout automation launchers.
 - Floating annotation map tool, isometric/typography/grid/legend layout utilities, improved cartogram kernel, graduated symbology, and dependency manager with pip installer.
 - 71 unit tests for core cartography engines.
 
-## [0.1.0] — 2026-05-26
+## [0.1.0] - 2026-05-26
 
 ### Added
 - Adaptive Geometric Interval Classifier (GIC) with automatic ratio optimisation
 - Head/Tail Breaks algorithm for heavy-tailed (power-law) data
 - Fisher-Jenks natural breaks (dynamic programming with DP matrix backtracking)
-- Bivariate choropleth engine: N×N colour matrix via bilinear interpolation
+- Bivariate choropleth engine: NxN colour matrix via bilinear interpolation
 - Continuous-area diffusion cartogram (Gastner & Newman method, ground-up reimplementation)
 - Ridge-line (Joy Division style) vector mesh generator from raster data
 - Value-by-Alpha (VbA) opacity mapper for uncertainty visualisation

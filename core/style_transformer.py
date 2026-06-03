@@ -202,7 +202,7 @@ def apply_value_by_alpha(
             sym.setColor(col)
             sym.setOpacity(alpha_val / 255.0)
 
-            label = f"{col.name()} α={alpha_val}"
+            label = f"{col.name()} alpha={alpha_val}"
             ranges.append(QgsRendererRange(
                 low_v * 1000 + alpha_low,  # compound key
                 high_v * 1000 + alpha_high,

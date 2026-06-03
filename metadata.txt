@@ -1,15 +1,15 @@
 [general]
 name=PlanX CartoLab
-version=1.1.0
+version=1.2.0
 hasProcessingProvider=yes
 
 category=Vector
-tags=cartography, cartogram, bivariate, geometric-interval, ridge-maps, value-by-alpha, isometric, thematics, planx
+tags=cartography, 2.5d, buildings, cartogram, bivariate, geometric-interval, ridge-maps, value-by-alpha, isometric, thematics, planx
 
-description=Advanced generative cartography suite: bivariate choropleth, cartograms, ridge maps, Value-by-Alpha, and isometric layout stacking for QGIS.
-about=PlanX CartoLab is a next-generation thematic mapping engine that goes far beyond simple choropleth rendering. It integrates adaptive Geometric Interval Classification (GIC), continuous-area cartogram distortion, Value-by-Alpha uncertainty visualisation, ridge-line (Joyplot) vector mesh generation, stacked isometric layout compositing, and floating HTML/Tailwind chart annotations. Built for academic-grade publication cartography within the PlanX ecosystem.
+description=Advanced cartography suite: native 2.5D building styling, bivariate choropleths, cartograms, ridge maps, Value-by-Alpha, and layout automation for QGIS.
+about=PlanX CartoLab is a publication-grade thematic mapping engine for QGIS. It integrates native 2.5D building styling with height-field extrusion, adaptive Geometric Interval Classification (GIC), continuous-area cartogram distortion, Value-by-Alpha uncertainty visualisation, ridge-line vector mesh generation, stacked isometric layout compositing, and floating HTML chart annotations. Built for academic-grade cartography within the PlanX ecosystem.
 
-homepage=https://github.com/YusufEminoglu/planx_cartolab
+homepage=https://yusufeminoglu.github.io/planx_cartolab/
 repository=https://github.com/YusufEminoglu/planx_cartolab
 tracker=https://github.com/YusufEminoglu/planx_cartolab/issues
 
@@ -22,9 +22,10 @@ qgisMinimumVersion=3.28
 qgisMaximumVersion=4.99
 
 changelog=
-    PlanX CartoLab 1.0.0 — Production release: generated PlanX ecosystem icon, QGIS 4/Qt6 dashboard compatibility fixes, and QGIS 3.44/QGIS 4 runtime smoke coverage.
-    PlanX CartoLab 0.2.0 — Production dashboard, floating annotation map tool, layout automation (isometric/typography/grid/legend), improved cartogram kernel (Gaussian-weighted diffusion with adaptive damping), graduated symbology, dependency manager with pip installer, 71 unit tests.
-    PlanX CartoLab 0.1.0 — Initial release: bivariate engine, cartogram, geometric interval, ridge maps, VbA, isometric stacking, HTML annotations.
+    PlanX CartoLab 1.2.0 - Added native QGIS 2.5D building styling panel, Processing algorithm, polished material presets, optional stepped floors, soft shadows, and QML export.
+    PlanX CartoLab 1.0.0 - Production release: generated PlanX ecosystem icon, QGIS 4/Qt6 dashboard compatibility fixes, and QGIS 3.44/QGIS 4 runtime smoke coverage.
+    PlanX CartoLab 0.2.0 - Production dashboard, floating annotation map tool, layout automation (isometric/typography/grid/legend), improved cartogram kernel (Gaussian-weighted diffusion with adaptive damping), graduated symbology, dependency manager with pip installer, 71 unit tests.
+    PlanX CartoLab 0.1.0 - Initial release: bivariate engine, cartogram, geometric interval, ridge maps, VbA, isometric stacking, HTML annotations.
 
 experimental=False
 deprecated=False

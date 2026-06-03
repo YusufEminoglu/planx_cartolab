@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PlanX CartoLab</title>
+  <meta name="description" content="PlanX CartoLab is a publication-grade QGIS cartography plugin with native 2.5D styling, bivariate maps, cartograms, ridge maps, and layout automation.">
+  <style>
+    :root {
+      --ink: #132025;
+      --muted: #526870;
+      --paper: #f5f7f2;
+      --line: #d7ded8;
+      --teal: #1c7a75;
+      --copper: #b76639;
+      --blue: #315f86;
+      --gold: #c9983b;
+      --plum: #5f4c69;
+      --white: #ffffff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+      letter-spacing: 0;
+    }
+
+    a { color: inherit; }
+
+    .hero {
+      position: relative;
+      min-height: 88vh;
+      overflow: hidden;
+      display: flex;
+      align-items: flex-end;
+      border-bottom: 1px solid var(--line);
+      background: #dfe9e3;
+    }
+
+    #cityCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .hero-overlay {
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(90deg, rgba(245, 247, 242, 0.96) 0%, rgba(245, 247, 242, 0.82) 38%, rgba(245, 247, 242, 0.24) 72%),
+        linear-gradient(0deg, rgba(19, 32, 37, 0.12), rgba(19, 32, 37, 0));
+      pointer-events: none;
+    }
+
+    header {
+      position: fixed;
+      inset: 0 0 auto 0;
+      height: 64px;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      background: rgba(245, 247, 242, 0.84);
+      border-bottom: 1px solid rgba(19, 32, 37, 0.08);
+      backdrop-filter: blur(14px);
+    }
+
+    .brand {
+      font-weight: 800;
+      color: var(--ink);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      background: conic-gradient(from 180deg, var(--teal), var(--gold), var(--copper), var(--blue), var(--teal));
+      border: 1px solid rgba(19, 32, 37, 0.22);
+    }
+
+    nav {
+      display: flex;
+      gap: 18px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #243840;
+    }
+
+    nav a {
+      text-decoration: none;
+      padding: 8px 0;
+      border-bottom: 2px solid transparent;
+    }
+
+    nav a:hover { border-bottom-color: var(--copper); }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      width: min(1180px, calc(100% - 48px));
+      margin: 0 auto;
+      padding: 112px 0 64px;
+    }
+
+    .eyebrow {
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: var(--copper);
+      margin-bottom: 14px;
+    }
+
+    h1 {
+      font-size: clamp(42px, 7vw, 92px);
+      line-height: 0.96;
+      max-width: 860px;
+      margin: 0;
+      color: var(--ink);
+    }
+
+    .hero-copy {
+      max-width: 650px;
+      margin: 24px 0 0;
+      color: #31484f;
+      font-size: 19px;
+      line-height: 1.55;
+      font-weight: 520;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 30px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 10px 16px;
+      text-decoration: none;
+      font-weight: 800;
+      border: 1px solid var(--ink);
+      background: var(--ink);
+      color: var(--white);
+      border-radius: 8px;
+    }
+
+    .button.secondary {
+      background: rgba(255, 255, 255, 0.72);
+      color: var(--ink);
+      border-color: rgba(19, 32, 37, 0.24);
+    }
+
+    main { position: relative; }
+
+    section {
+      width: min(1180px, calc(100% - 48px));
+      margin: 0 auto;
+      padding: 76px 0;
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 28px;
+      margin-bottom: 26px;
+    }
+
+    h2 {
+      font-size: clamp(30px, 4vw, 54px);
+      line-height: 1.02;
+      margin: 0;
+      max-width: 720px;
+      overflow-wrap: anywhere;
+    }
+
+    .section-head p {
+      max-width: 420px;
+      color: var(--muted);
+      line-height: 1.55;
+      margin: 0;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+
+    .feature {
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.72);
+      border-radius: 8px;
+      padding: 18px;
+      min-height: 170px;
+    }
+
+    .feature strong {
+      display: block;
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+
+    .feature p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.48;
+      font-size: 14px;
+    }
+
+    .workflow {
+      display: grid;
+      grid-template-columns: 0.95fr 1.05fr;
+      gap: 24px;
+      align-items: stretch;
+    }
+
+    .workflow-list {
+      border-top: 1px solid var(--line);
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 54px 1fr;
+      gap: 14px;
+      padding: 18px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .num {
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      background: var(--ink);
+      color: var(--white);
+      font-weight: 800;
+      border-radius: 8px;
+    }
+
+    .step h3 {
+      margin: 0 0 6px;
+      font-size: 17px;
+    }
+
+    .step p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.48;
+    }
+
+    .matrix {
+      min-height: 430px;
+      border: 1px solid var(--line);
+      background: #ffffff;
+      border-radius: 8px;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      grid-template-rows: repeat(5, 1fr);
+      gap: 3px;
+      padding: 12px;
+      box-shadow: 0 20px 60px rgba(19, 32, 37, 0.08);
+    }
+
+    .cell {
+      border: 1px solid rgba(19, 32, 37, 0.08);
+      min-height: 62px;
+    }
+
+    .panel-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.75);
+      padding: 20px;
+    }
+
+    .panel h3 {
+      margin: 0 0 10px;
+      font-size: 18px;
+    }
+
+    .panel p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    .codeband {
+      background: #17242a;
+      color: #e8efe8;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .codeband section { padding: 64px 0; }
+
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(0, 0, 0, 0.24);
+      border-radius: 8px;
+      padding: 18px;
+      overflow: auto;
+      color: #dbe8df;
+      line-height: 1.55;
+    }
+
+    footer {
+      padding: 34px 28px;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      border-top: 1px solid var(--line);
+    }
+
+    @media (max-width: 900px) {
+      header { padding: 0 18px; }
+      nav { display: none; }
+      .feature-grid, .workflow, .panel-row { grid-template-columns: 1fr; }
+      .section-head { display: block; }
+      .section-head p { margin-top: 16px; }
+      h2 { font-size: 26px; line-height: 1.1; }
+      .matrix { min-height: 320px; }
+      footer { display: block; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand"><span class="brand-mark"></span>PlanX CartoLab</div>
+    <nav aria-label="Primary">
+      <a href="#features">Features</a>
+      <a href="#workflow">Workflow</a>
+      <a href="#architecture">Architecture</a>
+      <a href="https://github.com/YusufEminoglu/planx_cartolab">GitHub</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <canvas id="cityCanvas" aria-hidden="true"></canvas>
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <div class="eyebrow">QGIS cartography suite</div>
+      <h1>PlanX CartoLab</h1>
+      <p class="hero-copy">Native 2.5D building styling, bivariate cartography, cartograms, ridge maps, uncertainty-aware rendering, and print layout polish in one QGIS plugin.</p>
+      <div class="hero-actions">
+        <a class="button" href="https://github.com/YusufEminoglu/planx_cartolab/releases">Download release</a>
+        <a class="button secondary" href="#workflow">View workflow</a>
+      </div>
+    </div>
+  </section>
+
+  <main>
+    <section id="features">
+      <div class="section-head">
+        <h2>Built for maps that need to be read, defended, and published.</h2>
+        <p>CartoLab keeps the cartographic decisions close to the data: height, uncertainty, dual indicators, geometry distortion, raster surfaces, and layout hierarchy.</p>
+      </div>
+      <div class="feature-grid">
+        <article class="feature"><strong>2.5D Building Style</strong><p>Native QGIS renderer with height fields, material presets, shadows, wall shading, stepped floors, and QML export.</p></article>
+        <article class="feature"><strong>Bivariate Mapping</strong><p>NxN colour matrices for two-variable thematic maps with clean post-processing symbology.</p></article>
+        <article class="feature"><strong>Cartograms</strong><p>Continuous-area distortion for value-proportional polygon outputs.</p></article>
+        <article class="feature"><strong>Ridge Maps</strong><p>Raster scanlines converted into expressive ridge-line vector maps.</p></article>
+        <article class="feature"><strong>Value-by-Alpha</strong><p>Reliability and uncertainty encoded as opacity without losing the primary variable.</p></article>
+        <article class="feature"><strong>Adaptive Classes</strong><p>Geometric Interval, Fisher-Jenks, and Head/Tail Breaks for skewed urban datasets.</p></article>
+        <article class="feature"><strong>Layout Automation</strong><p>Isometric stacks, bivariate legends, typography hierarchy, and minimalist grids.</p></article>
+        <article class="feature"><strong>Feature Inspector</strong><p>Floating HTML cards with radar-style attribute charts for quick map reading.</p></article>
+      </div>
+    </section>
+
+    <section id="workflow">
+      <div class="section-head">
+        <h2>A production workflow inside QGIS.</h2>
+        <p>Use the dashboard for guided work, or launch every algorithm from the Processing Toolbox when building repeatable models.</p>
+      </div>
+      <div class="workflow">
+        <div class="workflow-list">
+          <div class="step"><div class="num">1</div><div><h3>Style the spatial object</h3><p>Apply 2.5D height-field styling to building polygons and export the QML style for reuse.</p></div></div>
+          <div class="step"><div class="num">2</div><div><h3>Classify the indicators</h3><p>Use adaptive classification to understand skew, heavy tails, and natural breaks before mapping.</p></div></div>
+          <div class="step"><div class="num">3</div><div><h3>Encode relationships</h3><p>Build bivariate, Value-by-Alpha, and cartogram outputs for multidimensional urban interpretation.</p></div></div>
+          <div class="step"><div class="num">4</div><div><h3>Finish the layout</h3><p>Add legends, grids, typography, and isometric stacks for presentation-ready map sheets.</p></div></div>
+        </div>
+        <div class="matrix" aria-label="Bivariate colour matrix visual">
+          <span class="cell" style="background:#e8e8e8"></span><span class="cell" style="background:#d3e3df"></span><span class="cell" style="background:#bfded6"></span><span class="cell" style="background:#93c9bf"></span><span class="cell" style="background:#5ab4ac"></span>
+          <span class="cell" style="background:#e5dfd5"></span><span class="cell" style="background:#d2d9cc"></span><span class="cell" style="background:#bed2c4"></span><span class="cell" style="background:#9cbdad"></span><span class="cell" style="background:#6ea996"></span>
+          <span class="cell" style="background:#e1d5c2"></span><span class="cell" style="background:#d0cbb9"></span><span class="cell" style="background:#bfc3b0"></span><span class="cell" style="background:#a7ae99"></span><span class="cell" style="background:#899b82"></span>
+          <span class="cell" style="background:#dccba7"></span><span class="cell" style="background:#ccb994"></span><span class="cell" style="background:#bba982"></span><span class="cell" style="background:#a19470"></span><span class="cell" style="background:#8a7f5f"></span>
+          <span class="cell" style="background:#d8b365"></span><span class="cell" style="background:#c39f58"></span><span class="cell" style="background:#ad8a4b"></span><span class="cell" style="background:#9c7034"></span><span class="cell" style="background:#8c510a"></span>
+        </div>
+      </div>
+    </section>
+
+    <section id="architecture">
+      <div class="section-head">
+        <h2>Compact architecture, strong surfaces.</h2>
+        <p>CartoLab stays dependency-light and QGIS-native while exposing polished user workflows.</p>
+      </div>
+      <div class="panel-row">
+        <article class="panel"><h3>Core engines</h3><p>Pure logic for classification, colour matrices, cartograms, affine transforms, and native 2.5D renderer configuration.</p></article>
+        <article class="panel"><h3>Processing provider</h3><p>Algorithm entry points for repeatable QGIS models and toolbox-driven workflows.</p></article>
+        <article class="panel"><h3>Dashboard UI</h3><p>A production console for modules, diagnostics, 2.5D styling, layout actions, and feature inspection.</p></article>
+      </div>
+    </section>
+
+    <div class="codeband">
+      <section>
+        <pre>Install from ZIP:
+QGIS_Plugin_Releases/planx_cartolab.zip
+
+Main surfaces:
+Plugins > PlanX CartoLab > CartoLab Dashboard
+Plugins > PlanX CartoLab > 2.5D Styling Panel
+Processing Toolbox > PlanX CartoLab
+
+Release package:
+packaging/Build-PluginZip.ps1 -PluginDir planx_cartolab</pre>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <div>PlanX CartoLab by Yusuf Eminoglu</div>
+    <div>QGIS-native cartography for analytical urban planning.</div>
+  </footer>
+
+  <script>
+    const canvas = document.getElementById("cityCanvas");
+    const ctx = canvas.getContext("2d");
+    let width = 0;
+    let height = 0;
+    let time = 0;
+
+    const palette = {
+      ground: "#dfe9e3",
+      grid: "rgba(49, 95, 134, 0.16)",
+      roofA: "#f2cf96",
+      roofB: "#d7e4e8",
+      roofC: "#eadfc8",
+      wallA: "#b36f43",
+      wallB: "#607d8b",
+      wallC: "#4f8f8a",
+      ink: "rgba(19, 32, 37, 0.28)"
+    };
+
+    function resize() {
+      const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      width = canvas.clientWidth;
+      height = canvas.clientHeight;
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function iso(x, y, z) {
+      const ox = width * 0.67;
+      const oy = height * 0.55;
+      return {
+        x: ox + (x - y) * 32,
+        y: oy + (x + y) * 17 - z
+      };
+    }
+
+    function poly(points, fill, stroke) {
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+      ctx.closePath();
+      ctx.fillStyle = fill;
+      ctx.fill();
+      if (stroke) {
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    }
+
+    function drawBlock(x, y, w, d, h, roof, wall) {
+      const a = iso(x, y, 0);
+      const b = iso(x + w, y, 0);
+      const c = iso(x + w, y + d, 0);
+      const e = iso(x, y + d, 0);
+      const az = iso(x, y, h);
+      const bz = iso(x + w, y, h);
+      const cz = iso(x + w, y + d, h);
+      const ez = iso(x, y + d, h);
+
+      poly([b, c, cz, bz], shade(wall, -18), palette.ink);
+      poly([c, e, ez, cz], shade(wall, -30), palette.ink);
+      poly([az, bz, cz, ez], roof, palette.ink);
+      poly([a, b, bz, az], shade(wall, -8), "rgba(19,32,37,0.18)");
+    }
+
+    function shade(hex, amount) {
+      const n = parseInt(hex.slice(1), 16);
+      const r = Math.max(0, Math.min(255, (n >> 16) + amount));
+      const g = Math.max(0, Math.min(255, ((n >> 8) & 255) + amount));
+      const b = Math.max(0, Math.min(255, (n & 255) + amount));
+      return "#" + [r, g, b].map(v => v.toString(16).padStart(2, "0")).join("");
+    }
+
+    function draw() {
+      time += 0.008;
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = palette.ground;
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.strokeStyle = palette.grid;
+      ctx.lineWidth = 1;
+      for (let i = -12; i <= 16; i++) {
+        const p1 = iso(i, -12, 0);
+        const p2 = iso(i, 16, 0);
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.stroke();
+        const p3 = iso(-12, i, 0);
+        const p4 = iso(16, i, 0);
+        ctx.beginPath();
+        ctx.moveTo(p3.x, p3.y);
+        ctx.lineTo(p4.x, p4.y);
+        ctx.stroke();
+      }
+
+      const buildings = [];
+      for (let x = -6; x <= 6; x += 2) {
+        for (let y = -6; y <= 6; y += 2) {
+          const wave = Math.sin(time + x * 0.8 + y * 0.45);
+          const h = 24 + ((x + 7) * (y + 9)) % 88 + wave * 5;
+          const mod = Math.abs((x + y) % 3);
+          buildings.push({ x, y, h, mod });
+        }
+      }
+      buildings.sort((a, b) => (a.x + a.y) - (b.x + b.y));
+      for (const b of buildings) {
+        const roof = b.mod === 0 ? palette.roofA : b.mod === 1 ? palette.roofB : palette.roofC;
+        const wall = b.mod === 0 ? palette.wallA : b.mod === 1 ? palette.wallB : palette.wallC;
+        drawBlock(b.x, b.y, 1.36, 1.36, b.h, roof, wall);
+      }
+
+      requestAnimationFrame(draw);
+    }
+
+    window.addEventListener("resize", resize);
+    resize();
+    draw();
+  </script>
+</body>
+</html>
