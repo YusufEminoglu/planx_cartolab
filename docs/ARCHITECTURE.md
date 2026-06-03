@@ -18,7 +18,7 @@ planx_cartolab/
 
 The `core/` package contains reusable logic:
 
-- `qgis_25d_style.py` builds and applies native 2.5D renderer configuration.
+- `qgis_25d_style.py` builds and applies native 2.5D renderer configuration plus rule-based per-floor colour band renderers.
 - `bivariate_engine.py` handles classification, colour matrices, and alpha calculations.
 - `cartogram_engine.py` performs polygon distortion logic.
 - `affine_matrix.py` supports isometric transformations.

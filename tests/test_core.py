@@ -344,12 +344,47 @@ check("25D floor field detected with spaces", s25d.looks_like_floor_count_field(
 floor_summary = s25d.build_style_summary("Buildings", floor_cfg)
 check("25D floor summary explains source", "Height source: floor count" in floor_summary and "Floor height: 3.5" in floor_summary, floor_summary)
 
+band_cfg = s25d.Style25DConfig(
+    height_field="Kat_Sayisi",
+    height_mode=s25d.HEIGHT_MODE_FLOOR_COUNT,
+    render_mode=s25d.RENDER_MODE_FLOOR_BANDS,
+    floor_palette="planning_bands",
+    floor_height=3.5,
+    max_floors=8,
+)
+floor_count_expr = s25d.build_floor_count_expression(band_cfg)
+check("25D floor count expression rounds safely", "to_int(round(to_real(\"Kat_Sayisi\")))" in floor_count_expr, floor_count_expr)
+check("25D floor count expression clamps negative", "CASE WHEN" in floor_count_expr and "THEN 0" in floor_count_expr, floor_count_expr)
+wall_expr = s25d.build_floor_band_wall_expression(band_cfg, 3)
+roof_expr = s25d.build_floor_band_roof_expression(band_cfg, 3, 8)
+top_roof_expr = s25d.build_floor_band_roof_expression(band_cfg, 8, 8)
+check("25D floor band wall uses extrusion", "segments_to_lines" in wall_expr and "extrude" in wall_expr and "order_parts" in wall_expr, wall_expr)
+check("25D floor band wall gates by floor", ">= 3" in wall_expr, wall_expr)
+check("25D floor band roof gates exact floor", "= 3" in roof_expr and "translate($geometry" in roof_expr, roof_expr)
+check("25D top floor cap catches taller buildings", ">= 8" in top_roof_expr, top_roof_expr)
+check("25D floor band height scales", s25d.floor_band_height(s25d.Style25DConfig(
+    height_field="Kat_Sayisi",
+    height_mode=s25d.HEIGHT_MODE_FLOOR_COUNT,
+    floor_height=3.5,
+    height_scale=2,
+)) == 7.0)
+check("25D floor palette colour valid", s25d.HEX_COLOR_RE.match(s25d.floor_band_color(2, "planning_bands")))
+check("25D floor wall colour differs", s25d.floor_band_color(2, "planning_bands", wall=True) != s25d.floor_band_color(2, "planning_bands"))
+band_summary = s25d.build_style_summary("Buildings", band_cfg)
+check("25D floor band summary names renderer", "Renderer: per-floor colour bands" in band_summary and "Maximum floor bands: 8" in band_summary, band_summary)
+
 order_expr = s25d.build_order_by_expression()
 check("25D order expression uses map extent", "@map_extent_center" in order_expr)
 check("25D presets exist", len(s25d.STYLE_25D_PRESETS) >= 4)
 check("25D preset colours are valid", all(
     s25d.HEX_COLOR_RE.match(p["roof"]) and s25d.HEX_COLOR_RE.match(p["wall"]) and s25d.HEX_COLOR_RE.match(p["shadow"])
     for p in s25d.STYLE_25D_PRESETS.values()
+))
+check("25D floor palettes exist", len(s25d.FLOOR_BAND_PALETTES) >= 3)
+check("25D floor palette colours are valid", all(
+    s25d.HEX_COLOR_RE.match(color)
+    for p in s25d.FLOOR_BAND_PALETTES.values()
+    for color in p["colors"]
 ))
 check("25D colour fallback", s25d.normalise_hex_color("bad", "#123456") == "#123456")
 

@@ -7,10 +7,11 @@ The 2.5D styling panel upgrades rough QML extrusion into a reusable production w
 - Select any loaded polygon layer.
 - Choose a numeric height field or a floor-count field such as `Kat_Sayisi`.
 - For floor counts, set Height source to Floor count field and choose the floor height, usually 3.5 map units per floor.
+- Enable Colour each floor separately for sample-QML-style floor bands where each storey receives its own colour.
 - Pick a material preset.
 - Adjust projection angle, height scale, maximum height, and stepped-floor snapping.
 - Control roof, wall, and shadow colors.
-- Apply the native QGIS `25dRenderer`.
+- Apply either the native QGIS `25dRenderer` or the generated rule-based floor-band renderer.
 - Export the applied QML style for reuse.
 
 ## Bivariate Choropleth

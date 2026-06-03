@@ -15,8 +15,11 @@ from qgis.core import (
 )
 
 from ..core.qgis_25d_style import (
+    FLOOR_BAND_PALETTES,
     HEIGHT_MODE_FLOOR_COUNT,
     HEIGHT_MODE_HEIGHT,
+    RENDER_MODE_FLOOR_BANDS,
+    RENDER_MODE_NATIVE,
     STYLE_25D_PRESETS,
     Style25DConfig,
     apply_25d_renderer,
@@ -29,6 +32,9 @@ class Building25DStyleAlgorithm(QgsProcessingAlgorithm):
     HEIGHT_FIELD = "HEIGHT_FIELD"
     HEIGHT_MODE = "HEIGHT_MODE"
     FLOOR_HEIGHT = "FLOOR_HEIGHT"
+    RENDER_MODE = "RENDER_MODE"
+    FLOOR_PALETTE = "FLOOR_PALETTE"
+    MAX_FLOORS = "MAX_FLOORS"
     PRESET = "PRESET"
     ANGLE = "ANGLE"
     HEIGHT_SCALE = "HEIGHT_SCALE"
@@ -41,9 +47,14 @@ class Building25DStyleAlgorithm(QgsProcessingAlgorithm):
     SUMMARY = "SUMMARY"
 
     PRESET_KEYS = list(STYLE_25D_PRESETS.keys())
+    FLOOR_PALETTE_KEYS = list(FLOOR_BAND_PALETTES.keys())
     HEIGHT_MODE_OPTIONS = [
         ("Height field is already in metres/map units", HEIGHT_MODE_HEIGHT),
         ("Floor count field (floors x floor height)", HEIGHT_MODE_FLOOR_COUNT),
+    ]
+    RENDER_MODE_OPTIONS = [
+        ("Native 2.5D material", RENDER_MODE_NATIVE),
+        ("Per-floor colour bands", RENDER_MODE_FLOOR_BANDS),
     ]
 
     def name(self) -> str:
@@ -66,7 +77,7 @@ class Building25DStyleAlgorithm(QgsProcessingAlgorithm):
             "Apply a polished native QGIS 2.5D renderer to a loaded polygon layer. "
             "The selected field can be a real height or a floor-count field. CartoLab controls "
             "the roof colour, wall colour, shadow, viewing angle, optional height "
-            "clamp, and optional stepped extrusion."
+            "clamp, optional stepped extrusion, and sample-QML-style per-floor colour bands."
         )
 
     def initAlgorithm(self, config=None):
@@ -91,6 +102,26 @@ class Building25DStyleAlgorithm(QgsProcessingAlgorithm):
             defaultValue=3.5,
             minValue=0.01,
             maxValue=100.0,
+        ))
+        self.addParameter(QgsProcessingParameterEnum(
+            self.RENDER_MODE,
+            "Renderer style",
+            options=[m[0] for m in self.RENDER_MODE_OPTIONS],
+            defaultValue=0,
+        ))
+        self.addParameter(QgsProcessingParameterEnum(
+            self.FLOOR_PALETTE,
+            "Floor colour palette, used by per-floor bands",
+            options=[FLOOR_BAND_PALETTES[k]["label"] for k in self.FLOOR_PALETTE_KEYS],
+            defaultValue=0,
+        ))
+        self.addParameter(QgsProcessingParameterNumber(
+            self.MAX_FLOORS,
+            "Maximum floor bands, used by per-floor bands",
+            type=QgsProcessingParameterNumber.Integer,
+            defaultValue=16,
+            minValue=1,
+            maxValue=80,
         ))
         self.addParameter(QgsProcessingParameterEnum(
             self.PRESET,
@@ -160,6 +191,10 @@ class Building25DStyleAlgorithm(QgsProcessingAlgorithm):
         height_field = self.parameterAsString(parameters, self.HEIGHT_FIELD, context)
         mode_idx = self.parameterAsEnum(parameters, self.HEIGHT_MODE, context)
         height_mode = self.HEIGHT_MODE_OPTIONS[mode_idx][1] if 0 <= mode_idx < len(self.HEIGHT_MODE_OPTIONS) else HEIGHT_MODE_HEIGHT
+        render_idx = self.parameterAsEnum(parameters, self.RENDER_MODE, context)
+        render_mode = self.RENDER_MODE_OPTIONS[render_idx][1] if 0 <= render_idx < len(self.RENDER_MODE_OPTIONS) else RENDER_MODE_NATIVE
+        palette_idx = self.parameterAsEnum(parameters, self.FLOOR_PALETTE, context)
+        floor_palette = self.FLOOR_PALETTE_KEYS[palette_idx] if 0 <= palette_idx < len(self.FLOOR_PALETTE_KEYS) else "civic_spectrum"
         preset_idx = self.parameterAsEnum(parameters, self.PRESET, context)
         preset_key = self.PRESET_KEYS[preset_idx] if 0 <= preset_idx < len(self.PRESET_KEYS) else "warm_civic"
 
@@ -180,6 +215,9 @@ class Building25DStyleAlgorithm(QgsProcessingAlgorithm):
             wall_shading=self.parameterAsBool(parameters, self.WALL_SHADING, context),
             height_mode=height_mode,
             floor_height=self.parameterAsDouble(parameters, self.FLOOR_HEIGHT, context),
+            render_mode=render_mode,
+            floor_palette=floor_palette,
+            max_floors=self.parameterAsInt(parameters, self.MAX_FLOORS, context),
         )
 
         try:

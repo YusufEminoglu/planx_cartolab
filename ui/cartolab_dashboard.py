@@ -38,6 +38,7 @@ from qgis.PyQt.QtWidgets import (
     QMessageBox,
     QAbstractItemView,
     QScrollArea,
+    QSpinBox,
     QTabWidget,
     QTextBrowser,
     QVBoxLayout,
@@ -46,8 +47,11 @@ from qgis.PyQt.QtWidgets import (
 from qgis.core import Qgis, QgsApplication, QgsProject, QgsMapLayer
 
 from ..core.qgis_25d_style import (
+    FLOOR_BAND_PALETTES,
     HEIGHT_MODE_FLOOR_COUNT,
     HEIGHT_MODE_HEIGHT,
+    RENDER_MODE_FLOOR_BANDS,
+    RENDER_MODE_NATIVE,
     STYLE_25D_PRESETS,
     Style25DConfig,
     apply_25d_renderer,
@@ -194,7 +198,7 @@ class CartoLabDashboard(QDialog):
             QComboBox {{
                 background: #ffffff; border: 1px solid #c9d9de; border-radius: 8px; padding: 6px; color: #17323a;
             }}
-            QDoubleSpinBox {{
+            QDoubleSpinBox, QSpinBox {{
                 background: #ffffff; border: 1px solid #c9d9de; border-radius: 8px; padding: 5px; color: #17323a;
             }}
             QCheckBox {{ color: #17323a; padding: 3px; }}
@@ -598,6 +602,28 @@ class CartoLabDashboard(QDialog):
         geom_layout.addWidget(self.step25d_spin, 2, 2, 1, 2)
         lyt.addWidget(geom_group)
 
+        floor_group = self._make_group("Floor Colour Bands")
+        floor_layout = QGridLayout(floor_group)
+        self.floor_bands25d_check = QCheckBox("Colour each floor separately")
+        self.floor_bands25d_check.toggled.connect(self._on_25d_floor_bands_changed)
+        self.floor_palette25d_label = QLabel("Floor palette:")
+        self.floor_palette25d_combo = QComboBox()
+        for key, palette in FLOOR_BAND_PALETTES.items():
+            self.floor_palette25d_combo.addItem(palette["label"], key)
+        self.floor_palette25d_combo.currentIndexChanged.connect(self._update_25d_status_preview)
+        self.max_floors25d_label = QLabel("Maximum floor bands:")
+        self.max_floors25d_spin = QSpinBox()
+        self.max_floors25d_spin.setRange(1, 80)
+        self.max_floors25d_spin.setValue(16)
+        self.max_floors25d_spin.valueChanged.connect(self._update_25d_status_preview)
+
+        floor_layout.addWidget(self.floor_bands25d_check, 0, 0, 1, 2)
+        floor_layout.addWidget(self.floor_palette25d_label, 1, 0)
+        floor_layout.addWidget(self.floor_palette25d_combo, 1, 1)
+        floor_layout.addWidget(self.max_floors25d_label, 1, 2)
+        floor_layout.addWidget(self.max_floors25d_spin, 1, 3)
+        lyt.addWidget(floor_group)
+
         light_group = self._make_group("Lighting and Materials")
         light_layout = QGridLayout(light_group)
         self.roof25d_btn = self._make_color_button("#f2cf96")
@@ -765,7 +791,27 @@ class CartoLabDashboard(QDialog):
         is_floor_mode = self.mode25d_combo.currentData() == HEIGHT_MODE_FLOOR_COUNT
         self.floor_height25d_label.setVisible(is_floor_mode)
         self.floor_height25d_spin.setVisible(is_floor_mode)
+        if hasattr(self, "floor_bands25d_check"):
+            self.floor_bands25d_check.setEnabled(is_floor_mode)
+            if not is_floor_mode:
+                self.floor_bands25d_check.setChecked(False)
+            self._on_25d_floor_bands_changed()
         if is_floor_mode:
+            self.step25d_check.setChecked(False)
+        self._update_25d_status_preview()
+
+    def _on_25d_floor_bands_changed(self) -> None:
+        if not hasattr(self, "floor_palette25d_combo"):
+            return
+        is_floor_mode = self.mode25d_combo.currentData() == HEIGHT_MODE_FLOOR_COUNT
+        enabled = bool(self.floor_bands25d_check.isChecked() and is_floor_mode)
+        self.floor_palette25d_label.setVisible(enabled)
+        self.floor_palette25d_combo.setVisible(enabled)
+        self.max_floors25d_label.setVisible(enabled)
+        self.max_floors25d_spin.setVisible(enabled)
+        self.step25d_check.setEnabled(not enabled)
+        self.step25d_spin.setEnabled(not enabled)
+        if enabled:
             self.step25d_check.setChecked(False)
         self._update_25d_status_preview()
 
@@ -800,6 +846,9 @@ class CartoLabDashboard(QDialog):
             wall_shading=self.wall_shading25d_check.isChecked(),
             height_mode=self.mode25d_combo.currentData() or HEIGHT_MODE_HEIGHT,
             floor_height=self.floor_height25d_spin.value(),
+            render_mode=RENDER_MODE_FLOOR_BANDS if self.floor_bands25d_check.isChecked() else RENDER_MODE_NATIVE,
+            floor_palette=self.floor_palette25d_combo.currentData() or "civic_spectrum",
+            max_floors=self.max_floors25d_spin.value(),
         )
 
     def _update_25d_status_preview(self) -> None:

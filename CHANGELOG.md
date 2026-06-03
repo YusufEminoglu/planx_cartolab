@@ -1,5 +1,13 @@
 # Changelog - PlanX CartoLab
 
+## [1.2.3] - 2026-06-03
+
+- Add per-floor colour band renderer for 2.5D styling
+
+## [1.2.3] - 2026-06-03
+
+- Add sample-QML-style per-floor colour band rendering for floor-count 2.5D building styling
+
 ## [1.2.2] - 2026-06-03
 
 - Add explicit floor-count mode for 2.5D building styling
