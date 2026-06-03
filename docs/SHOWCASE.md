@@ -5,7 +5,8 @@
 The 2.5D styling panel upgrades rough QML extrusion into a reusable production workflow:
 
 - Select any loaded polygon layer.
-- Choose a numeric height field.
+- Choose a numeric height field or a floor-count field such as `Kat_Sayisi`.
+- For floor counts, set Height source to Floor count field and choose the floor height, usually 3.5 map units per floor.
 - Pick a material preset.
 - Adjust projection angle, height scale, maximum height, and stepped-floor snapping.
 - Control roof, wall, and shadow colors.

@@ -332,6 +332,17 @@ check("25D expression clamps height with CASE", "CASE WHEN" in expr and "THEN 60
 summary = s25d.build_style_summary("Buildings", cfg)
 check("25D summary names layer", "Buildings" in summary)
 check("25D summary names field", "Hmax" in summary)
+floor_cfg = s25d.Style25DConfig(
+    height_field="Kat_Sayisi",
+    height_mode=s25d.HEIGHT_MODE_FLOOR_COUNT,
+    floor_height=3.5,
+)
+floor_expr = s25d.build_height_expression(floor_cfg)
+check("25D floor count expression uses floor height", '"Kat_Sayisi"' in floor_expr and "* 3.5" in floor_expr, floor_expr)
+check("25D floor field detected", s25d.looks_like_floor_count_field("Kat_Sayisi"))
+check("25D floor field detected with spaces", s25d.looks_like_floor_count_field("Kat Sayisi"))
+floor_summary = s25d.build_style_summary("Buildings", floor_cfg)
+check("25D floor summary explains source", "Height source: floor count" in floor_summary and "Floor height: 3.5" in floor_summary, floor_summary)
 
 order_expr = s25d.build_order_by_expression()
 check("25D order expression uses map extent", "@map_extent_center" in order_expr)

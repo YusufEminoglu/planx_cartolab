@@ -15,6 +15,8 @@ from qgis.core import (
 )
 
 from ..core.qgis_25d_style import (
+    HEIGHT_MODE_FLOOR_COUNT,
+    HEIGHT_MODE_HEIGHT,
     STYLE_25D_PRESETS,
     Style25DConfig,
     apply_25d_renderer,
@@ -25,6 +27,8 @@ from ..core.qgis_25d_style import (
 class Building25DStyleAlgorithm(QgsProcessingAlgorithm):
     INPUT = "INPUT"
     HEIGHT_FIELD = "HEIGHT_FIELD"
+    HEIGHT_MODE = "HEIGHT_MODE"
+    FLOOR_HEIGHT = "FLOOR_HEIGHT"
     PRESET = "PRESET"
     ANGLE = "ANGLE"
     HEIGHT_SCALE = "HEIGHT_SCALE"
@@ -37,6 +41,10 @@ class Building25DStyleAlgorithm(QgsProcessingAlgorithm):
     SUMMARY = "SUMMARY"
 
     PRESET_KEYS = list(STYLE_25D_PRESETS.keys())
+    HEIGHT_MODE_OPTIONS = [
+        ("Height field is already in metres/map units", HEIGHT_MODE_HEIGHT),
+        ("Floor count field (floors x floor height)", HEIGHT_MODE_FLOOR_COUNT),
+    ]
 
     def name(self) -> str:
         return "building_25d_style"
@@ -56,7 +64,7 @@ class Building25DStyleAlgorithm(QgsProcessingAlgorithm):
     def shortHelpString(self) -> str:
         return (
             "Apply a polished native QGIS 2.5D renderer to a loaded polygon layer. "
-            "The selected height field drives the extrusion, while CartoLab controls "
+            "The selected field can be a real height or a floor-count field. CartoLab controls "
             "the roof colour, wall colour, shadow, viewing angle, optional height "
             "clamp, and optional stepped extrusion."
         )
@@ -69,6 +77,20 @@ class Building25DStyleAlgorithm(QgsProcessingAlgorithm):
             "Height field",
             parentLayerParameterName=self.INPUT,
             type=QgsProcessingParameterField.Numeric,
+        ))
+        self.addParameter(QgsProcessingParameterEnum(
+            self.HEIGHT_MODE,
+            "Height source",
+            options=[m[0] for m in self.HEIGHT_MODE_OPTIONS],
+            defaultValue=0,
+        ))
+        self.addParameter(QgsProcessingParameterNumber(
+            self.FLOOR_HEIGHT,
+            "Floor height, used only when height source is floor count",
+            type=QgsProcessingParameterNumber.Double,
+            defaultValue=3.5,
+            minValue=0.01,
+            maxValue=100.0,
         ))
         self.addParameter(QgsProcessingParameterEnum(
             self.PRESET,
@@ -136,6 +158,8 @@ class Building25DStyleAlgorithm(QgsProcessingAlgorithm):
     def processAlgorithm(self, parameters, context, feedback):
         layer = self.parameterAsVectorLayer(parameters, self.INPUT, context)
         height_field = self.parameterAsString(parameters, self.HEIGHT_FIELD, context)
+        mode_idx = self.parameterAsEnum(parameters, self.HEIGHT_MODE, context)
+        height_mode = self.HEIGHT_MODE_OPTIONS[mode_idx][1] if 0 <= mode_idx < len(self.HEIGHT_MODE_OPTIONS) else HEIGHT_MODE_HEIGHT
         preset_idx = self.parameterAsEnum(parameters, self.PRESET, context)
         preset_key = self.PRESET_KEYS[preset_idx] if 0 <= preset_idx < len(self.PRESET_KEYS) else "warm_civic"
 
@@ -154,6 +178,8 @@ class Building25DStyleAlgorithm(QgsProcessingAlgorithm):
             shadow_enabled=self.parameterAsBool(parameters, self.SHADOW_ENABLED, context),
             shadow_spread=self.parameterAsDouble(parameters, self.SHADOW_SPREAD, context),
             wall_shading=self.parameterAsBool(parameters, self.WALL_SHADING, context),
+            height_mode=height_mode,
+            floor_height=self.parameterAsDouble(parameters, self.FLOOR_HEIGHT, context),
         )
 
         try:

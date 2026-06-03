@@ -1,6 +1,6 @@
 [general]
 name=PlanX CartoLab
-version=1.2.1
+version=1.2.2
 hasProcessingProvider=yes
 
 category=Vector
@@ -22,6 +22,7 @@ qgisMinimumVersion=3.28
 qgisMaximumVersion=4.99
 
 changelog=
+    PlanX CartoLab 1.2.2 - Added explicit floor-count mode for 2.5D styling so fields such as Kat_Sayisi render as floor count times floor height.
     PlanX CartoLab 1.2.1 - Fixed QGIS 2.5D height expression compatibility by replacing unsupported greatest/least clamp functions with CASE expressions.
     PlanX CartoLab 1.2.0 - Added native QGIS 2.5D building styling panel, Processing algorithm, polished material presets, optional stepped floors, soft shadows, and QML export.
     PlanX CartoLab 1.0.0 - Production release: generated PlanX ecosystem icon, QGIS 4/Qt6 dashboard compatibility fixes, and QGIS 3.44/QGIS 4 runtime smoke coverage.

@@ -46,11 +46,14 @@ from qgis.PyQt.QtWidgets import (
 from qgis.core import Qgis, QgsApplication, QgsProject, QgsMapLayer
 
 from ..core.qgis_25d_style import (
+    HEIGHT_MODE_FLOOR_COUNT,
+    HEIGHT_MODE_HEIGHT,
     STYLE_25D_PRESETS,
     Style25DConfig,
     apply_25d_renderer,
     build_style_summary,
     field_is_numeric,
+    looks_like_floor_count_field,
     normalise_hex_color,
     preset_config,
 )
@@ -555,32 +558,44 @@ class CartoLabDashboard(QDialog):
 
         source_layout.addWidget(QLabel("Height field:"), 1, 0)
         self.height25d_combo = QComboBox()
+        self.height25d_combo.currentIndexChanged.connect(self._on_25d_height_field_changed)
         source_layout.addWidget(self.height25d_combo, 1, 1, 1, 2)
 
-        source_layout.addWidget(QLabel("Visual preset:"), 2, 0)
+        source_layout.addWidget(QLabel("Height source:"), 2, 0)
+        self.mode25d_combo = QComboBox()
+        self.mode25d_combo.addItem("Height field is already in metres/map units", HEIGHT_MODE_HEIGHT)
+        self.mode25d_combo.addItem("Floor count field (floors x floor height)", HEIGHT_MODE_FLOOR_COUNT)
+        self.mode25d_combo.currentIndexChanged.connect(self._on_25d_mode_changed)
+        source_layout.addWidget(self.mode25d_combo, 2, 1, 1, 2)
+
+        source_layout.addWidget(QLabel("Visual preset:"), 3, 0)
         self.preset25d_combo = QComboBox()
         for key, preset in STYLE_25D_PRESETS.items():
             self.preset25d_combo.addItem(preset["label"], key)
         self.preset25d_combo.currentIndexChanged.connect(self._on_25d_preset_changed)
-        source_layout.addWidget(self.preset25d_combo, 2, 1, 1, 2)
+        source_layout.addWidget(self.preset25d_combo, 3, 1, 1, 2)
         lyt.addWidget(source_group)
 
         geom_group = self._make_group("Extrusion Geometry")
         geom_layout = QGridLayout(geom_group)
         self.angle25d_spin = self._make_double_spin(0, 359, 110, 1, " degrees")
         self.scale25d_spin = self._make_double_spin(0.01, 100, 1, 0.1, "x")
+        self.floor_height25d_spin = self._make_double_spin(0.01, 100, 3.5, 0.1, " map units/floor")
         self.max25d_spin = self._make_double_spin(0, 1000000, 0, 1, " map units")
         self.step25d_check = QCheckBox("Snap heights to stepped floors")
         self.step25d_spin = self._make_double_spin(0.01, 100000, 3.5, 0.1, " map units")
 
         geom_layout.addWidget(QLabel("Projection angle:"), 0, 0)
         geom_layout.addWidget(self.angle25d_spin, 0, 1)
-        geom_layout.addWidget(QLabel("Height scale:"), 0, 2)
+        geom_layout.addWidget(QLabel("Vertical scale:"), 0, 2)
         geom_layout.addWidget(self.scale25d_spin, 0, 3)
-        geom_layout.addWidget(QLabel("Maximum height:"), 1, 0)
-        geom_layout.addWidget(self.max25d_spin, 1, 1)
-        geom_layout.addWidget(self.step25d_check, 1, 2)
-        geom_layout.addWidget(self.step25d_spin, 1, 3)
+        self.floor_height25d_label = QLabel("Floor height:")
+        geom_layout.addWidget(self.floor_height25d_label, 1, 0)
+        geom_layout.addWidget(self.floor_height25d_spin, 1, 1)
+        geom_layout.addWidget(QLabel("Maximum height:"), 1, 2)
+        geom_layout.addWidget(self.max25d_spin, 1, 3)
+        geom_layout.addWidget(self.step25d_check, 2, 0, 1, 2)
+        geom_layout.addWidget(self.step25d_spin, 2, 2, 1, 2)
         lyt.addWidget(geom_group)
 
         light_group = self._make_group("Lighting and Materials")
@@ -633,6 +648,7 @@ class CartoLabDashboard(QDialog):
         self.tabs.addTab(self.tab_25d, "2.5D Styling")
         self._refresh_25d_layers()
         self._on_25d_preset_changed()
+        self._on_25d_mode_changed()
 
     def _make_double_spin(self, minimum: float, maximum: float, value: float, step: float, suffix: str) -> QDoubleSpinBox:
         spin = QDoubleSpinBox()
@@ -641,6 +657,7 @@ class CartoLabDashboard(QDialog):
         spin.setSingleStep(step)
         spin.setValue(value)
         spin.setSuffix(suffix)
+        spin.valueChanged.connect(self._update_25d_status_preview)
         return spin
 
     def _make_color_button(self, color: str) -> QPushButton:
@@ -715,15 +732,41 @@ class CartoLabDashboard(QDialog):
         if layer:
             fields = list(layer.fields())
             numeric_fields = [f for f in fields if field_is_numeric(f)]
-            for field in numeric_fields or fields:
+            floor_fields = [f for f in fields if looks_like_floor_count_field(f.name())]
+            candidate_fields = []
+            for field in numeric_fields + floor_fields:
+                if field.name() not in [existing.name() for existing in candidate_fields]:
+                    candidate_fields.append(field)
+            for field in candidate_fields or fields:
                 self.height25d_combo.addItem(field.name(), field.name())
-            preferred = ["Hmax", "Height", "height", "Heights", "building_height", "Yukseklik", "Kat_Sayisi"]
+            preferred = ["Kat_Sayisi", "KatSayisi", "kat_sayisi", "floors", "floor_count", "Hmax", "Height", "height", "Heights", "building_height", "Yukseklik"]
             target = current if current else next((name for name in preferred if self.height25d_combo.findData(name) >= 0), None)
             if target:
                 idx = self.height25d_combo.findData(target)
                 if idx >= 0:
                     self.height25d_combo.setCurrentIndex(idx)
         self.height25d_combo.blockSignals(False)
+        self._on_25d_height_field_changed()
+        self._update_25d_status_preview()
+
+    def _on_25d_height_field_changed(self) -> None:
+        if not hasattr(self, "mode25d_combo"):
+            return
+        field_name = self.height25d_combo.currentData() or ""
+        if looks_like_floor_count_field(field_name):
+            idx = self.mode25d_combo.findData(HEIGHT_MODE_FLOOR_COUNT)
+            if idx >= 0:
+                self.mode25d_combo.setCurrentIndex(idx)
+        self._update_25d_status_preview()
+
+    def _on_25d_mode_changed(self) -> None:
+        if not hasattr(self, "floor_height25d_label"):
+            return
+        is_floor_mode = self.mode25d_combo.currentData() == HEIGHT_MODE_FLOOR_COUNT
+        self.floor_height25d_label.setVisible(is_floor_mode)
+        self.floor_height25d_spin.setVisible(is_floor_mode)
+        if is_floor_mode:
+            self.step25d_check.setChecked(False)
         self._update_25d_status_preview()
 
     def _on_25d_preset_changed(self) -> None:
@@ -755,6 +798,8 @@ class CartoLabDashboard(QDialog):
             shadow_enabled=self.shadow25d_check.isChecked(),
             shadow_spread=self.shadow_spread25d_spin.value(),
             wall_shading=self.wall_shading25d_check.isChecked(),
+            height_mode=self.mode25d_combo.currentData() or HEIGHT_MODE_HEIGHT,
+            floor_height=self.floor_height25d_spin.value(),
         )
 
     def _update_25d_status_preview(self) -> None:

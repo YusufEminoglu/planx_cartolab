@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [1.2.2] - 2026-06-03
+
+- Add explicit floor-count mode for 2.5D building styling
+
 ## [1.2.1] - 2026-06-03
 
 - Fix QGIS 2.5D height expression parser compatibility

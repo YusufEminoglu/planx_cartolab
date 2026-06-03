@@ -29,3 +29,5 @@ Use polygon layers with numeric height fields for 2.5D styling. Good candidate f
 - `Kat_Sayisi`
 
 The plugin UI remains English-only; field names can come from the user's source data.
+
+For floor-count fields, select the field and set **Height source** to **Floor count field**. With `Floor height = 3.5`, a feature with `Kat_Sayisi = 5` renders as `17.5` map units high.

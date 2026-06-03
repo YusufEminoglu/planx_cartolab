@@ -3,7 +3,7 @@
 > Publication-grade cartography for QGIS: native 2.5D building styling, bivariate maps, cartograms, ridge maps, Value-by-Alpha uncertainty, and layout automation.
 
 [![QGIS](https://img.shields.io/badge/QGIS-3.28%20to%204.99-589632?style=for-the-badge&logo=qgis&logoColor=white)](https://qgis.org)
-[![Version](https://img.shields.io/badge/version-1.2.1-1f6f8b?style=for-the-badge)](metadata.txt)
+[![Version](https://img.shields.io/badge/version-1.2.2-1f6f8b?style=for-the-badge)](metadata.txt)
 [![License](https://img.shields.io/badge/license-GPL--3.0-111827?style=for-the-badge)](LICENSE)
 [![PlanX](https://img.shields.io/badge/PlanX-CartoLab-c47a3b?style=for-the-badge)](docs/index.html)
 
@@ -45,10 +45,13 @@ The 2.5D panel is designed as a better, reusable version of ad hoc QML extrusion
 
 - Native QGIS renderer rather than a fragile pasted QML block.
 - Clean English labels and stable presets.
-- Height expression generated from the selected numeric field.
+- Height expression generated from the selected height or floor-count field.
+- Floor-count mode for fields such as `Kat_Sayisi`: rendered height = floor count x floor height.
 - Optional floor-step snapping for planning-height layers.
 - Soft shadow and directional wall shading controls.
 - One-click QML export for reuse across projects.
+
+For floor-count data, select `Kat_Sayisi` as the height field, set **Height source** to **Floor count field**, and keep **Floor height** at `3.5` map units unless your project uses another floor height.
 
 ## Repository Structure
 
