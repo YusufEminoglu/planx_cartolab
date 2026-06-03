@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [1.2.1] - 2026-06-03
+
+- Fix QGIS 2.5D height expression parser compatibility
+
 ## [1.2.0] - 2026-06-03
 
 ### Added

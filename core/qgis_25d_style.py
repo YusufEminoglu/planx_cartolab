@@ -103,9 +103,10 @@ def build_height_expression(config: Style25DConfig) -> str:
         step = max(float(config.step_height), 0.01)
         expr = f"round(({expr}) / {format_number(step)}) * {format_number(step)}"
 
-    expr = f"greatest(0, {expr})"
+    expr = f"(CASE WHEN ({expr}) < 0 THEN 0 ELSE ({expr}) END)"
     if config.max_height and config.max_height > 0:
-        expr = f"least({format_number(config.max_height)}, {expr})"
+        max_height = format_number(config.max_height)
+        expr = f"(CASE WHEN ({expr}) > {max_height} THEN {max_height} ELSE ({expr}) END)"
     return expr
 
 
