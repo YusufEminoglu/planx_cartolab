@@ -362,6 +362,8 @@ check("25D floor band wall uses extrusion", "segments_to_lines" in wall_expr and
 check("25D floor band wall gates by floor", ">= 3" in wall_expr, wall_expr)
 check("25D floor band roof gates exact floor", "= 3" in roof_expr and "translate($geometry" in roof_expr, roof_expr)
 check("25D top floor cap catches taller buildings", ">= 8" in top_roof_expr, top_roof_expr)
+check("25D floor legend labels regular floors", s25d.build_floor_band_legend_label(band_cfg, 3, 8) == "Floor 3 (10.5 units)")
+check("25D floor legend labels top catch-all", s25d.build_floor_band_legend_label(band_cfg, 8, 8) == "Floor 8+ (28 units)")
 check("25D floor band height scales", s25d.floor_band_height(s25d.Style25DConfig(
     height_field="Kat_Sayisi",
     height_mode=s25d.HEIGHT_MODE_FLOOR_COUNT,
@@ -383,6 +385,7 @@ check("25D floor palette colour valid", s25d.HEX_COLOR_RE.match(s25d.floor_band_
 check("25D floor wall colour differs", s25d.floor_band_color(2, "planning_bands", wall=True) != s25d.floor_band_color(2, "planning_bands"))
 band_summary = s25d.build_style_summary("Buildings", band_cfg)
 check("25D floor band summary names renderer", "Renderer: per-floor colour bands" in band_summary and "Maximum floor bands: 8" in band_summary, band_summary)
+check("25D floor band summary explains legend", "Legend: one rule per floor band" in band_summary, band_summary)
 
 order_expr = s25d.build_order_by_expression()
 check("25D order expression uses map extent", "@map_extent_center" in order_expr)

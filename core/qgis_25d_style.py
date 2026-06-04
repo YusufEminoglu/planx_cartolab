@@ -223,6 +223,16 @@ def floor_band_color(floor_index: int, palette_key: str, wall: bool = False) -> 
     return adjust_hex_color(color, 0.76) if wall else normalise_hex_color(color, "#f4d35e")
 
 
+def build_floor_band_legend_label(config: Style25DConfig, floor_index: int, max_floors: int) -> str:
+    floor_index = max(1, int(floor_index))
+    max_floor = max(1, int(max_floors))
+    label = f"Floor {floor_index}"
+    if floor_index >= max_floor:
+        label += "+"
+    top_height = format_number(floor_index * floor_band_height(config))
+    return f"{label} ({top_height} units)"
+
+
 def build_height_expression(config: Style25DConfig) -> str:
     """Build the expression evaluated by QGIS as @qgis_25d_height."""
     field_expr = f"coalesce(to_real({quote_field_name(config.height_field)}), 0)"
@@ -348,6 +358,7 @@ def build_style_summary(layer_name: str, config: Style25DConfig, resolved_max_fl
                 lines.append("Maximum floor bands: auto from layer")
         else:
             lines.append(f"Maximum floor bands: {sanitised_max_floors(config)}")
+        lines.append("Legend: one rule per floor band")
     if config.height_scale != 1.0:
         lines.append(f"Vertical scale: {format_number(config.height_scale)}x")
     if config.stepped:
@@ -433,6 +444,7 @@ def _set_layer_25d_properties(layer, config: Style25DConfig) -> None:
     layer.setCustomProperty("planx_cartolab/25d_floor_palette", config.floor_palette)
     layer.setCustomProperty("planx_cartolab/25d_max_floors", int(sanitised_max_floors(config)))
     layer.setCustomProperty("planx_cartolab/25d_max_floors_mode", "auto" if is_auto_max_floors(config) else "manual")
+    layer.setCustomProperty("planx_cartolab/25d_floor_legend", "one_rule_per_floor")
     layer.setCustomProperty("planx_cartolab/25d_step_height", float(config.step_height))
     layer.setCustomProperty("planx_cartolab/25d_max_height", float(config.max_height))
 
@@ -446,19 +458,20 @@ def _apply_floor_band_renderer(layer, config: Style25DConfig) -> str:
     _set_layer_25d_properties(layer, config)
     max_floors = resolve_max_floors(layer, config)
     layer.setCustomProperty("planx_cartolab/25d_resolved_max_floors", int(max_floors))
-    symbol = _empty_fill_symbol()
 
-    if config.shadow_enabled:
-        shadow_symbol = _make_fill_symbol(
-            hex_to_rgba(config.shadow_color, 72),
-            hex_to_rgba(config.shadow_color, 0),
-            outline_width=0.0,
-        )
-        symbol.appendSymbolLayer(
-            _make_geometry_generator_layer(build_floor_band_shadow_expression(config), shadow_symbol, 0)
-        )
-
+    root = QgsRuleBasedRenderer.Rule(None)
     for floor_index in range(1, max_floors + 1):
+        symbol = _empty_fill_symbol()
+        if floor_index == 1 and config.shadow_enabled:
+            shadow_symbol = _make_fill_symbol(
+                hex_to_rgba(config.shadow_color, 72),
+                hex_to_rgba(config.shadow_color, 0),
+                outline_width=0.0,
+            )
+            symbol.appendSymbolLayer(
+                _make_geometry_generator_layer(build_floor_band_shadow_expression(config), shadow_symbol, 0)
+            )
+
         roof_color = floor_band_color(floor_index, config.floor_palette, wall=False)
         wall_color = floor_band_color(floor_index, config.floor_palette, wall=True)
         outline = hex_to_rgba(adjust_hex_color(wall_color, 0.72), 96)
@@ -490,8 +503,16 @@ def _apply_floor_band_renderer(layer, config: Style25DConfig) -> str:
             )
         )
 
-    root = QgsRuleBasedRenderer.Rule(None)
-    root.appendChild(QgsRuleBasedRenderer.Rule(symbol, 0, 0, "", f"Per-floor bands 1-{max_floors}"))
+        root.appendChild(
+            QgsRuleBasedRenderer.Rule(
+                symbol,
+                0,
+                0,
+                "",
+                build_floor_band_legend_label(config, floor_index, max_floors),
+            )
+        )
+
     renderer = QgsRuleBasedRenderer(root)
     renderer.setUsingSymbolLevels(True)
     renderer.setOrderByEnabled(True)

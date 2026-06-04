@@ -3,7 +3,7 @@
 > Publication-grade cartography for QGIS: native 2.5D building styling, bivariate maps, cartograms, ridge maps, Value-by-Alpha uncertainty, and layout automation.
 
 [![QGIS](https://img.shields.io/badge/QGIS-3.28%20to%204.99-589632?style=for-the-badge&logo=qgis&logoColor=white)](https://qgis.org)
-[![Version](https://img.shields.io/badge/version-1.2.5-1f6f8b?style=for-the-badge)](metadata.txt)
+[![Version](https://img.shields.io/badge/version-1.2.6-1f6f8b?style=for-the-badge)](metadata.txt)
 [![License](https://img.shields.io/badge/license-GPL--3.0-111827?style=for-the-badge)](LICENSE)
 [![PlanX](https://img.shields.io/badge/PlanX-CartoLab-c47a3b?style=for-the-badge)](docs/index.html)
 
@@ -24,7 +24,7 @@ Folder: /docs
 
 | Area | Capability |
 |------|------------|
-| 2.5D styling | Native QGIS `25dRenderer`, sample-QML-style per-floor colour bands, height-field extrusion, material presets, shadows, wall shading, optional stepped floors, QML export. |
+| 2.5D styling | Native QGIS `25dRenderer`, sample-QML-style per-floor colour bands, legend-friendly floor rules, height-field extrusion, material presets, shadows, wall shading, optional stepped floors, QML export. |
 | Classification | Adaptive Geometric Interval Classification, Fisher-Jenks, and Head/Tail Breaks for skewed urban indicators. |
 | Thematic mapping | Bivariate choropleths and Value-by-Alpha maps for dual variables and reliability-aware visualisation. |
 | Distortion | Continuous-area cartograms for value-proportional polygon geometry. |
@@ -47,12 +47,12 @@ The 2.5D panel is designed as a better, reusable version of ad hoc QML extrusion
 - Clean English labels and stable presets.
 - Height expression generated from the selected height or floor-count field.
 - Floor-count mode for fields such as `Kat_Sayisi`: rendered height = floor count x floor height.
-- Per-floor colour bands for `Kat_Sayisi`-style layers, with selectable palettes and automatic maximum floor-band detection.
+- Per-floor colour bands for `Kat_Sayisi`-style layers, with selectable palettes, automatic maximum floor-band detection, and one QGIS legend rule per floor.
 - Optional floor-step snapping for planning-height layers.
 - Soft shadow and directional wall shading controls.
 - One-click QML export for reuse across projects.
 
-For floor-count data, select `Kat_Sayisi` as the height field, set **Height source** to **Floor count field**, and keep **Floor height** at `3.5` map units unless your project uses another floor height. Enable **Colour each floor separately** to generate the rule-based geometry-generator renderer where every floor band receives its own colour. Leave **Maximum floor bands** at **Auto from layer** to scan the selected layer and match the real highest floor count.
+For floor-count data, select `Kat_Sayisi` as the height field, set **Height source** to **Floor count field**, and keep **Floor height** at `3.5` map units unless your project uses another floor height. Enable **Colour each floor separately** to generate the rule-based geometry-generator renderer where every floor band receives its own colour and QGIS legend entry. Leave **Maximum floor bands** at **Auto from layer** to scan the selected layer and match the real highest floor count.
 
 ## Repository Structure
 

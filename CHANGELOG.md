@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [1.2.6] - 2026-06-05
+
+- Make 2.5D floor bands legend-friendly
+
 ## [1.2.5] - 2026-06-04
 
 - Add automatic floor-band detection for 2.5D styling
