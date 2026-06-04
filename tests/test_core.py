@@ -368,6 +368,17 @@ check("25D floor band height scales", s25d.floor_band_height(s25d.Style25DConfig
     floor_height=3.5,
     height_scale=2,
 )) == 7.0)
+auto_band_cfg = s25d.Style25DConfig(
+    height_field="Kat_Sayisi",
+    height_mode=s25d.HEIGHT_MODE_FLOOR_COUNT,
+    render_mode=s25d.RENDER_MODE_FLOOR_BANDS,
+    max_floors=0,
+)
+check("25D auto max floors detected", s25d.is_auto_max_floors(auto_band_cfg))
+check("25D auto max floors fallback safe", s25d.sanitised_max_floors(auto_band_cfg) == s25d.DEFAULT_MAX_FLOORS)
+check("25D floor count value normalises", s25d.normalise_floor_count_value("5.4") == 5 and s25d.normalise_floor_count_value("-2") == 0)
+auto_summary = s25d.build_style_summary("Buildings", auto_band_cfg)
+check("25D auto max floor summary", "Maximum floor bands: auto from layer" in auto_summary, auto_summary)
 check("25D floor palette colour valid", s25d.HEX_COLOR_RE.match(s25d.floor_band_color(2, "planning_bands")))
 check("25D floor wall colour differs", s25d.floor_band_color(2, "planning_bands", wall=True) != s25d.floor_band_color(2, "planning_bands"))
 band_summary = s25d.build_style_summary("Buildings", band_cfg)

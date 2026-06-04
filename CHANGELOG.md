@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [1.2.5] - 2026-06-04
+
+- Add automatic floor-band detection for 2.5D styling
+
 ## [1.2.4] - 2026-06-04
 
 - Fix QGIS Hub metadata homepage URL

@@ -613,8 +613,10 @@ class CartoLabDashboard(QDialog):
         self.floor_palette25d_combo.currentIndexChanged.connect(self._update_25d_status_preview)
         self.max_floors25d_label = QLabel("Maximum floor bands:")
         self.max_floors25d_spin = QSpinBox()
-        self.max_floors25d_spin.setRange(1, 80)
-        self.max_floors25d_spin.setValue(16)
+        self.max_floors25d_spin.setRange(0, 80)
+        self.max_floors25d_spin.setSpecialValueText("Auto from layer")
+        self.max_floors25d_spin.setValue(0)
+        self.max_floors25d_spin.setToolTip("Use 0 to scan the selected floor-count field and match the layer automatically.")
         self.max_floors25d_spin.valueChanged.connect(self._update_25d_status_preview)
 
         floor_layout.addWidget(self.floor_bands25d_check, 0, 0, 1, 2)

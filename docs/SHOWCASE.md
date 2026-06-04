@@ -8,6 +8,7 @@ The 2.5D styling panel upgrades rough QML extrusion into a reusable production w
 - Choose a numeric height field or a floor-count field such as `Kat_Sayisi`.
 - For floor counts, set Height source to Floor count field and choose the floor height, usually 3.5 map units per floor.
 - Enable Colour each floor separately for sample-QML-style floor bands where each storey receives its own colour.
+- Leave Maximum floor bands on Auto from layer to scan the selected floor-count field and match the real tallest building.
 - Pick a material preset.
 - Adjust projection angle, height scale, maximum height, and stepped-floor snapping.
 - Control roof, wall, and shadow colors.

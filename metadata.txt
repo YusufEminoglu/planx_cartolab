@@ -1,6 +1,6 @@
 [general]
 name=PlanX CartoLab
-version=1.2.4
+version=1.2.5
 hasProcessingProvider=yes
 
 category=Vector
@@ -22,6 +22,7 @@ qgisMinimumVersion=3.28
 qgisMaximumVersion=4.99
 
 changelog=
+    PlanX CartoLab 1.2.5 - Added automatic maximum floor-band detection for per-floor 2.5D styling from the selected floor-count layer.
     PlanX CartoLab 1.2.4 - Fixed QGIS Plugin Hub metadata homepage URL by replacing the unavailable GitHub Pages URL with the reachable GitHub repository URL.
     PlanX CartoLab 1.2.3 - Added per-floor colour band rendering for floor-count 2.5D styling, with selectable palettes and QML export.
     PlanX CartoLab 1.2.2 - Added explicit floor-count mode for 2.5D styling so fields such as Kat_Sayisi render as floor count times floor height.

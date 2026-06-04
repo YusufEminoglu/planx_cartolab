@@ -16,6 +16,9 @@ RENDER_MODE_NATIVE = "native"
 RENDER_MODE_FLOOR_BANDS = "floor_bands"
 RENDER_MODES = (RENDER_MODE_NATIVE, RENDER_MODE_FLOOR_BANDS)
 FLOOR_FIELD_TOKENS = ("kat", "floor", "storey", "story", "level")
+AUTO_MAX_FLOORS = 0
+DEFAULT_MAX_FLOORS = 16
+MAX_FLOOR_BANDS = 80
 
 
 STYLE_25D_PRESETS: Dict[str, dict] = {
@@ -101,7 +104,7 @@ class Style25DConfig:
     floor_height: float = 3.5
     render_mode: str = RENDER_MODE_NATIVE
     floor_palette: str = "civic_spectrum"
-    max_floors: int = 16
+    max_floors: int = DEFAULT_MAX_FLOORS
 
 
 def preset_config(height_field: str, preset_key: str = "warm_civic") -> Style25DConfig:
@@ -165,8 +168,52 @@ def floor_band_height(config: Style25DConfig) -> float:
     return max(float(config.floor_height), 0.01) * max(float(config.height_scale), 0.01)
 
 
+def is_auto_max_floors(config: Style25DConfig) -> bool:
+    return int(round(float(config.max_floors))) <= AUTO_MAX_FLOORS
+
+
 def sanitised_max_floors(config: Style25DConfig) -> int:
-    return max(1, min(80, int(round(float(config.max_floors)))))
+    if is_auto_max_floors(config):
+        return DEFAULT_MAX_FLOORS
+    return max(1, min(MAX_FLOOR_BANDS, int(round(float(config.max_floors)))))
+
+
+def normalise_floor_count_value(value) -> int:
+    if value is None:
+        return 0
+    try:
+        floor_count = int(round(float(value)))
+    except (TypeError, ValueError):
+        return 0
+    return max(0, floor_count)
+
+
+def estimate_layer_max_floor_count(layer, field_name: str) -> int:
+    """Scan a QGIS layer and return a safe maximum floor-band count."""
+    if layer is None:
+        return DEFAULT_MAX_FLOORS
+    fields = layer.fields()
+    idx = fields.lookupField(field_name) if hasattr(fields, "lookupField") else fields.indexOf(field_name)
+    if idx < 0:
+        return DEFAULT_MAX_FLOORS
+
+    from qgis.core import QgsFeatureRequest
+
+    max_floor = 0
+    request = QgsFeatureRequest()
+    if hasattr(request, "setSubsetOfAttributes"):
+        request.setSubsetOfAttributes([field_name], fields)
+    for feature in layer.getFeatures(request):
+        max_floor = max(max_floor, normalise_floor_count_value(feature.attribute(idx)))
+    if max_floor <= 0:
+        return DEFAULT_MAX_FLOORS
+    return max(1, min(MAX_FLOOR_BANDS, max_floor))
+
+
+def resolve_max_floors(layer, config: Style25DConfig) -> int:
+    if is_auto_max_floors(config):
+        return estimate_layer_max_floor_count(layer, config.height_field)
+    return sanitised_max_floors(config)
 
 
 def floor_band_color(floor_index: int, palette_key: str, wall: bool = False) -> str:
@@ -272,7 +319,7 @@ def build_wall_shading_expression() -> str:
     )
 
 
-def build_style_summary(layer_name: str, config: Style25DConfig) -> str:
+def build_style_summary(layer_name: str, config: Style25DConfig, resolved_max_floors: Optional[int] = None) -> str:
     preset_label = STYLE_25D_PRESETS.get(config.preset, {}).get("label", config.preset)
     mode_label = "floor count" if config.height_mode == HEIGHT_MODE_FLOOR_COUNT else "height"
     render_label = "per-floor colour bands" if config.render_mode == RENDER_MODE_FLOOR_BANDS else "native 2.5D"
@@ -294,7 +341,13 @@ def build_style_summary(layer_name: str, config: Style25DConfig) -> str:
         lines.append(f"Floor height: {format_number(config.floor_height)} map units")
     if config.render_mode == RENDER_MODE_FLOOR_BANDS:
         lines.append(f"Floor palette: {palette_label}")
-        lines.append(f"Maximum floor bands: {sanitised_max_floors(config)}")
+        if is_auto_max_floors(config):
+            if resolved_max_floors:
+                lines.append(f"Maximum floor bands: auto ({int(resolved_max_floors)} resolved)")
+            else:
+                lines.append("Maximum floor bands: auto from layer")
+        else:
+            lines.append(f"Maximum floor bands: {sanitised_max_floors(config)}")
     if config.height_scale != 1.0:
         lines.append(f"Vertical scale: {format_number(config.height_scale)}x")
     if config.stepped:
@@ -379,6 +432,7 @@ def _set_layer_25d_properties(layer, config: Style25DConfig) -> None:
     layer.setCustomProperty("planx_cartolab/25d_render_mode", config.render_mode)
     layer.setCustomProperty("planx_cartolab/25d_floor_palette", config.floor_palette)
     layer.setCustomProperty("planx_cartolab/25d_max_floors", int(sanitised_max_floors(config)))
+    layer.setCustomProperty("planx_cartolab/25d_max_floors_mode", "auto" if is_auto_max_floors(config) else "manual")
     layer.setCustomProperty("planx_cartolab/25d_step_height", float(config.step_height))
     layer.setCustomProperty("planx_cartolab/25d_max_height", float(config.max_height))
 
@@ -390,7 +444,8 @@ def _apply_floor_band_renderer(layer, config: Style25DConfig) -> str:
     from qgis.core import QgsFeatureRequest, QgsRuleBasedRenderer
 
     _set_layer_25d_properties(layer, config)
-    max_floors = sanitised_max_floors(config)
+    max_floors = resolve_max_floors(layer, config)
+    layer.setCustomProperty("planx_cartolab/25d_resolved_max_floors", int(max_floors))
     symbol = _empty_fill_symbol()
 
     if config.shadow_enabled:
@@ -446,7 +501,7 @@ def _apply_floor_band_renderer(layer, config: Style25DConfig) -> str:
 
     layer.setRenderer(renderer)
     layer.triggerRepaint()
-    return build_style_summary(layer.name(), config)
+    return build_style_summary(layer.name(), config, resolved_max_floors=max_floors)
 
 
 def apply_25d_renderer(layer, config: Style25DConfig) -> str:

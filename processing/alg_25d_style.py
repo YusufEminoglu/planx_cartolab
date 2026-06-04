@@ -117,10 +117,10 @@ class Building25DStyleAlgorithm(QgsProcessingAlgorithm):
         ))
         self.addParameter(QgsProcessingParameterNumber(
             self.MAX_FLOORS,
-            "Maximum floor bands, used by per-floor bands",
+            "Maximum floor bands, 0 scans the layer automatically",
             type=QgsProcessingParameterNumber.Integer,
-            defaultValue=16,
-            minValue=1,
+            defaultValue=0,
+            minValue=0,
             maxValue=80,
         ))
         self.addParameter(QgsProcessingParameterEnum(
