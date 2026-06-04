@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [1.2.4] - 2026-06-04
+
+- Fix QGIS Hub metadata homepage URL
+
 ## [1.2.3] - 2026-06-03
 
 - Add per-floor colour band renderer for 2.5D styling

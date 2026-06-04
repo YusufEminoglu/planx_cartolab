@@ -1,6 +1,6 @@
 [general]
 name=PlanX CartoLab
-version=1.2.3
+version=1.2.4
 hasProcessingProvider=yes
 
 category=Vector
@@ -9,7 +9,7 @@ tags=cartography, 2.5d, buildings, cartogram, bivariate, geometric-interval, rid
 description=Advanced cartography suite: native 2.5D building styling, bivariate choropleths, cartograms, ridge maps, Value-by-Alpha, and layout automation for QGIS.
 about=PlanX CartoLab is a publication-grade thematic mapping engine for QGIS. It integrates native 2.5D building styling with height-field extrusion, adaptive Geometric Interval Classification (GIC), continuous-area cartogram distortion, Value-by-Alpha uncertainty visualisation, ridge-line vector mesh generation, stacked isometric layout compositing, and floating HTML chart annotations. Built for academic-grade cartography within the PlanX ecosystem.
 
-homepage=https://yusufeminoglu.github.io/planx_cartolab/
+homepage=https://github.com/YusufEminoglu/planx_cartolab
 repository=https://github.com/YusufEminoglu/planx_cartolab
 tracker=https://github.com/YusufEminoglu/planx_cartolab/issues
 
@@ -22,6 +22,7 @@ qgisMinimumVersion=3.28
 qgisMaximumVersion=4.99
 
 changelog=
+    PlanX CartoLab 1.2.4 - Fixed QGIS Plugin Hub metadata homepage URL by replacing the unavailable GitHub Pages URL with the reachable GitHub repository URL.
     PlanX CartoLab 1.2.3 - Added per-floor colour band rendering for floor-count 2.5D styling, with selectable palettes and QML export.
     PlanX CartoLab 1.2.2 - Added explicit floor-count mode for 2.5D styling so fields such as Kat_Sayisi render as floor count times floor height.
     PlanX CartoLab 1.2.1 - Fixed QGIS 2.5D height expression compatibility by replacing unsupported greatest/least clamp functions with CASE expressions.

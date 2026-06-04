@@ -3,7 +3,7 @@
 > Publication-grade cartography for QGIS: native 2.5D building styling, bivariate maps, cartograms, ridge maps, Value-by-Alpha uncertainty, and layout automation.
 
 [![QGIS](https://img.shields.io/badge/QGIS-3.28%20to%204.99-589632?style=for-the-badge&logo=qgis&logoColor=white)](https://qgis.org)
-[![Version](https://img.shields.io/badge/version-1.2.3-1f6f8b?style=for-the-badge)](metadata.txt)
+[![Version](https://img.shields.io/badge/version-1.2.4-1f6f8b?style=for-the-badge)](metadata.txt)
 [![License](https://img.shields.io/badge/license-GPL--3.0-111827?style=for-the-badge)](LICENSE)
 [![PlanX](https://img.shields.io/badge/PlanX-CartoLab-c47a3b?style=for-the-badge)](docs/index.html)
 
