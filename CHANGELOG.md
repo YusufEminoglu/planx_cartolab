@@ -1,5 +1,10 @@
 # Changelog - PlanX CartoLab
 
+All notable changes to this project are documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
 ## [1.2.6] - 2026-06-05
 
 - Make 2.5D floor bands legend-friendly
@@ -11,10 +16,6 @@
 ## [1.2.4] - 2026-06-04
 
 - Fix QGIS Hub metadata homepage URL
-
-## [1.2.3] - 2026-06-03
-
-- Add per-floor colour band renderer for 2.5D styling
 
 ## [1.2.3] - 2026-06-03
 
@@ -47,11 +48,6 @@
 ## [1.1.0-beta.1] - 2026-05-29
 
 - Beta-1 release with dynamic bivariate palettes, custom corner colors, and polished radar charts
-
-All notable changes to this project are documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [1.0.0] - 2026-05-26
 
