@@ -96,6 +96,10 @@ ALGO_GROUPS = [
              "Encode reliability/uncertainty as opacity - unreliable data fades into background."),
             ("Ridge Map (Joyplot)", "planx_cartolab:ridge_map",
              "Raster-to-vector scanline deformation - Joy Division style wave profiles."),
+            ("Dot-Density Map", "planx_cartolab:dot_density",
+             "Seeded, hole-aware dots inside polygons - one dot per N units of a count field."),
+            ("Proportional Symbols (Flannery)", "planx_cartolab:proportional_symbols",
+             "Perceptually compensated graduated point symbols with nested-legend values."),
         ],
     ),
     (
@@ -104,6 +108,38 @@ ALGO_GROUPS = [
         [
             ("Continuous-Area Cartogram", "planx_cartolab:compute_cartogram",
              "Diffusion method (Gastner & Newman) - polygon areas proportional to field value."),
+        ],
+    ),
+    (
+        "Aggregation",
+        "#b6772f",
+        [
+            ("Hexbin Aggregation", "planx_cartolab:hexbin_aggregate",
+             "Bin a point layer into a pointy-top hex grid - count, sum or mean, overplot-free."),
+        ],
+    ),
+    (
+        "Labeling",
+        "#3f8e8a",
+        [
+            ("Visual-Center Label Points", "planx_cartolab:label_points",
+             "Pole of inaccessibility (polylabel) - label anchors that always sit inside the shape."),
+        ],
+    ),
+    (
+        "Map Reference",
+        "#5a6f9b",
+        [
+            ("Graticule / Reference Grid", "planx_cartolab:graticule_grid",
+             "Meridians and parallels on nice round intervals, each carrying a coordinate label."),
+        ],
+    ),
+    (
+        "Data Preparation",
+        "#9b466e",
+        [
+            ("Choropleth Normalization & Rates", "planx_cartolab:normalize_field",
+             "Rates, z-score, robust z, min-max, percentile rank and log - prep before classifying."),
         ],
     ),
 ]
@@ -121,9 +157,23 @@ CATEGORY_GROUPS = {
         "planx_cartolab:bivariate_choropleth",
         "planx_cartolab:value_by_alpha",
         "planx_cartolab:ridge_map",
+        "planx_cartolab:dot_density",
+        "planx_cartolab:proportional_symbols",
     ],
     "Cartogram Engine": [
         "planx_cartolab:compute_cartogram",
+    ],
+    "Aggregation": [
+        "planx_cartolab:hexbin_aggregate",
+    ],
+    "Labeling": [
+        "planx_cartolab:label_points",
+    ],
+    "Map Reference": [
+        "planx_cartolab:graticule_grid",
+    ],
+    "Data Preparation": [
+        "planx_cartolab:normalize_field",
     ],
 }
 
@@ -334,6 +384,12 @@ class CartoLabDashboard(QDialog):
             ("Run Cartogram", lambda: self._run_algorithm("planx_cartolab:compute_cartogram", "Cartogram")),
             ("Run Ridge Map", lambda: self._run_algorithm("planx_cartolab:ridge_map", "Ridge Map")),
             ("Run Value-by-Alpha", lambda: self._run_algorithm("planx_cartolab:value_by_alpha", "VbA")),
+            ("Run Dot-Density Map", lambda: self._run_algorithm("planx_cartolab:dot_density", "Dot Density")),
+            ("Run Proportional Symbols", lambda: self._run_algorithm("planx_cartolab:proportional_symbols", "Proportional Symbols")),
+            ("Run Hexbin Aggregation", lambda: self._run_algorithm("planx_cartolab:hexbin_aggregate", "Hexbin")),
+            ("Run Visual-Center Label Points", lambda: self._run_algorithm("planx_cartolab:label_points", "Label Points")),
+            ("Run Graticule / Reference Grid", lambda: self._run_algorithm("planx_cartolab:graticule_grid", "Graticule")),
+            ("Run Choropleth Normalization", lambda: self._run_algorithm("planx_cartolab:normalize_field", "Normalize")),
             ("Copy Project Diagnostics", self._on_copy_diagnostics),
         ]
         for label, fn in quick:

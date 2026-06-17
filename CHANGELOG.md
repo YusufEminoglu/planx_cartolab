@@ -5,6 +5,22 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-06-17
+
+### Added
+- **Dot-Density Map** — seeded, hole-aware dots scattered inside polygons (one dot per N units of a count field); dots inherit source attributes for multi-group dot maps.
+- **Proportional Symbols** — Flannery-compensated (or true-area) graduated point symbols with data-defined size and suggested nested-legend values.
+- **Hexbin Aggregation** — bin a point layer into a pointy-top hexagonal grid (count / sum / mean), emitting only occupied cells, graduated on the chosen statistic.
+- **Visual-Center Label Points** — pole of inaccessibility (polylabel) per polygon, so label anchors always sit inside the shape; largest part used for multipart features.
+- **Graticule / Reference Grid** — meridians and parallels on nice round intervals, each carrying its orientation, coordinate and a formatted label.
+- **Choropleth Normalization & Rates** — rate (numerator/denominator × scale), z-score, robust MAD z-score, min-max, percentile rank and log, written to a `norm_value` field and graduated.
+
+### Fixed
+- **Ridge Map** — replaced an invalid `QgsRasterBlock.isNoData()` call (crashed on current QGIS) with a validity/empty check, and fixed the optional-extent path that produced a NaN when no extent was supplied.
+
+### Notes
+- Pure-Python cores for all six new tools (no new dependencies); headless unit tests grew to 192 checks and a real-QGIS end-to-end harness validates all 12 algorithms on QGIS 3.44 LTR and QGIS 4.
+
 ## [1.2.6] - 2026-06-05
 
 - Make 2.5D floor bands legend-friendly

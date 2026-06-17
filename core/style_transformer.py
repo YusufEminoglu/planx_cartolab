@@ -61,12 +61,14 @@ def generate_ridge_lines(
         raise ValueError("Raster layer is not valid.")
 
     prov = raster.dataProvider()
-    ext = extent if extent else raster.extent()
+    # An omitted optional extent arrives as an *empty* (non-None) rectangle, which
+    # is still truthy; fall back to the full raster extent unless a real one is given.
+    ext = extent if (extent is not None and not extent.isEmpty()) else raster.extent()
     cols = raster.width()
     rows = raster.height()
 
     block = prov.block(1, ext, cols, rows)
-    if block.isNoData():
+    if block is None or not block.isValid() or block.isEmpty():
         raise ValueError("No data in raster block.")
 
     # read values into 2D grid

@@ -109,6 +109,12 @@ from planx_cartolab.core import dependency_manager as dm
 from planx_cartolab.core import affine_matrix as am
 from planx_cartolab.core import cartogram_engine as ce
 from planx_cartolab.core import qgis_25d_style as s25d
+from planx_cartolab.core import dot_density as dd
+from planx_cartolab.core import proportional_symbols as psym
+from planx_cartolab.core import hexgrid as hxg
+from planx_cartolab.core import label_points as lblp
+from planx_cartolab.core import graticule as grat
+from planx_cartolab.core import normalize as norm
 
 # ---------------------------------------------------------------------------
 # Test framework
@@ -401,6 +407,173 @@ check("25D floor palette colours are valid", all(
     for color in p["colors"]
 ))
 check("25D colour fallback", s25d.normalise_hex_color("bad", "#123456") == "#123456")
+
+# ===================================================================
+# 7. DOT DENSITY
+# ===================================================================
+section("Dot Density")
+
+SQUARE = [(0, 0), (10, 0), (10, 10), (0, 10)]
+HOLE = [(4, 4), (6, 4), (6, 6), (4, 6)]
+
+check("dots_for_value rounds", dd.dots_for_value(250, 50) == 5, str(dd.dots_for_value(250, 50)))
+check("dots_for_value floor", dd.dots_for_value(249, 50, "floor") == 4)
+check("dots_for_value ceil", dd.dots_for_value(201, 50, "ceil") == 5)
+check("dots_for_value zero value", dd.dots_for_value(0, 50) == 0)
+check("dots_for_value negative value", dd.dots_for_value(-100, 50) == 0)
+check("dots_for_value bad per_dot", dd.dots_for_value(100, 0) == 0)
+check("dots_for_value None", dd.dots_for_value(None, 50) == 0)
+
+check("point_in_polygon inside", dd.point_in_polygon([SQUARE], 5, 5) is True)
+check("point_in_polygon outside", dd.point_in_polygon([SQUARE], 15, 5) is False)
+check("point_in_polygon in hole = outside", dd.point_in_polygon([SQUARE, HOLE], 5, 5) is False)
+check("point_in_polygon between hole and edge", dd.point_in_polygon([SQUARE, HOLE], 1, 1) is True)
+
+ddots = dd.generate_dots([SQUARE], (0, 0, 10, 10), 50, seed=7)
+check("generate_dots count", len(ddots) == 50, str(len(ddots)))
+check("generate_dots all inside", all(dd.point_in_polygon([SQUARE], x, y) for x, y in ddots))
+check("generate_dots deterministic", ddots == dd.generate_dots([SQUARE], (0, 0, 10, 10), 50, seed=7))
+check("generate_dots seed varies", ddots != dd.generate_dots([SQUARE], (0, 0, 10, 10), 50, seed=8))
+check("generate_dots hole excluded", all(not dd.point_in_polygon([HOLE], x, y)
+                                          for x, y in dd.generate_dots([SQUARE, HOLE], (0, 0, 10, 10), 30, seed=3)))
+check("generate_dots zero count", dd.generate_dots([SQUARE], (0, 0, 10, 10), 0, seed=1) == [])
+check("generate_dots degenerate bbox", dd.generate_dots([SQUARE], (0, 0, 0, 0), 5, seed=1) == [])
+
+# ===================================================================
+# 8. PROPORTIONAL SYMBOLS
+# ===================================================================
+section("Proportional Symbols")
+
+check("symbol_size at max == max", abs(psym.symbol_size(100, 100, 8.0) - 8.0) < 1e-9)
+check("symbol_size min for zero", psym.symbol_size(0, 100, 8.0, 1.0) == 1.0)
+check("symbol_size min for negative", psym.symbol_size(-5, 100, 8.0, 1.0) == 1.0)
+check("symbol_size monotonic", psym.symbol_size(25, 100, 8.0) < psym.symbol_size(75, 100, 8.0))
+check("symbol_size within bounds", 1.0 <= psym.symbol_size(40, 100, 8.0, 1.0) <= 8.0)
+check("symbol_size flannery differs from linear",
+      abs(psym.symbol_size(25, 100, 8.0, 0.0, True) - psym.symbol_size(25, 100, 8.0, 0.0, False)) > 1e-6)
+# Flannery exponent (0.5716 > 0.5) shrinks sub-max circles vs true-area scaling,
+# widening the visual spread so large values stand out.
+check("symbol_size flannery more spread at mid", psym.symbol_size(25, 100, 8.0, 0.0, True) < psym.symbol_size(25, 100, 8.0, 0.0, False))
+check("symbol_size bad vmax", psym.symbol_size(5, 0, 8.0, 1.0) == 1.0)
+check("symbol_size clamps over-max", abs(psym.symbol_size(200, 100, 8.0) - 8.0) < 1e-9)
+check("symbol_size None value", psym.symbol_size(None, 100, 8.0, 1.0) == 1.0)
+
+leg = psym.nice_legend_values(0, 4200, 3)
+check("legend descending", leg == sorted(leg, reverse=True) and len(leg) >= 1, str(leg))
+check("legend distinct", len(leg) == len(set(leg)))
+check("legend top not above max", leg[0] <= 4200, str(leg))
+check("legend all positive", all(v > 0 for v in leg))
+check("legend empty for nonpositive max", psym.nice_legend_values(0, 0, 3) == [])
+
+# ===================================================================
+# 9. HEXGRID
+# ===================================================================
+section("Hexgrid")
+
+check("hex_vertices count", len(hxg.hex_vertices(0, 0, 3.0)) == 6)
+for q, r in [(0, 0), (2, 1), (-3, 4), (5, -2), (10, -7)]:
+    cx, cy = hxg.cell_center(q, r, 3.0)
+    check(f"hex round-trip ({q},{r})", hxg.point_to_cell(cx, cy, 3.0) == (q, r),
+          f"{hxg.point_to_cell(cx, cy, 3.0)}")
+# a point near a centre maps to that cell
+cx0, cy0 = hxg.cell_center(4, 4, 5.0)
+check("hex point near centre maps to cell", hxg.point_to_cell(cx0 + 0.4, cy0 - 0.4, 5.0) == (4, 4))
+# distinct nearby points fall into a small set of neighbouring cells
+cells = {hxg.point_to_cell(x * 0.5, y * 0.5, 2.0) for x in range(20) for y in range(20)}
+check("hex binning many points", len(cells) >= 4)
+verts = hxg.hex_vertices(10, 10, 4.0)
+check("hex_vertices around centre", all(abs(((vx - 10) ** 2 + (vy - 10) ** 2) ** 0.5 - 4.0) < 1e-6 for vx, vy in verts))
+
+# ===================================================================
+# 10. LABEL POINTS (polylabel)
+# ===================================================================
+section("Label Points")
+
+lx, ly, ld = lblp.polylabel([SQUARE])
+check("polylabel square centre x", abs(lx - 5.0) < 0.2, str(lx))
+check("polylabel square centre y", abs(ly - 5.0) < 0.2, str(ly))
+check("polylabel square distance", abs(ld - 5.0) < 0.2, str(ld))
+check("polylabel inside square", lblp.point_to_polygon_dist(lx, ly, [SQUARE]) > 0)
+
+LSHAPE = [(0, 0), (10, 0), (10, 3), (3, 3), (3, 10), (0, 10)]
+ax, ay, ad = lblp.polylabel([LSHAPE], 0.1)
+check("polylabel L-shape inside", lblp.point_to_polygon_dist(ax, ay, [LSHAPE]) > 0)
+check("polylabel L-shape positive dist", ad > 0)
+
+# polylabel avoids a hole: pole should not land in the hole
+hx2, hy2, hd2 = lblp.polylabel([SQUARE, HOLE], 0.1)
+check("polylabel avoids hole", not dd.point_in_polygon([HOLE], hx2, hy2), f"({hx2:.2f},{hy2:.2f})")
+check("polylabel degenerate ring", lblp.polylabel([[(0, 0), (1, 1)]])[2] == 0.0)
+
+check("point_to_polygon_dist outside negative", lblp.point_to_polygon_dist(20, 20, [SQUARE]) < 0)
+check("seg dist sq basic", abs(lblp._seg_dist_sq(0, 0, 3, 0, 3, 4) - 9.0) < 1e-9)
+
+# ===================================================================
+# 11. GRATICULE
+# ===================================================================
+section("Graticule")
+
+check("nice_interval 100", grat.nice_interval(100) in (10.0, 20.0), str(grat.nice_interval(100)))
+check("nice_interval monotone scale", grat.nice_interval(1000) > grat.nice_interval(100))
+check("nice_interval tiny", grat.nice_interval(0.37) > 0)
+check("nice_interval zero span", grat.nice_interval(0) == 1.0)
+
+av = grat.aligned_values(3, 47, 10)
+check("aligned_values multiples", av == [10, 20, 30, 40], str(av))
+check("aligned_values within range", all(3 <= v <= 47 for v in av))
+check("aligned_values bad step", grat.aligned_values(0, 10, 0) == [])
+
+check("format_coord integer", grat.format_coord(20.0) == "20")
+check("format_coord decimal", grat.format_coord(20.5) == "20.5")
+
+glines = grat.graticule_lines(0, 0, 100, 80, 20, 20)
+mer = [g for g in glines if g["orientation"] == "meridian"]
+par = [g for g in glines if g["orientation"] == "parallel"]
+check("graticule meridian count", len(mer) == 6, str(len(mer)))  # 0,20,40,60,80,100
+check("graticule parallel count", len(par) == 5, str(len(par)))  # 0,20,40,60,80
+check("graticule each line 2 points", all(len(g["points"]) == 2 for g in glines))
+check("graticule meridian spans y", mer[0]["points"][0][1] == 0 and mer[0]["points"][1][1] == 80)
+check("graticule points within extent",
+      all(0 <= p[0] <= 100 and 0 <= p[1] <= 80 for g in glines for p in g["points"]))
+check("graticule labels present", all(g["label"] for g in glines))
+
+# ===================================================================
+# 12. NORMALIZE
+# ===================================================================
+section("Normalize")
+
+NV = [10, 20, 30, 40, 50]
+zz = norm.z_scores(NV)
+check("z_scores mean ~ 0", abs(sum(zz) / len(zz)) < 1e-9, str(zz))
+check("z_scores std ~ 1", abs(norm.pstdev(zz) - 1.0) < 1e-9)
+check("z_scores constant -> 0", norm.z_scores([5, 5, 5]) == [0.0, 0.0, 0.0])
+check("z_scores keeps None", norm.z_scores([10, None, 30])[1] is None)
+
+mm = norm.min_max(NV)
+check("min_max range", mm == [0.0, 0.25, 0.5, 0.75, 1.0], str(mm))
+check("min_max in 0-1", all(0.0 <= v <= 1.0 for v in mm))
+check("min_max constant -> lo", norm.min_max([7, 7, 7]) == [0.0, 0.0, 0.0])
+check("min_max custom range", norm.min_max([0, 10], 0, 100) == [0.0, 100.0])
+
+rr = norm.rate([10, 20, 5], [100, 0, 50], 1000)
+check("rate computes", abs(rr[0] - 100.0) < 1e-9, str(rr))
+check("rate zero denom -> None", rr[1] is None)
+check("rate scaled", abs(rr[2] - 100.0) < 1e-9)
+
+pr = norm.percentile_rank([10, 20, 30, 40])
+check("percentile ascending", pr == sorted(pr))
+check("percentile bounds", all(0 <= v <= 100 for v in pr))
+
+rz = norm.robust_z([1, 2, 3, 4, 5, 6, 7, 100])
+check("robust_z flags outlier", rz[-1] > 5, str(rz[-1]))
+check("robust_z median centred", abs(norm.median([1, 2, 3, 4, 5, 6, 7, 100]) - 4.5) < 1e-9)
+check("robust_z degenerate MAD -> 0", norm.robust_z([5, 5, 5, 5, 100])[0] == 0.0)
+
+lg = norm.log_scale([1, 10, 100, 1000])
+check("log_scale base10", all(abs(a - b) < 1e-9 for a, b in zip(lg, [0.0, 1.0, 2.0, 3.0])), str(lg))
+check("log_scale shifts nonpositive", all(v is not None for v in norm.log_scale([-5, 0, 5])))
+check("log_scale keeps None", norm.log_scale([1, None, 100])[1] is None)
+check("normalize methods catalogue", len(norm.METHODS) == 6)
 
 # ===================================================================
 # SUMMARY

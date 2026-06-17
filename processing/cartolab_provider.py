@@ -13,6 +13,12 @@ from .alg_cartogram import CartogramAlgorithm
 from .alg_ridge_map import RidgeMapAlgorithm
 from .alg_value_by_alpha import ValueByAlphaAlgorithm
 from .alg_25d_style import Building25DStyleAlgorithm
+from .alg_dot_density import DotDensityAlgorithm
+from .alg_proportional_symbols import ProportionalSymbolsAlgorithm
+from .alg_hexbin import HexbinAlgorithm
+from .alg_label_points import LabelPointsAlgorithm
+from .alg_graticule import GraticuleAlgorithm
+from .alg_normalize_field import NormalizeFieldAlgorithm
 
 
 class CartoLabProvider(QgsProcessingProvider):
@@ -40,3 +46,9 @@ class CartoLabProvider(QgsProcessingProvider):
         self.addAlgorithm(RidgeMapAlgorithm())
         self.addAlgorithm(ValueByAlphaAlgorithm())
         self.addAlgorithm(Building25DStyleAlgorithm())
+        self.addAlgorithm(DotDensityAlgorithm())
+        self.addAlgorithm(ProportionalSymbolsAlgorithm())
+        self.addAlgorithm(HexbinAlgorithm())
+        self.addAlgorithm(LabelPointsAlgorithm())
+        self.addAlgorithm(GraticuleAlgorithm())
+        self.addAlgorithm(NormalizeFieldAlgorithm())
