@@ -7,7 +7,7 @@ authors:
     orcid: "https://orcid.org/0009-0005-6000-2934"
 title: "PlanX CartoLab"
 version: "1.3.0"
-# doi: "" # Zenodo DOI numarasi alindiktan sonra buraya eklenebilir
+doi: "10.5281/zenodo.20753138"
 date-released: "2026-06-18"
 url: "https://github.com/YusufEminoglu/planx_cartolab"
 abstract: "Advanced cartography suite: native 2.5D building styling, bivariate choropleths, cartograms, ridge maps, Value-by-Alpha, dot-density and proportional symbols, hexbin aggregation, polylabel labels, graticules, choropleth normalization, and layout automation for QGIS."
