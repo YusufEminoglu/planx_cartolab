@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [1.3.1] - 2026-06-18
+
+- docs: add CITATION.cff for Zenodo DOI integration
+
 All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
