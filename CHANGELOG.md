@@ -1,8 +1,8 @@
 # Changelog - PlanX CartoLab
 
-## [1.4.1] - 2026-07-10
+## [1.4.2] - 2026-07-10
 
-- Fix helpUrl inheritance and commit e2e regression guard
+- Fix responsive 2.5D and Layout UI; rename System Health to Readiness
 
 ## [1.4.1] - 2026-07-10
 

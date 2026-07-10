@@ -38,6 +38,7 @@ from qgis.PyQt.QtWidgets import (
     QMessageBox,
     QAbstractItemView,
     QScrollArea,
+    QSizePolicy,
     QSpinBox,
     QTabWidget,
     QTextBrowser,
@@ -424,9 +425,9 @@ class CartoLabDashboard(QDialog):
         rl.addWidget(clear, 0, Qt.AlignmentFlag.AlignRight)
         self.tabs.addTab(rl_tab, "Recent Runs")
 
-        # System Health tab
+        # User-facing readiness tab
         self.readiness = QTextBrowser()
-        self.tabs.addTab(self.readiness, "System Health")
+        self.tabs.addTab(self.readiness, "Readiness")
 
         # Footer
         footer = QHBoxLayout()
@@ -607,13 +608,20 @@ class CartoLabDashboard(QDialog):
     # 2.5D Styling
 
     def _build_25d_tab(self) -> None:
-        self.tab_25d = QWidget()
-        lyt = QVBoxLayout(self.tab_25d)
+        self.tab_25d = QScrollArea()
+        self.tab_25d.setWidgetResizable(True)
+        self.tab_25d.setFrameShape(QFrame.Shape.NoFrame)
+        tab_body = QWidget()
+        self.tab_25d.setWidget(tab_body)
+        lyt = QVBoxLayout(tab_body)
         lyt.setContentsMargins(12, 12, 12, 12)
         lyt.setSpacing(10)
 
         source_group = self._make_group("Layer and Height")
         source_layout = QGridLayout(source_group)
+        source_layout.setColumnMinimumWidth(0, 150)
+        source_layout.setColumnStretch(1, 1)
+        source_layout.setColumnStretch(2, 0)
         source_layout.addWidget(QLabel("Polygon layer:"), 0, 0)
         self.layer25d_combo = QComboBox()
         self.layer25d_combo.currentIndexChanged.connect(self._refresh_25d_fields)
@@ -645,6 +653,10 @@ class CartoLabDashboard(QDialog):
 
         geom_group = self._make_group("Extrusion Geometry")
         geom_layout = QGridLayout(geom_group)
+        geom_layout.setColumnMinimumWidth(0, 125)
+        geom_layout.setColumnMinimumWidth(2, 125)
+        geom_layout.setColumnStretch(1, 1)
+        geom_layout.setColumnStretch(3, 1)
         self.angle25d_spin = self._make_double_spin(0, 359, 110, 1, " degrees")
         self.scale25d_spin = self._make_double_spin(0.01, 100, 1, 0.1, "x")
         self.floor_height25d_spin = self._make_double_spin(0.01, 100, 3.5, 0.1, " map units/floor")
@@ -667,6 +679,10 @@ class CartoLabDashboard(QDialog):
 
         floor_group = self._make_group("Floor Colour Bands")
         floor_layout = QGridLayout(floor_group)
+        floor_layout.setColumnMinimumWidth(0, 150)
+        floor_layout.setColumnMinimumWidth(2, 150)
+        floor_layout.setColumnStretch(1, 1)
+        floor_layout.setColumnStretch(3, 1)
         self.floor_bands25d_check = QCheckBox("Colour each floor separately")
         self.floor_bands25d_check.toggled.connect(self._on_25d_floor_bands_changed)
         self.floor_palette25d_label = QLabel("Floor palette:")
@@ -691,6 +707,10 @@ class CartoLabDashboard(QDialog):
 
         light_group = self._make_group("Lighting and Materials")
         light_layout = QGridLayout(light_group)
+        light_layout.setColumnMinimumWidth(0, 110)
+        light_layout.setColumnMinimumWidth(2, 125)
+        light_layout.setColumnStretch(1, 1)
+        light_layout.setColumnStretch(3, 1)
         self.roof25d_btn = self._make_color_button("#f2cf96")
         self.wall25d_btn = self._make_color_button("#b36f43")
         self.shadow25d_btn = self._make_color_button("#202833")
@@ -728,6 +748,8 @@ class CartoLabDashboard(QDialog):
         copy_btn.setObjectName("ghost")
         copy_btn.clicked.connect(self._on_copy_25d_summary)
         action_row.addWidget(copy_btn)
+        for button in (apply_btn, save_btn, copy_btn):
+            button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         action_row.addStretch()
         lyt.addLayout(action_row)
 
@@ -982,15 +1004,17 @@ class CartoLabDashboard(QDialog):
         gb = self._make_group("Print Layout Automation")
         gl = QVBoxLayout(gb)
 
-        gl.addWidget(QLabel(
-            "Create publication-ready print layouts with one click."))
+        intro = QLabel("Create publication-ready print layouts with one click.")
+        intro.setWordWrap(True)
+        gl.addWidget(intro)
 
         gl.addWidget(QLabel("Isometric stack layers (check to include):"))
         self.iso_layer_list = QListWidget()
         self.iso_layer_list.setSelectionMode(
             QAbstractItemView.SelectionMode.MultiSelection
         )
-        self.iso_layer_list.setMaximumHeight(120)
+        self.iso_layer_list.setMinimumHeight(120)
+        self.iso_layer_list.setMaximumHeight(180)
         gl.addWidget(self.iso_layer_list)
 
         btn_iso = QPushButton("Create Isometric Layer Stack")
@@ -1023,6 +1047,8 @@ class CartoLabDashboard(QDialog):
         btn_grid = QPushButton("Add Minimalist Grid")
         btn_grid.clicked.connect(self._on_grid_style)
         gl.addWidget(btn_grid)
+        for button in (btn_iso, btn_legend, btn_typo, btn_grid):
+            button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
         lyt.addWidget(gb)
         lyt.addStretch()
@@ -1203,7 +1229,7 @@ class CartoLabDashboard(QDialog):
             "<p><b>Compatibility:</b><br>&nbsp;&nbsp;"
             + "<br>&nbsp;&nbsp;".join(compat_lines)
             + "</p>"
-            f"<p><b>System health:</b> {score:.0f}% ({cat_ok_total}/{cat_total} algorithms)</p>"
+            f"<p><b>Readiness:</b> {score:.0f}% ({cat_ok_total}/{cat_total} algorithms)</p>"
             + (f"<p><b>Missing:</b> {', '.join(missing)}</p>" if missing else "<p>All modules ready.</p>")
             + "<p><b>Get started:</b> Open the <b>Modules</b> tab, pick an algorithm, and click <b>Run</b>.</p>"
         )
@@ -1222,12 +1248,16 @@ class CartoLabDashboard(QDialog):
             )
         cat_table.append("</table>")
 
+        readiness_title = "Ready to use" if not missing else "Needs attention"
+        readiness_note = ("All CartoLab tools are available in QGIS." if not missing
+                          else "Some tools are unavailable. Review Setup, then refresh the dashboard.")
         self.readiness.setHtml(
-            "<h2>System Health</h2>"
-            f"<p><b>Available algorithms:</b> {len(REQUIRED_IDS) - len(missing)}/{len(REQUIRED_IDS)}</p>"
-            f"<p><b>Coverage score:</b> {score:.0f}%</p>"
-            f"<p><b>Missing:</b> {', '.join(missing) if missing else 'None'}</p>"
-            "<h3>Category Coverage</h3>"
+            f"<h2>{readiness_title}</h2>"
+            f"<p>{readiness_note}</p>"
+            f"<p><b>Available tools:</b> {len(REQUIRED_IDS) - len(missing)}/{len(REQUIRED_IDS)}</p>"
+            f"<p><b>Readiness score:</b> {score:.0f}%</p>"
+            f"<p><b>Unavailable tools:</b> {len(missing)}</p>"
+            "<h3>Tool coverage</h3>"
             + "".join(cat_table)
         )
 
