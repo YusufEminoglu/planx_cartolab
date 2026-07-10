@@ -32,7 +32,7 @@ def _rings_from_geometry(geom):
     return rings
 
 
-class DotDensityAlgorithm(QgsProcessingAlgorithm, CartoLabHelpMixin):
+class DotDensityAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
     INPUT = "INPUT"
     FIELD = "FIELD"
     VALUE_PER_DOT = "VALUE_PER_DOT"

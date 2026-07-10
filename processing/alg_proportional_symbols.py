@@ -17,7 +17,7 @@ from ..core.proportional_symbols import symbol_size, nice_legend_values
 from ._help_mixin import CartoLabHelpMixin
 
 
-class ProportionalSymbolsAlgorithm(QgsProcessingAlgorithm, CartoLabHelpMixin):
+class ProportionalSymbolsAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
     INPUT = "INPUT"
     FIELD = "FIELD"
     MAX_SIZE = "MAX_SIZE"

@@ -47,7 +47,7 @@ def _largest_part_rings(geom):
     return best_rings
 
 
-class LabelPointsAlgorithm(QgsProcessingAlgorithm, CartoLabHelpMixin):
+class LabelPointsAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
     INPUT = "INPUT"
     PRECISION = "PRECISION"
     OUTPUT = "OUTPUT"

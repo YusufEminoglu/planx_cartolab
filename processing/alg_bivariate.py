@@ -79,7 +79,7 @@ class BivariateSymbologyPostProcessor(QgsProcessingLayerPostProcessorInterface):
         layer.triggerRepaint()
 
 
-class BivariateChoroplethAlgorithm(QgsProcessingAlgorithm, CartoLabHelpMixin):
+class BivariateChoroplethAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
     INPUT = "INPUT"
     FIELD_X = "FIELD_X"
     FIELD_Y = "FIELD_Y"

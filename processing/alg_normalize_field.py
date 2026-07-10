@@ -16,7 +16,7 @@ from ..core import normalize as nm
 from ._help_mixin import CartoLabHelpMixin
 
 
-class NormalizeFieldAlgorithm(QgsProcessingAlgorithm, CartoLabHelpMixin):
+class NormalizeFieldAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
     INPUT = "INPUT"
     FIELD = "FIELD"
     METHOD = "METHOD"

@@ -18,7 +18,7 @@ from ..core.hexgrid import point_to_cell, cell_center, hex_vertices
 from ._help_mixin import CartoLabHelpMixin
 
 
-class HexbinAlgorithm(QgsProcessingAlgorithm, CartoLabHelpMixin):
+class HexbinAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
     INPUT = "INPUT"
     CELL_SIZE = "CELL_SIZE"
     WEIGHT = "WEIGHT"

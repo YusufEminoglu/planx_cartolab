@@ -14,7 +14,7 @@ from ..core.graticule import nice_interval, graticule_lines
 from ._help_mixin import CartoLabHelpMixin
 
 
-class GraticuleAlgorithm(QgsProcessingAlgorithm, CartoLabHelpMixin):
+class GraticuleAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
     EXTENT = "EXTENT"
     X_INTERVAL = "X_INTERVAL"
     Y_INTERVAL = "Y_INTERVAL"

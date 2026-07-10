@@ -6,7 +6,7 @@
 |-------|--------|-------|
 | Phase 1 | DONE | `release.ps1` created — thin wrapper delegating to shared `packaging/release.ps1` (no sibling plugin has its own release.ps1; the plan's assumption was outdated). Changelog insertion verified single, non-duplicating via dry-run. |
 | Phase 2 | DONE | `helpUrl()` added to all 12 algorithms via shared `CartoLabHelpMixin` in `processing/_help_mixin.py` (DRY — 1 definition, 12 inheritors). 4 deprecated `setMode()` calls replaced with `setClassificationMethod(QgsClassificationCustom())` (3 algorithm files + 1 in `core/style_transformer.py` — one more than the plan listed; see deviation below). Zero `setMode` deprecation warnings in e2e output on either QGIS version. |
-| Phase 3 | DONE | Algorithm-count assertion `== 12` added to `scratch/cartolab_e2e_qgis.py` (line 55). Both QGIS 3.44 (23/23) and QGIS 4.0.2 (23/23) pass with the pin visible. The e2e file lives in shared `scratch/` (not `planx_cartolab/scratch/`) which is not tracked by any git repo — change is uncommitted but on disk. |
+| Phase 3 | DONE | Algorithm-count assertion `== 12` added to `scratch/cartolab_e2e_qgis.py` (line 55). Both QGIS 3.44 (23/23) and QGIS 4.0.2 (23/23) pass with the pin visible. The e2e file is now committed under `e2e/cartolab_e2e_qgis.py`; the shared `scratch/` copy is retained for monorepo execution. |
 | Phase 4 | DONE | 7 unused imports removed (QUrl, QDesktopServices, preset_config, check_packages from dashboard; QApplication, QSize, QUrl, QColor, QPalette from floating_annotation). 3 B110 silent-pass sites converted to `feedback.pushInfo()`. E501/E128 fixed in `ui/cartolab_dashboard.py` (3 long lines + 7 indentation issues). `check_packages` in `_on_check_deps` confirmed genuinely dead: `get_status_report()` already calls `check_packages()` internally. flake8: 128 → 109; bandit: 10 Low → 7 Low. |
 | Phase 5 | DONE | `docs/COMMAND_GUIDE.html` added — lists all 12 algorithms grouped by category (Classification, Thematic Mapping, Cartogram, 2.5D Styling, Aggregation, Labeling, Map Reference, Data Preparation), each with purpose summary derived from `shortHelpString()`. Styling matches sibling `planx_suitability_lab` COMMAND_GUIDE pattern. |
 | Phase 6 | DONE | Version bumped to 1.4.0 via `release.ps1 -DryRun`. Changelog entry inserted once (verified no duplicate stub). All gates: 192/192 unit tests, 23/23 e2e both QGIS versions, bandit 7 Low (0 M/H), flake8 109, `grep "%" metadata.txt` empty. Committed; no tag pushed. |
@@ -32,7 +32,7 @@
 |---|-------------|----------|-------------|
 | S11 | 4th deprecated `setMode()` call at `core/style_transformer.py:215` not listed in plan | Low | FIXED — same `QgsClassificationCustom()` replacement applied |
 | S12 | `QgsField` constructor deprecation warnings on QGIS 3.44 (many files) | Low | DEFERRED — pre-existing; cosmetic only; not in scope of this plan |
-| S13 | e2e script at `scratch/cartolab_e2e_qgis.py` is not tracked by any git repo (monorepo-level shared scratch directory) | Low | NOTED — change applied but uncommitted; the plugin repo itself has no scratch/ |
+| S13 | e2e script was previously outside the plugin repo | Low | FIXED — committed under `e2e/cartolab_e2e_qgis.py`; shared scratch copy retained |
 
 ## 3. Algorithm helpUrl table
 
@@ -184,7 +184,7 @@ PASSED: 23
 ============================================================
 ```
 
-Zero deprecation warnings on QGIS 4.0.2 — confirms all 4 `setMode()` replacements are effective.
+No `setMode()` deprecation warnings on either QGIS version. QGIS 3.44 still emits pre-existing `QgsField` constructor warnings documented as S12.
 
 ## 5. Gate outputs
 

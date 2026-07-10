@@ -21,7 +21,7 @@ from ..core.bivariate_engine import (
 from ._help_mixin import CartoLabHelpMixin
 
 
-class GeometricIntervalAlgorithm(QgsProcessingAlgorithm, CartoLabHelpMixin):
+class GeometricIntervalAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
     INPUT = "INPUT"
     FIELD = "FIELD"
     CLASSES = "CLASSES"

@@ -28,7 +28,7 @@ from ..core.qgis_25d_style import (
 from ._help_mixin import CartoLabHelpMixin
 
 
-class Building25DStyleAlgorithm(QgsProcessingAlgorithm, CartoLabHelpMixin):
+class Building25DStyleAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
     INPUT = "INPUT"
     HEIGHT_FIELD = "HEIGHT_FIELD"
     HEIGHT_MODE = "HEIGHT_MODE"

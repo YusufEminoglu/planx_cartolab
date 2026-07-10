@@ -1,5 +1,13 @@
 # Changelog - PlanX CartoLab
 
+## [1.4.1] - 2026-07-10
+
+- Fix helpUrl inheritance and commit e2e regression guard
+
+## [1.4.1] - 2026-07-10
+
+- Fix helpUrl inheritance and commit e2e regression guard
+
 ## [1.4.0] - 2026-07-10
 
 - release.ps1 added; helpUrl() for all 12 algorithms; 4 deprecated setMode() calls fixed (QgsClassificationCustom); e2e algorithm-count regression guard added (==12); dead-import and lint cleanup (flake8 128->109, bandit 10->7 Low); COMMAND_GUIDE.html added

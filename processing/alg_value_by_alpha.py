@@ -16,7 +16,7 @@ from ..core.bivariate_engine import compute_alpha_values
 from ._help_mixin import CartoLabHelpMixin
 
 
-class ValueByAlphaAlgorithm(QgsProcessingAlgorithm, CartoLabHelpMixin):
+class ValueByAlphaAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
     INPUT = "INPUT"
     FIELD_COLOUR = "FIELD_COLOUR"
     FIELD_ALPHA = "FIELD_ALPHA"

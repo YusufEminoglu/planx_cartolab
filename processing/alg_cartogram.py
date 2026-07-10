@@ -22,7 +22,7 @@ from ..core.cartogram_engine import CartogramEngine
 from ._help_mixin import CartoLabHelpMixin
 
 
-class CartogramAlgorithm(QgsProcessingAlgorithm, CartoLabHelpMixin):
+class CartogramAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
     INPUT = "INPUT"
     FIELD = "FIELD"
     MAX_ITERATIONS = "MAX_ITERATIONS"
