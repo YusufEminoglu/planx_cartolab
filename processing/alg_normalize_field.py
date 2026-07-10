@@ -13,9 +13,10 @@ from qgis.PyQt.QtCore import QVariant
 from qgis.PyQt.QtGui import QColor
 
 from ..core import normalize as nm
+from ._help_mixin import CartoLabHelpMixin
 
 
-class NormalizeFieldAlgorithm(QgsProcessingAlgorithm):
+class NormalizeFieldAlgorithm(QgsProcessingAlgorithm, CartoLabHelpMixin):
     INPUT = "INPUT"
     FIELD = "FIELD"
     METHOD = "METHOD"
@@ -147,6 +148,7 @@ class NormalizeFieldAlgorithm(QgsProcessingAlgorithm):
 
 
 def _apply_graduated(layer, field, vmin, vmax):
+    from qgis.core import QgsClassificationCustom
     colours = [
         QColor("#fde725"), QColor("#5ec962"), QColor("#21918c"),
         QColor("#3b528b"), QColor("#440154"),
@@ -162,6 +164,6 @@ def _apply_graduated(layer, field, vmin, vmax):
         sym.setOpacity(0.9)
         ranges.append(QgsRendererRange(lo, hi, sym, f"{lo:.3f} – {hi:.3f}"))
     renderer = QgsGraduatedSymbolRenderer(field, ranges)
-    renderer.setMode(QgsGraduatedSymbolRenderer.Custom)
+    renderer.setClassificationMethod(QgsClassificationCustom())
     layer.setRenderer(renderer)
     layer.triggerRepaint()

@@ -18,6 +18,7 @@ from qgis.PyQt.QtGui import QColor
 from ..core.bivariate_engine import (
     geometric_interval_breaks, fisher_jenks_breaks, bivariate_colour_matrix,
 )
+from ._help_mixin import CartoLabHelpMixin
 
 
 class BivariateSymbologyPostProcessor(QgsProcessingLayerPostProcessorInterface):
@@ -78,7 +79,7 @@ class BivariateSymbologyPostProcessor(QgsProcessingLayerPostProcessorInterface):
         layer.triggerRepaint()
 
 
-class BivariateChoroplethAlgorithm(QgsProcessingAlgorithm):
+class BivariateChoroplethAlgorithm(QgsProcessingAlgorithm, CartoLabHelpMixin):
     INPUT = "INPUT"
     FIELD_X = "FIELD_X"
     FIELD_Y = "FIELD_Y"

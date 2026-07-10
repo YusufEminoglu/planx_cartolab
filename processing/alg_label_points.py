@@ -11,6 +11,7 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QVariant
 
 from ..core.label_points import polylabel
+from ._help_mixin import CartoLabHelpMixin
 
 
 def _shoelace_area(ring):
@@ -46,7 +47,7 @@ def _largest_part_rings(geom):
     return best_rings
 
 
-class LabelPointsAlgorithm(QgsProcessingAlgorithm):
+class LabelPointsAlgorithm(QgsProcessingAlgorithm, CartoLabHelpMixin):
     INPUT = "INPUT"
     PRECISION = "PRECISION"
     OUTPUT = "OUTPUT"

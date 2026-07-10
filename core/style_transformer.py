@@ -160,8 +160,8 @@ def apply_value_by_alpha(
         Name of a QGIS colour ramp (e.g. "Viridis", "Magma", "Spectral").
     """
     from qgis.core import (
-        QgsGraduatedSymbolRenderer, QgsRendererRange, QgsSymbol,
-        QgsClassificationJenks,
+        QgsClassificationCustom, QgsGraduatedSymbolRenderer,
+        QgsRendererRange, QgsSymbol, QgsClassificationJenks,
     )
     from qgis.PyQt.QtGui import QColor
 
@@ -212,7 +212,7 @@ def apply_value_by_alpha(
             ))
 
     renderer = QgsGraduatedSymbolRenderer("", ranges)
-    renderer.setMode(QgsGraduatedSymbolRenderer.Custom)
+    renderer.setClassificationMethod(QgsClassificationCustom())
     vector_layer.setRenderer(renderer)
 
 

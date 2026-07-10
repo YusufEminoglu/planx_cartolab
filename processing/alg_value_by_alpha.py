@@ -13,9 +13,10 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QVariant
 
 from ..core.bivariate_engine import compute_alpha_values
+from ._help_mixin import CartoLabHelpMixin
 
 
-class ValueByAlphaAlgorithm(QgsProcessingAlgorithm):
+class ValueByAlphaAlgorithm(QgsProcessingAlgorithm, CartoLabHelpMixin):
     INPUT = "INPUT"
     FIELD_COLOUR = "FIELD_COLOUR"
     FIELD_ALPHA = "FIELD_ALPHA"

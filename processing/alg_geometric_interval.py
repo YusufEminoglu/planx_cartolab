@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 
 from qgis.core import (
-    QgsFeature, QgsFeatureSink, QgsField, QgsFields,
+    QgsClassificationCustom, QgsFeature, QgsFeatureSink, QgsField, QgsFields,
     QgsGraduatedSymbolRenderer, QgsProcessing, QgsProcessingAlgorithm,
     QgsProcessingException, QgsProcessingParameterFeatureSink,
     QgsProcessingParameterFeatureSource, QgsProcessingParameterField,
@@ -18,9 +18,10 @@ from qgis.PyQt.QtGui import QColor
 from ..core.bivariate_engine import (
     geometric_interval_breaks, head_tail_breaks, fisher_jenks_breaks,
 )
+from ._help_mixin import CartoLabHelpMixin
 
 
-class GeometricIntervalAlgorithm(QgsProcessingAlgorithm):
+class GeometricIntervalAlgorithm(QgsProcessingAlgorithm, CartoLabHelpMixin):
     INPUT = "INPUT"
     FIELD = "FIELD"
     CLASSES = "CLASSES"
@@ -155,7 +156,7 @@ class GeometricIntervalAlgorithm(QgsProcessingAlgorithm):
                     label = f"{breaks[i]:.2f} – {breaks[i+1]:.2f}"
                     ranges.append(QgsRendererRange(breaks[i], breaks[i+1], sym, label))
                 renderer = QgsGraduatedSymbolRenderer("gic_class", ranges)
-                renderer.setMode(QgsGraduatedSymbolRenderer.Custom)
+                renderer.setClassificationMethod(QgsClassificationCustom())
                 out_layer.setRenderer(renderer)
                 out_layer.triggerRepaint()
         except Exception:

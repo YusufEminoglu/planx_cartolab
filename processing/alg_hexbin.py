@@ -15,9 +15,10 @@ from qgis.PyQt.QtCore import QVariant
 from qgis.PyQt.QtGui import QColor
 
 from ..core.hexgrid import point_to_cell, cell_center, hex_vertices
+from ._help_mixin import CartoLabHelpMixin
 
 
-class HexbinAlgorithm(QgsProcessingAlgorithm):
+class HexbinAlgorithm(QgsProcessingAlgorithm, CartoLabHelpMixin):
     INPUT = "INPUT"
     CELL_SIZE = "CELL_SIZE"
     WEIGHT = "WEIGHT"
@@ -146,7 +147,8 @@ class HexbinAlgorithm(QgsProcessingAlgorithm):
 def _apply_graduated(layer, field, vmin, vmax):
     """Apply a 5-class viridis-ish graduated renderer on ``field``."""
     from qgis.core import (
-        QgsGraduatedSymbolRenderer, QgsRendererRange, QgsSymbol,
+        QgsClassificationCustom, QgsGraduatedSymbolRenderer,
+        QgsRendererRange, QgsSymbol,
     )
     colours = [
         QColor("#440154"), QColor("#3b528b"), QColor("#21918c"),
@@ -163,6 +165,6 @@ def _apply_graduated(layer, field, vmin, vmax):
         sym.setOpacity(0.9)
         ranges.append(QgsRendererRange(lo, hi, sym, f"{lo:.2f} – {hi:.2f}"))
     renderer = QgsGraduatedSymbolRenderer(field, ranges)
-    renderer.setMode(QgsGraduatedSymbolRenderer.Custom)
+    renderer.setClassificationMethod(QgsClassificationCustom())
     layer.setRenderer(renderer)
     layer.triggerRepaint()

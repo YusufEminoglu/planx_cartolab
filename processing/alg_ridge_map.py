@@ -17,9 +17,10 @@ from qgis.core import (
 )
 
 from ..core.style_transformer import generate_ridge_lines
+from ._help_mixin import CartoLabHelpMixin
 
 
-class RidgeMapAlgorithm(QgsProcessingAlgorithm):
+class RidgeMapAlgorithm(QgsProcessingAlgorithm, CartoLabHelpMixin):
     RASTER = "RASTER"
     N_LINES = "N_LINES"
     VERTICAL_SCALE = "VERTICAL_SCALE"

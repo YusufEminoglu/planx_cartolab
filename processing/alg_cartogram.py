@@ -19,9 +19,10 @@ from qgis.core import (
 from qgis import processing
 
 from ..core.cartogram_engine import CartogramEngine
+from ._help_mixin import CartoLabHelpMixin
 
 
-class CartogramAlgorithm(QgsProcessingAlgorithm):
+class CartogramAlgorithm(QgsProcessingAlgorithm, CartoLabHelpMixin):
     INPUT = "INPUT"
     FIELD = "FIELD"
     MAX_ITERATIONS = "MAX_ITERATIONS"

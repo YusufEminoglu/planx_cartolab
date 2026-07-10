@@ -14,9 +14,10 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QVariant
 
 from ..core.proportional_symbols import symbol_size, nice_legend_values
+from ._help_mixin import CartoLabHelpMixin
 
 
-class ProportionalSymbolsAlgorithm(QgsProcessingAlgorithm):
+class ProportionalSymbolsAlgorithm(QgsProcessingAlgorithm, CartoLabHelpMixin):
     INPUT = "INPUT"
     FIELD = "FIELD"
     MAX_SIZE = "MAX_SIZE"

@@ -10,6 +10,7 @@ from qgis.core import (
 )
 
 from ..core.dot_density import dots_for_value, generate_dots
+from ._help_mixin import CartoLabHelpMixin
 
 
 def _rings_from_geometry(geom):
@@ -31,7 +32,7 @@ def _rings_from_geometry(geom):
     return rings
 
 
-class DotDensityAlgorithm(QgsProcessingAlgorithm):
+class DotDensityAlgorithm(QgsProcessingAlgorithm, CartoLabHelpMixin):
     INPUT = "INPUT"
     FIELD = "FIELD"
     VALUE_PER_DOT = "VALUE_PER_DOT"
