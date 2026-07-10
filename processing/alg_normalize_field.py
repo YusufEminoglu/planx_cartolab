@@ -141,8 +141,8 @@ class NormalizeFieldAlgorithm(QgsProcessingAlgorithm, CartoLabHelpMixin):
             out_layer = context.getMapLayer(dest_id)
             if out_layer and valid_values:
                 _apply_graduated(out_layer, "norm_value", min(valid_values), max(valid_values))
-        except Exception:
-            pass
+        except Exception as exc:
+            feedback.pushInfo(f"Normalize renderer styling skipped (cosmetic): {exc}")
 
         return {self.OUTPUT: dest_id}
 

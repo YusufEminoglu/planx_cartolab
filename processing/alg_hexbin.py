@@ -138,8 +138,8 @@ class HexbinAlgorithm(QgsProcessingAlgorithm, CartoLabHelpMixin):
             out_layer = context.getMapLayer(dest_id)
             if out_layer and stat_values:
                 _apply_graduated(out_layer, stat_field, min(stat_values), max(stat_values))
-        except Exception:
-            pass
+        except Exception as exc:
+            feedback.pushInfo(f"Hexbin renderer styling skipped (cosmetic): {exc}")
 
         return {self.OUTPUT: dest_id}
 

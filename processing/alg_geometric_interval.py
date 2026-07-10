@@ -159,7 +159,7 @@ class GeometricIntervalAlgorithm(QgsProcessingAlgorithm, CartoLabHelpMixin):
                 renderer.setClassificationMethod(QgsClassificationCustom())
                 out_layer.setRenderer(renderer)
                 out_layer.triggerRepaint()
-        except Exception:
-            pass  # renderer is cosmetic; don't fail the algorithm
+        except Exception as exc:
+            feedback.pushInfo(f"Renderer styling skipped (cosmetic): {exc}")
 
         return {self.OUTPUT: dest_id}

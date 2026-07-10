@@ -17,8 +17,8 @@ try:
     import processing
 except ImportError:
     processing = None
-from qgis.PyQt.QtCore import QSettings, Qt, QUrl
-from qgis.PyQt.QtGui import QColor, QDesktopServices, QFont
+from qgis.PyQt.QtCore import QSettings, Qt
+from qgis.PyQt.QtGui import QColor, QFont
 from qgis.PyQt.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -59,7 +59,6 @@ from ..core.qgis_25d_style import (
     field_is_numeric,
     looks_like_floor_count_field,
     normalise_hex_color,
-    preset_config,
 )
 
 
@@ -296,7 +295,10 @@ class CartoLabDashboard(QDialog):
         ttl = QVBoxLayout()
         title = QLabel("PlanX CartoLab")
         title.setObjectName("heroTitle")
-        sub = QLabel("Advanced cartography suite: 2.5D styling, bivariate maps, cartograms, ridge maps, Value-by-Alpha, and layout automation.")
+        sub = QLabel(
+            "Advanced cartography suite: 2.5D styling, bivariate maps, "
+            "cartograms, ridge maps, Value-by-Alpha, and layout automation."
+        )
         sub.setObjectName("heroSub")
         ttl.addWidget(title)
         ttl.addWidget(sub)
@@ -379,11 +381,16 @@ class CartoLabDashboard(QDialog):
             ("Open 2.5D Styling Panel", self.show_25d_panel),
             ("Inspect Features (Radar Chart on Click)", self._on_activate_annotation),
             ("Run 2.5D Building Style", lambda: self._run_algorithm("planx_cartolab:building_25d_style", "2.5D Building Style")),
-            ("Run Bivariate Choropleth", lambda: self._run_algorithm("planx_cartolab:bivariate_choropleth", "Bivariate")),
-            ("Run Geometric Interval Classification", lambda: self._run_algorithm("planx_cartolab:geometric_interval_classification", "GIC")),
-            ("Run Cartogram", lambda: self._run_algorithm("planx_cartolab:compute_cartogram", "Cartogram")),
-            ("Run Ridge Map", lambda: self._run_algorithm("planx_cartolab:ridge_map", "Ridge Map")),
-            ("Run Value-by-Alpha", lambda: self._run_algorithm("planx_cartolab:value_by_alpha", "VbA")),
+            ("Run Bivariate Choropleth",
+             lambda: self._run_algorithm("planx_cartolab:bivariate_choropleth", "Bivariate")),
+            ("Run Geometric Interval Classification",
+             lambda: self._run_algorithm("planx_cartolab:geometric_interval_classification", "GIC")),
+            ("Run Cartogram",
+             lambda: self._run_algorithm("planx_cartolab:compute_cartogram", "Cartogram")),
+            ("Run Ridge Map",
+             lambda: self._run_algorithm("planx_cartolab:ridge_map", "Ridge Map")),
+            ("Run Value-by-Alpha",
+             lambda: self._run_algorithm("planx_cartolab:value_by_alpha", "VbA")),
             ("Run Dot-Density Map", lambda: self._run_algorithm("planx_cartolab:dot_density", "Dot Density")),
             ("Run Proportional Symbols", lambda: self._run_algorithm("planx_cartolab:proportional_symbols", "Proportional Symbols")),
             ("Run Hexbin Aggregation", lambda: self._run_algorithm("planx_cartolab:hexbin_aggregate", "Hexbin")),
@@ -823,7 +830,10 @@ class CartoLabDashboard(QDialog):
                     candidate_fields.append(field)
             for field in candidate_fields or fields:
                 self.height25d_combo.addItem(field.name(), field.name())
-            preferred = ["Kat_Sayisi", "KatSayisi", "kat_sayisi", "floors", "floor_count", "Hmax", "Height", "height", "Heights", "building_height", "Yukseklik"]
+            preferred = [
+                "Kat_Sayisi", "KatSayisi", "kat_sayisi", "floors", "floor_count",
+                "Hmax", "Height", "height", "Heights", "building_height", "Yukseklik",
+            ]
             target = current if current else next((name for name in preferred if self.height25d_combo.findData(name) >= 0), None)
             if target:
                 idx = self.height25d_combo.findData(target)
@@ -1021,8 +1031,10 @@ class CartoLabDashboard(QDialog):
     def _on_isometric_stack(self) -> None:
         selected_items = self.iso_layer_list.selectedItems()
         if len(selected_items) < 2:
-            QMessageBox.warning(self, "Isometric Stack",
-                                "Select at least 2 layers from the list above.")
+            QMessageBox.warning(
+                self, "Isometric Stack",
+                "Select at least 2 layers from the list above.",
+            )
             return
         selected_names = [item.text() for item in selected_items]
         all_layers = QgsProject.instance().mapLayers()
@@ -1030,8 +1042,9 @@ class CartoLabDashboard(QDialog):
         try:
             from ..layout.isometric_stacker import create_isometric_stack_layout
             create_isometric_stack_layout(layers[:8])
-            self.iface.messageBar().pushSuccess("CartoLab",
-                "Isometric layout created. Open Layout Manager to view.")
+            self.iface.messageBar().pushSuccess(
+                "CartoLab", "Isometric layout created. Open Layout Manager to view.",
+            )
         except Exception as exc:
             QMessageBox.critical(self, "Layout Error", str(exc))
 
@@ -1040,8 +1053,10 @@ class CartoLabDashboard(QDialog):
         manager = project.layoutManager()
         layouts = manager.layouts()
         if not layouts:
-            QMessageBox.information(self, "Bivariate Legend",
-                "No print layouts found. Create one first in Project > Layout Manager.")
+            QMessageBox.information(
+                self, "Bivariate Legend",
+                "No print layouts found. Create one first in Project > Layout Manager.",
+            )
             return
 
         preset = self.bivar_palette_combo.currentData()
@@ -1064,8 +1079,9 @@ class CartoLabDashboard(QDialog):
                 color_hh=colors[3],
                 legend_type=legend_type
             )
-            self.iface.messageBar().pushSuccess("CartoLab",
-                "Bivariate legend added to layout.")
+            self.iface.messageBar().pushSuccess(
+                "CartoLab", "Bivariate legend added to layout.",
+            )
         except Exception as exc:
             QMessageBox.critical(self, "Legend Error", str(exc))
 
@@ -1079,11 +1095,14 @@ class CartoLabDashboard(QDialog):
                 apply_typography_hierarchy(layout)
                 count += 1
             if count:
-                self.iface.messageBar().pushSuccess("CartoLab",
-                    f"Typography applied to {count} layout(s).")
+                self.iface.messageBar().pushSuccess(
+                    "CartoLab", f"Typography applied to {count} layout(s).",
+                )
             else:
-                QMessageBox.information(self, "Typography",
-                    "No print layouts found. Create one first in Project > Layout Manager.")
+                QMessageBox.information(
+                    self, "Typography",
+                    "No print layouts found. Create one first in Project > Layout Manager.",
+                )
         except Exception as exc:
             QMessageBox.critical(self, "Typography Error", str(exc))
 
@@ -1097,11 +1116,13 @@ class CartoLabDashboard(QDialog):
                 apply_minimalist_grid(layout)
                 count += 1
             if count:
-                self.iface.messageBar().pushSuccess("CartoLab",
-                    f"Minimalist grid added to {count} layout(s).")
+                self.iface.messageBar().pushSuccess(
+                    "CartoLab", f"Minimalist grid added to {count} layout(s).",
+                )
             else:
-                QMessageBox.information(self, "Grid Style",
-                    "No print layouts found. Create one first.")
+                QMessageBox.information(
+                    self, "Grid Style", "No print layouts found. Create one first.",
+                )
         except Exception as exc:
             QMessageBox.critical(self, "Grid Error", str(exc))
 
@@ -1216,7 +1237,7 @@ class CartoLabDashboard(QDialog):
     # ── Dependency management ────────────────────────────────────────
 
     def _on_check_deps(self) -> None:
-        from ..core.dependency_manager import check_packages, get_status_report, CARTO_LAB_DEPS
+        from ..core.dependency_manager import get_status_report, CARTO_LAB_DEPS
         report = get_status_report(CARTO_LAB_DEPS, "CartoLab Dependencies")
         self.setup_status.setPlainText(report)
 

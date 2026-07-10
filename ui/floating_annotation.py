@@ -9,10 +9,9 @@ card via html_graph_factory, and shows it in a bordered popup dialog.
 from __future__ import annotations
 
 from qgis.PyQt.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QApplication,
+    QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
 )
-from qgis.PyQt.QtCore import Qt, QSize, QUrl
-from qgis.PyQt.QtGui import QColor, QPalette
+from qgis.PyQt.QtCore import Qt
 from qgis.core import (
     QgsPointXY, QgsGeometry, QgsMapLayer, QgsProject,
 )
