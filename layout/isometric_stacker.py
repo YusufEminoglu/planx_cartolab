@@ -12,7 +12,7 @@ from typing import List
 
 from qgis.PyQt.QtGui import QFont
 from qgis.core import (
-    QgsLayout,
+    QgsPrintLayout,
     QgsLayoutItemMap,
     QgsLayoutPoint,
     QgsLayoutSize,
@@ -20,20 +20,21 @@ from qgis.core import (
     QgsRectangle,
     QgsUnitTypes,
     QgsMapLayer,
-    QgsLayoutExporter,
 )
+
+from .layout_utils import unique_layout_name
 
 
 def create_isometric_stack_layout(
     layers: List[QgsMapLayer],
-    layout_name: str = "Isometric_Stack",
+    layout_name: str = "Isometric Stack",
     page_width_mm: float = 420.0,
     page_height_mm: float = 297.0,
     base_spacing_mm: float = 18.0,
     angle_deg: float = 30.0,
     elevation_deg: float = 35.264,
     map_scale: float = 50000.0,
-) -> QgsLayout:
+) -> QgsPrintLayout:
     """
     Create an isometric-stacked map layout.
 
@@ -60,17 +61,21 @@ def create_isometric_stack_layout(
     -------
     QgsLayout — the created layout (also added to the project).
     """
+    if not layers:
+        raise ValueError("Isometric stack needs at least one layer.")
+
     project = QgsProject.instance()
-    layout = QgsLayout(project)
+    layout = QgsPrintLayout(project)
     layout.initializeDefaults()
-    layout.setName(layout_name)
+    layout.setName(unique_layout_name(project, layout_name))
 
     page = layout.pageCollection().page(0)
     page.setPageSize(QgsLayoutSize(page_width_mm, page_height_mm, QgsUnitTypes.LayoutMillimeters))
 
     # precompute isometric offsets from our affine engine
     from ..core.affine_matrix import compute_isometric_layer_offsets
-    offsets = compute_isometric_layer_offsets(len(layers), base_spacing_mm, angle_deg, elevation_deg)
+    offsets = compute_isometric_layer_offsets(
+        len(layers), base_spacing_mm, angle_deg, elevation_deg)
 
     map_width = page_width_mm * 0.55
     map_height = page_height_mm * 0.55
@@ -91,7 +96,9 @@ def create_isometric_stack_layout(
 
     for i, (layer, (dx, dy)) in enumerate(zip(layers, offsets)):
         map_item = QgsLayoutItemMap(layout)
-        map_item.setRect(0, 0, map_width, map_height)
+        map_item.attemptResize(
+            QgsLayoutSize(map_width, map_height, QgsUnitTypes.LayoutMillimeters)
+        )
         map_item.setExtent(extent)
         map_item.setScale(map_scale)
 
@@ -107,7 +114,9 @@ def create_isometric_stack_layout(
         from qgis.core import QgsLayoutItemLabel
         label = QgsLayoutItemLabel(layout)
         label.setText(layer.name())
-        font = QFont("Inter, Segoe UI", 9)
+        font = QFont()
+        font.setFamilies(["Inter", "Segoe UI", "Arial", "sans-serif"])
+        font.setPointSize(9)
         font.setBold(True)
         label.setFont(font)
         label.adjustSizeToText()

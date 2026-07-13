@@ -31,7 +31,7 @@ The map types journals and design studios actually ask for —
 | 🗺 **Shape as data** | Continuous-area **cartograms** distort polygons by value; **ridge-line maps** turn any raster (DEM, heat, density, accessibility) into joy-division-style relief. |
 | 📊 **Point & density cartography** | **Dot-density**, Flannery **proportional symbols** and **hexbin** aggregation turn raw points and counts into honest density maps — plus visual-center **label anchors** (polylabel) and coordinate **graticules**. |
 | 🧮 **Choropleth done right** | One-step **normalization** — rates per capita, z-score, robust MAD-z, percentile rank and log — so you map *rates*, not population. |
-| 🖨 **Layout automation** | Print-layout assembly with rotated diamond/square bivariate legends, isometric layer stacks, minimalist grids and typography hierarchy — the last mile to publication. |
+| 🖨 **Auto layouts** | One-click **Auto Map Sheet** builds a finished print layout from the current view — titled map frame, filtered legend, scale bar, north arrow, coordinate grid and credits — then opens it in the Designer. Plus a **Layout Manager** (open, duplicate, delete, export PNG/PDF) and decorators: native bivariate legends, isometric layer stacks, minimalist grids and typography hierarchy. |
 
 Built for planners, urban researchers, studios and academic cartography workflows.
 
@@ -56,7 +56,9 @@ Everything is reachable from the **CartoLab Dashboard** (`Plugins → PlanX Cart
 | **Graticule / Reference Grid** | Meridians & parallels on nice intervals, each carrying a coordinate label | Processing |
 | **Choropleth Normalization & Rates** | Rate, z-score, robust z, min-max, percentile rank, log — prep before classifying | Processing |
 | **Feature Inspector** | Floating HTML feature cards with radar-style attribute charts | Dashboard |
-| **Layout Automation** | Bivariate legends, isometric stacks, grids, typography | Print Layout |
+| **Auto Map Sheet** | Complete print layout from the current view — map, legend, scale bar, north arrow, grid, credits — in one click | Dashboard → Layout |
+| **Layout Manager** | List, open, duplicate, delete and export (PNG/PDF) project layouts | Dashboard → Layout |
+| **Layout Decorators** | Native bivariate legends, isometric layer stacks, idempotent minimalist grids, typography hierarchy | Dashboard → Layout |
 
 ---
 
@@ -122,7 +124,7 @@ planx_cartolab/
 - **Kartogram ve sırt haritaları:** Değerle orantılı poligon bozulması; DEM/ısı/yoğunluk rasterlarından ridge-line haritalar.
 - **Nokta ve yoğunluk haritaları:** Nokta-yoğunluk (dot-density), Flannery düzeltmeli orantılı semboller, altıgen (hexbin) toplama; ayrıca her zaman şeklin içinde kalan görsel-merkez etiket noktaları (polylabel) ve koordinat graticule'ü.
 - **Doğru koroplet:** Tek adımda normalleştirme (kişi başına oran, z-skoru, dayanıklı MAD-z, yüzdelik, log) — nüfusu değil *oranı* haritalayın.
-- **Sayfa düzeni otomasyonu:** Bivariate lejantlar, izometrik katman istifi, tipografi hiyerarşisi — yayına giden son adım.
+- **Otomatik sayfa düzeni:** Tek tıkla **Otomatik Harita Sayfası** — geçerli görünümden başlıklı harita çerçevesi, lejant, ölçek çubuğu, kuzey oku, koordinat ızgarası ve künye içeren tam bir baskı düzeni oluşturur ve Tasarımcı'da açar. Ayrıca **Düzen Yöneticisi** (aç, çoğalt, sil, PNG/PDF dışa aktar) ve dekoratörler: yerli bivariate lejantlar, izometrik katman istifi, tipografi hiyerarşisi.
 
 Kurulum: QGIS → *Eklentiler → Eklentileri Yönet ve Kur* → **PlanX CartoLab** aratın. Pano: *Eklentiler → PlanX CartoLab → CartoLab Dashboard*.
 

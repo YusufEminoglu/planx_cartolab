@@ -997,62 +997,300 @@ class CartoLabDashboard(QDialog):
         self.iface.messageBar().pushSuccess("CartoLab", "2.5D style summary copied to clipboard.")
 
     def _build_layout_tab(self) -> None:
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
         w = QWidget()
         lyt = QVBoxLayout(w)
         lyt.setContentsMargins(12, 12, 12, 12)
+        lyt.setSpacing(10)
 
-        gb = self._make_group("Print Layout Automation")
-        gl = QVBoxLayout(gb)
-
-        intro = QLabel("Create publication-ready print layouts with one click.")
+        # ── Group 1: Auto Map Sheet ──────────────────────────────────
+        gb_sheet = self._make_group("Auto Map Sheet — one-click publication layout")
+        gs = QVBoxLayout(gb_sheet)
+        intro = QLabel(
+            "Build a finished print layout from the current map view: titled "
+            "map frame at the current extent, legend, scale bar, north arrow, "
+            "grid and credits. Opens straight in the Layout Designer."
+        )
         intro.setWordWrap(True)
-        gl.addWidget(intro)
+        gs.addWidget(intro)
 
-        gl.addWidget(QLabel("Isometric stack layers (check to include):"))
+        form = QGridLayout()
+        form.setHorizontalSpacing(10)
+        form.setVerticalSpacing(6)
+        form.addWidget(QLabel("Title:"), 0, 0)
+        self.mapsheet_title = QLineEdit()
+        self.mapsheet_title.setPlaceholderText("(defaults to the project title)")
+        form.addWidget(self.mapsheet_title, 0, 1, 1, 3)
+
+        form.addWidget(QLabel("Credits:"), 1, 0)
+        self.mapsheet_credits = QLineEdit()
+        self.mapsheet_credits.setPlaceholderText("Data source, author, date…")
+        form.addWidget(self.mapsheet_credits, 1, 1, 1, 3)
+
+        form.addWidget(QLabel("Page:"), 2, 0)
+        self.mapsheet_page_combo = QComboBox()
+        self.mapsheet_page_combo.addItems(["A4", "A3", "A2", "A1", "A0"])
+        form.addWidget(self.mapsheet_page_combo, 2, 1)
+        form.addWidget(QLabel("Orientation:"), 2, 2)
+        self.mapsheet_orient_combo = QComboBox()
+        self.mapsheet_orient_combo.addItems(["Landscape", "Portrait"])
+        form.addWidget(self.mapsheet_orient_combo, 2, 3)
+        gs.addLayout(form)
+
+        el_row = QHBoxLayout()
+        el_row.addWidget(QLabel("Include:"))
+        self.cb_title = QCheckBox("Title")
+        self.cb_legend = QCheckBox("Legend")
+        self.cb_scalebar = QCheckBox("Scale bar")
+        self.cb_north = QCheckBox("North arrow")
+        self.cb_grid = QCheckBox("Grid")
+        for cb in (self.cb_title, self.cb_legend, self.cb_scalebar, self.cb_north):
+            cb.setChecked(True)
+            el_row.addWidget(cb)
+        self.cb_grid.setChecked(False)
+        el_row.addWidget(self.cb_grid)
+        el_row.addStretch()
+        gs.addLayout(el_row)
+
+        btn_sheet = QPushButton("Create Map Sheet from Current View")
+        btn_sheet.setToolTip("Assemble a complete print layout and open it in the designer")
+        btn_sheet.clicked.connect(self._on_create_map_sheet)
+        gs.addWidget(btn_sheet)
+        lyt.addWidget(gb_sheet)
+
+        # ── Group 2: Layout Manager ──────────────────────────────────
+        gb_mgr = self._make_group("Layout Manager")
+        gm = QVBoxLayout(gb_mgr)
+        pick = QHBoxLayout()
+        pick.addWidget(QLabel("Layout:"))
+        self.layout_combo = QComboBox()
+        self.layout_combo.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        pick.addWidget(self.layout_combo, 1)
+        btn_refresh_layouts = QPushButton("↻")
+        btn_refresh_layouts.setToolTip("Refresh layout list")
+        btn_refresh_layouts.setMaximumWidth(36)
+        btn_refresh_layouts.clicked.connect(self._refresh_layout_combo)
+        pick.addWidget(btn_refresh_layouts)
+        gm.addLayout(pick)
+
+        actions = QHBoxLayout()
+        btn_open = QPushButton("Open in Designer")
+        btn_open.clicked.connect(self._on_open_designer)
+        btn_dup = QPushButton("Duplicate")
+        btn_dup.clicked.connect(self._on_duplicate_layout)
+        btn_del = QPushButton("Delete")
+        btn_del.clicked.connect(self._on_delete_layout)
+        for b in (btn_open, btn_dup, btn_del):
+            actions.addWidget(b)
+        gm.addLayout(actions)
+
+        exports = QHBoxLayout()
+        btn_png = QPushButton("Export PNG…")
+        btn_png.clicked.connect(lambda: self._on_export_layout("png"))
+        btn_pdf = QPushButton("Export PDF…")
+        btn_pdf.clicked.connect(lambda: self._on_export_layout("pdf"))
+        exports.addWidget(btn_png)
+        exports.addWidget(btn_pdf)
+        gm.addLayout(exports)
+        lyt.addWidget(gb_mgr)
+
+        # ── Group 3: Decorators (apply to the selected layout) ───────
+        gb_dec = self._make_group("Decorators — enhance the selected layout")
+        gd = QVBoxLayout(gb_dec)
+
+        gd.addWidget(QLabel("Isometric stack layers (select 2+ to build a new stack):"))
         self.iso_layer_list = QListWidget()
         self.iso_layer_list.setSelectionMode(
             QAbstractItemView.SelectionMode.MultiSelection
         )
-        self.iso_layer_list.setMinimumHeight(120)
-        self.iso_layer_list.setMaximumHeight(180)
-        gl.addWidget(self.iso_layer_list)
-
+        self.iso_layer_list.setMinimumHeight(96)
+        self.iso_layer_list.setMaximumHeight(150)
+        gd.addWidget(self.iso_layer_list)
         btn_iso = QPushButton("Create Isometric Layer Stack")
         btn_iso.clicked.connect(self._on_isometric_stack)
-        gl.addWidget(btn_iso)
+        gd.addWidget(btn_iso)
 
-        gl.addWidget(QLabel("Bivariate Legend Palette:"))
+        bivar_row = QHBoxLayout()
+        bivar_row.addWidget(QLabel("Bivariate legend:"))
         self.bivar_palette_combo = QComboBox()
-        self.bivar_palette_combo.addItem("Teal-Brown (Default)", "teal_brown")
+        self.bivar_palette_combo.addItem("Teal-Brown", "teal_brown")
         self.bivar_palette_combo.addItem("Purple-Green", "purple_green")
         self.bivar_palette_combo.addItem("Blue-Orange", "blue_orange")
         self.bivar_palette_combo.addItem("Pink-Green", "pink_green")
-        gl.addWidget(self.bivar_palette_combo)
-
-        gl.addWidget(QLabel("Bivariate Legend Style:"))
+        bivar_row.addWidget(self.bivar_palette_combo, 1)
         self.bivar_legend_type_combo = QComboBox()
-        self.bivar_legend_type_combo.addItem("Diamond (Rotated)", "diamond")
-        self.bivar_legend_type_combo.addItem("Square Grid", "square")
-        gl.addWidget(self.bivar_legend_type_combo)
-
-        btn_legend = QPushButton("Add Bivariate Legend to Layout")
-        btn_legend.setToolTip("Add a colour-matrix legend to the first print layout")
+        self.bivar_legend_type_combo.addItem("Diamond", "diamond")
+        self.bivar_legend_type_combo.addItem("Square", "square")
+        bivar_row.addWidget(self.bivar_legend_type_combo, 1)
+        gd.addLayout(bivar_row)
+        btn_legend = QPushButton("Add Bivariate Legend to Selected Layout")
         btn_legend.clicked.connect(self._on_bivariate_legend)
-        gl.addWidget(btn_legend)
+        gd.addWidget(btn_legend)
 
+        deco_row = QHBoxLayout()
         btn_typo = QPushButton("Apply Swiss Typography")
         btn_typo.clicked.connect(self._on_typography)
-        gl.addWidget(btn_typo)
-
-        btn_grid = QPushButton("Add Minimalist Grid")
+        btn_grid = QPushButton("Add / Refresh Minimalist Grid")
         btn_grid.clicked.connect(self._on_grid_style)
-        gl.addWidget(btn_grid)
-        for button in (btn_iso, btn_legend, btn_typo, btn_grid):
+        deco_row.addWidget(btn_typo)
+        deco_row.addWidget(btn_grid)
+        gd.addLayout(deco_row)
+        lyt.addWidget(gb_dec)
+
+        for button in (btn_sheet, btn_iso, btn_legend, btn_typo, btn_grid):
             button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
-        lyt.addWidget(gb)
         lyt.addStretch()
-        self.tabs.addTab(w, "Layout")
+        scroll.setWidget(w)
+        self.tabs.addTab(scroll, "Layout")
+        self._refresh_layout_combo()
+
+    # ── Layout Manager helpers ───────────────────────────────────────
+
+    def _refresh_layout_combo(self) -> None:
+        """Repopulate the layout picker, preserving the current selection."""
+        if not hasattr(self, "layout_combo"):
+            return
+        current = self.layout_combo.currentText()
+        self.layout_combo.blockSignals(True)
+        self.layout_combo.clear()
+        names = [lay.name() for lay in QgsProject.instance().layoutManager().layouts()]
+        self.layout_combo.addItems(sorted(names))
+        if current in names:
+            self.layout_combo.setCurrentText(current)
+        self.layout_combo.blockSignals(False)
+
+    def _selected_layout(self):
+        """Return the QgsPrintLayout chosen in the picker, or None."""
+        if not hasattr(self, "layout_combo"):
+            return None
+        name = self.layout_combo.currentText()
+        if not name:
+            return None
+        return QgsProject.instance().layoutManager().layoutByName(name)
+
+    def _require_layout(self, title: str):
+        """Return the selected layout or show a helpful message and return None."""
+        layout = self._selected_layout()
+        if layout is None:
+            QMessageBox.information(
+                self, title,
+                "No layout selected. Create a Map Sheet above, or pick an "
+                "existing layout in the Layout Manager list.",
+            )
+        return layout
+
+    def _bivar_colors(self):
+        preset = self.bivar_palette_combo.currentData()
+        return {
+            "teal_brown": ("#e8e8e8", "#5ab4ac", "#d8b365", "#8c510a"),
+            "purple_green": ("#e8e8e8", "#7fbf7b", "#af8dc3", "#762a83"),
+            "blue_orange": ("#e8e8e8", "#fdae61", "#abd9e9", "#2c7bb6"),
+            "pink_green": ("#e8e8e8", "#a1d76a", "#e9a3c9", "#c51b7d"),
+        }.get(preset, ("#e8e8e8", "#5ab4ac", "#d8b365", "#8c510a"))
+
+    def _open_in_designer(self, layout) -> None:
+        try:
+            if hasattr(self.iface, "openLayoutDesigner"):
+                self.iface.openLayoutDesigner(layout)
+        except Exception:
+            pass
+
+    # ── Layout Studio actions ────────────────────────────────────────
+
+    def _on_create_map_sheet(self) -> None:
+        if not QgsProject.instance().mapLayers():
+            QMessageBox.warning(
+                self, "Auto Map Sheet",
+                "No layers are loaded — the map frame would be empty. "
+                "Load a layer first.",
+            )
+            return
+        try:
+            from ..layout.map_sheet import create_map_sheet
+            layout = create_map_sheet(
+                iface=self.iface,
+                title=self.mapsheet_title.text().strip(),
+                credits=self.mapsheet_credits.text().strip(),
+                page_size=self.mapsheet_page_combo.currentText(),
+                landscape=(self.mapsheet_orient_combo.currentText() == "Landscape"),
+                add_title=self.cb_title.isChecked(),
+                add_legend=self.cb_legend.isChecked(),
+                add_scalebar=self.cb_scalebar.isChecked(),
+                add_north_arrow=self.cb_north.isChecked(),
+                add_grid=self.cb_grid.isChecked(),
+            )
+            self._refresh_layout_combo()
+            self.layout_combo.setCurrentText(layout.name())
+            self._open_in_designer(layout)
+            self.iface.messageBar().pushSuccess(
+                "CartoLab", f"Map sheet '{layout.name()}' created.",
+            )
+        except Exception as exc:
+            QMessageBox.critical(self, "Map Sheet Error", str(exc))
+
+    def _on_open_designer(self) -> None:
+        layout = self._require_layout("Open in Designer")
+        if layout is not None:
+            self._open_in_designer(layout)
+
+    def _on_duplicate_layout(self) -> None:
+        layout = self._require_layout("Duplicate Layout")
+        if layout is None:
+            return
+        manager = QgsProject.instance().layoutManager()
+        new_name = manager.generateUniqueTitle()
+        try:
+            dup = manager.duplicateLayout(layout, new_name)
+        except Exception as exc:
+            QMessageBox.critical(self, "Duplicate Layout", str(exc))
+            return
+        self._refresh_layout_combo()
+        if dup is not None:
+            self.layout_combo.setCurrentText(dup.name())
+        self.iface.messageBar().pushSuccess("CartoLab", f"Duplicated to '{new_name}'.")
+
+    def _on_delete_layout(self) -> None:
+        layout = self._require_layout("Delete Layout")
+        if layout is None:
+            return
+        name = layout.name()
+        if QMessageBox.question(
+            self, "Delete Layout",
+            f"Delete layout '{name}'? This cannot be undone.",
+        ) != QMessageBox.StandardButton.Yes:
+            return
+        QgsProject.instance().layoutManager().removeLayout(layout)
+        self._refresh_layout_combo()
+        self.iface.messageBar().pushSuccess("CartoLab", f"Deleted layout '{name}'.")
+
+    def _on_export_layout(self, fmt: str) -> None:
+        layout = self._require_layout("Export Layout")
+        if layout is None:
+            return
+        ext = "pdf" if fmt == "pdf" else "png"
+        filt = "PDF document (*.pdf)" if ext == "pdf" else "PNG image (*.png)"
+        safe = "".join(c if c.isalnum() else "_" for c in layout.name())
+        default = os.path.join(
+            os.path.expanduser("~"), f"{safe}.{ext}")
+        path, _ = QFileDialog.getSaveFileName(
+            self, f"Export {ext.upper()}", default, filt)
+        if not path:
+            return
+        if not path.lower().endswith("." + ext):
+            path += "." + ext
+        try:
+            from ..layout.layout_utils import export_layout
+            success = export_layout(layout, path, dpi=300)
+        except Exception as exc:
+            QMessageBox.critical(self, "Export Error", str(exc))
+            return
+        if success:
+            self.iface.messageBar().pushSuccess("CartoLab", f"Exported: {path}")
+        else:
+            QMessageBox.warning(self, "Export", "Export did not complete successfully.")
 
     def _on_isometric_stack(self) -> None:
         selected_items = self.iso_layer_list.selectedItems()
@@ -1067,87 +1305,62 @@ class CartoLabDashboard(QDialog):
         layers = [lyr for name, lyr in all_layers.items() if lyr.name() in selected_names]
         try:
             from ..layout.isometric_stacker import create_isometric_stack_layout
-            create_isometric_stack_layout(layers[:8])
+            layout = create_isometric_stack_layout(layers[:8])
+            self._refresh_layout_combo()
+            self.layout_combo.setCurrentText(layout.name())
+            self._open_in_designer(layout)
             self.iface.messageBar().pushSuccess(
-                "CartoLab", "Isometric layout created. Open Layout Manager to view.",
+                "CartoLab", f"Isometric stack '{layout.name()}' created.",
             )
         except Exception as exc:
             QMessageBox.critical(self, "Layout Error", str(exc))
 
     def _on_bivariate_legend(self) -> None:
-        project = QgsProject.instance()
-        manager = project.layoutManager()
-        layouts = manager.layouts()
-        if not layouts:
-            QMessageBox.information(
-                self, "Bivariate Legend",
-                "No print layouts found. Create one first in Project > Layout Manager.",
-            )
+        layout = self._require_layout("Bivariate Legend")
+        if layout is None:
             return
-
-        preset = self.bivar_palette_combo.currentData()
-        colors = {
-            "teal_brown": ("#e8e8e8", "#5ab4ac", "#d8b365", "#8c510a"),
-            "purple_green": ("#e8e8e8", "#7fbf7b", "#af8dc3", "#762a83"),
-            "blue_orange": ("#e8e8e8", "#fdae61", "#abd9e9", "#2c7bb6"),
-            "pink_green": ("#e8e8e8", "#a1d76a", "#e9a3c9", "#c51b7d"),
-        }.get(preset, ("#e8e8e8", "#5ab4ac", "#d8b365", "#8c510a"))
-
-        legend_type = self.bivar_legend_type_combo.currentData()
-
+        colors = self._bivar_colors()
         try:
             from ..layout.legend_decorator import add_bivariate_legend_to_layout
             add_bivariate_legend_to_layout(
-                layouts[0],
-                color_ll=colors[0],
-                color_lh=colors[1],
-                color_hl=colors[2],
-                color_hh=colors[3],
-                legend_type=legend_type
+                layout,
+                color_ll=colors[0], color_lh=colors[1],
+                color_hl=colors[2], color_hh=colors[3],
+                legend_type=self.bivar_legend_type_combo.currentData(),
             )
             self.iface.messageBar().pushSuccess(
-                "CartoLab", "Bivariate legend added to layout.",
+                "CartoLab", f"Bivariate legend added to '{layout.name()}'.",
             )
         except Exception as exc:
             QMessageBox.critical(self, "Legend Error", str(exc))
 
     def _on_typography(self) -> None:
-        project = QgsProject.instance()
-        manager = project.layoutManager()
-        count = 0
+        layout = self._require_layout("Typography")
+        if layout is None:
+            return
         try:
             from ..layout.typography_engine import apply_typography_hierarchy
-            for layout in manager.layouts():
-                apply_typography_hierarchy(layout)
-                count += 1
-            if count:
-                self.iface.messageBar().pushSuccess(
-                    "CartoLab", f"Typography applied to {count} layout(s).",
-                )
-            else:
-                QMessageBox.information(
-                    self, "Typography",
-                    "No print layouts found. Create one first in Project > Layout Manager.",
-                )
+            apply_typography_hierarchy(layout)
+            self.iface.messageBar().pushSuccess(
+                "CartoLab", f"Typography applied to '{layout.name()}'.",
+            )
         except Exception as exc:
             QMessageBox.critical(self, "Typography Error", str(exc))
 
     def _on_grid_style(self) -> None:
-        project = QgsProject.instance()
-        manager = project.layoutManager()
-        count = 0
+        layout = self._require_layout("Minimalist Grid")
+        if layout is None:
+            return
         try:
             from ..layout.grid_styler import apply_minimalist_grid
-            for layout in manager.layouts():
-                apply_minimalist_grid(layout)
-                count += 1
-            if count:
+            if apply_minimalist_grid(layout):
                 self.iface.messageBar().pushSuccess(
-                    "CartoLab", f"Minimalist grid added to {count} layout(s).",
+                    "CartoLab", f"Minimalist grid applied to '{layout.name()}'.",
                 )
             else:
                 QMessageBox.information(
-                    self, "Grid Style", "No print layouts found. Create one first.",
+                    self, "Minimalist Grid",
+                    f"Layout '{layout.name()}' has no map frame to grid.",
                 )
         except Exception as exc:
             QMessageBox.critical(self, "Grid Error", str(exc))
@@ -1166,6 +1379,8 @@ class CartoLabDashboard(QDialog):
             self.iso_layer_list.clear()
             for layer in layers:
                 self.iso_layer_list.addItem(layer.name())
+        if hasattr(self, "layout_combo"):
+            self._refresh_layout_combo()
 
         for card in self.card_widgets:
             is_ready = reg.algorithmById(card.algo_id) is not None

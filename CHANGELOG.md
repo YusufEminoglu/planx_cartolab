@@ -1,5 +1,28 @@
 # Changelog - PlanX CartoLab
 
+## [1.5.0] - 2026-07-13
+
+### Added
+- **Auto Map Sheet** — one-click publication layout built from the current map view: titled map frame at the current extent and CRS, filtered legend, scale bar, north arrow (bundled QGIS SVG with a drawn fallback), optional coordinate grid, neat-line and credits. Choose page size (A0–A4) and orientation; the finished layout opens straight in the Layout Designer.
+- **Layout Manager** in the dashboard Layout tab — pick any project layout and open it in the Designer, duplicate it, delete it, or export it to PNG/PDF at 300 dpi.
+- Real-QGIS e2e coverage for the layout subsystem (map sheet assembly, grid idempotency, native legend, isometric stack, export) — the harness now runs 33 checks on both QGIS 3.44 LTR and QGIS 4.
+- Pure-logic `core/layout_math.py` (nice grid intervals, collision-free layout names, page geometry) with 17 new unit tests.
+
+### Changed
+- Bivariate print-layout legends are now built from **native, editable layout items** (rectangles / diamonds + text, grouped) instead of an embedded SVG — no more orphaned temporary files, and the legend can be tweaked in the Designer.
+- Layout decorators (bivariate legend, typography, minimalist grid) now target the **layout you select** in the Layout Manager instead of blindly using the first layout.
+- Isometric layer stacks are now created as `QgsPrintLayout` objects (so they appear correctly in the Layout Manager and Designer) with collision-free names.
+
+### Fixed
+- Minimalist coordinate grid is now **idempotent** (re-running replaces the CartoLab grid instead of stacking duplicates) and derives a rounded interval from the map extent, so it reads well at any scale or CRS. The grid line styling used non-existent API calls (`setGridLinePenSize`/`setGridLineStyle`) and silently failed; it now uses `setLineSymbol`.
+
+### Removed
+- Dead code: unused `create_cross_grid_style`, and the orphaned `build_bivariate_legend_html` / `build_micro_bar_chart_html` HTML factories.
+
+## [1.4.3] - 2026-07-10
+
+- Packaging hygiene fix: `packaging/zip_hub.py` now always excludes internal AI-agent work-order files (`ENHANCEMENT_PLAN_*.md`, `DEEPSEEK_PROMPT_*.txt`, `REPORT_v*.md`) from the built zip, regardless of version suffix. These files remain in the GitHub repository as project history but no longer ship in the QGIS Hub package.
+
 ## [1.4.2] - 2026-07-10
 
 - Fix responsive 2.5D and Layout UI; rename System Health to Readiness

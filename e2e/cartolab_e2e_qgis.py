@@ -310,6 +310,55 @@ ok("building_25d_style summary", out is not None and isinstance(out.get("SUMMARY
    and len(out.get("SUMMARY", "")) > 10)
 
 # ===========================================================================
+# LAYOUT SUBSYSTEM (real QgsPrintLayout assembly)
+# ===========================================================================
+print("\n--- Layout subsystem ---")
+from qgis.core import (
+    QgsLayoutItemMap, QgsLayoutItemLegend, QgsLayoutItemScaleBar,
+    QgsLayoutItemLabel, QgsLayoutItemPicture, QgsLayoutItemPolygon,
+    QgsLayoutItemShape, QgsPrintLayout,
+)
+from planx_cartolab.layout.map_sheet import create_map_sheet
+from planx_cartolab.layout.grid_styler import apply_minimalist_grid, GRID_ID
+from planx_cartolab.layout.legend_decorator import add_bivariate_legend_to_layout
+from planx_cartolab.layout.typography_engine import apply_typography_hierarchy
+from planx_cartolab.layout.isometric_stacker import create_isometric_stack_layout
+from planx_cartolab.layout.layout_utils import export_layout
+
+
+def _count(lay, cls):
+    return sum(1 for it in lay.items() if isinstance(it, cls))
+
+
+sheet = create_map_sheet(iface=None, layers=[polys, points], title="E2E Sheet",
+                         credits="synthetic", add_grid=True)
+ok("map sheet is print layout", isinstance(sheet, QgsPrintLayout))
+ok("map sheet has 1 map", _count(sheet, QgsLayoutItemMap) == 1)
+ok("map sheet has legend + scalebar",
+   _count(sheet, QgsLayoutItemLegend) == 1 and _count(sheet, QgsLayoutItemScaleBar) == 1)
+ok("map sheet has north arrow", _count(sheet, QgsLayoutItemPicture) >= 1)
+
+_sm = next(it for it in sheet.items() if isinstance(it, QgsLayoutItemMap))
+apply_minimalist_grid(sheet)
+apply_minimalist_grid(sheet)  # idempotent — must not stack duplicates
+_named = [g for g in _sm.grids().asList() if g.name() == GRID_ID]
+ok("grid idempotent (single CartoLab grid)", len(_named) == 1, str(len(_named)))
+ok("grid interval auto-derived > 0", _named[0].intervalX() > 0, str(_named[0].intervalX()))
+
+add_bivariate_legend_to_layout(sheet, legend_type="diamond", grid_size=4)
+ok("bivariate diamond legend native polygons", _count(sheet, QgsLayoutItemPolygon) >= 16,
+   str(_count(sheet, QgsLayoutItemPolygon)))
+apply_typography_hierarchy(sheet)
+ok("typography ran (labels present)", _count(sheet, QgsLayoutItemLabel) >= 2)
+
+iso = create_isometric_stack_layout([polys, points])
+ok("isometric stack is print layout with 2 maps",
+   isinstance(iso, QgsPrintLayout) and _count(iso, QgsLayoutItemMap) == 2)
+
+_png = os.path.join(tempfile.gettempdir(), "cartolab_e2e_sheet.png")
+ok("layout exports to PNG", export_layout(sheet, _png, dpi=72) and os.path.exists(_png))
+
+# ===========================================================================
 print("\n" + "=" * 60)
 print(f"PASSED: {passed}")
 if fails:

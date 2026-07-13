@@ -1,6 +1,6 @@
 [general]
 name=PlanX CartoLab
-version=1.4.2
+version=1.5.0
 hasProcessingProvider=yes
 
 category=Vector
@@ -22,6 +22,8 @@ qgisMinimumVersion=3.28
 qgisMaximumVersion=4.99
 
 changelog=
+    PlanX CartoLab 1.5.0 - Added Auto Map Sheet (one-click publication layout from the current view - map, legend, scale bar, north arrow, grid, credits) and a Layout Manager (open, duplicate, delete, export PNG/PDF). Bivariate layout legends are now native editable items instead of embedded SVG (no temp-file leak), the minimalist grid is idempotent with auto-derived intervals, and isometric stacks are proper print layouts. Removed dead code; layout subsystem now covered by real-QGIS e2e (33 checks on both QGIS versions).
+    PlanX CartoLab 1.4.3 - Packaging hygiene: internal AI-agent work-order files (ENHANCEMENT_PLAN, DEEPSEEK_PROMPT, REPORT) are now always excluded from the Hub zip regardless of filename version suffix.
     PlanX CartoLab 1.3.0 - Added six cartography algorithms - dot-density maps, Flannery proportional symbols, hexbin aggregation, visual-center label points (polylabel), graticule/reference grids, and choropleth normalization and rates - and fixed ridge-map raster no-data detection and optional-extent handling.
     PlanX CartoLab 1.2.6 - Made per-floor 2.5D colour-band QML legend-friendly with one renderer rule per floor band.
     PlanX CartoLab 1.2.5 - Added automatic maximum floor-band detection for per-floor 2.5D styling from the selected floor-count layer.

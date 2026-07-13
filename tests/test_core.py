@@ -115,6 +115,7 @@ from planx_cartolab.core import hexgrid as hxg
 from planx_cartolab.core import label_points as lblp
 from planx_cartolab.core import graticule as grat
 from planx_cartolab.core import normalize as norm
+from planx_cartolab.core import layout_math as lm
 
 # ---------------------------------------------------------------------------
 # Test framework
@@ -574,6 +575,42 @@ check("log_scale base10", all(abs(a - b) < 1e-9 for a, b in zip(lg, [0.0, 1.0, 2
 check("log_scale shifts nonpositive", all(v is not None for v in norm.log_scale([-5, 0, 5])))
 check("log_scale keeps None", norm.log_scale([1, None, 100])[1] is None)
 check("normalize methods catalogue", len(norm.METHODS) == 6)
+
+# ===================================================================
+# LAYOUT MATH — nice intervals, unique names, page geometry
+# ===================================================================
+section("Layout Math")
+
+# nice_number snaps to 1/2/5 x 10^n
+check("nice_number 625 -> 500", lm.nice_number(625) == 500.0, str(lm.nice_number(625)))
+check("nice_number 8 -> 10", lm.nice_number(8) == 10.0, str(lm.nice_number(8)))
+check("nice_number 0.0043 -> 0.005",
+      abs(lm.nice_number(0.0043) - 0.005) < 1e-9, str(lm.nice_number(0.0043)))
+check("nice_number ceil 2.1 -> 5", lm.nice_number(2.1, round_down=False) == 5.0,
+      str(lm.nice_number(2.1, round_down=False)))
+check("nice_number nonpositive -> 0", lm.nice_number(0) == 0.0 and lm.nice_number(-5) == 0.0)
+
+# nice_interval divides a span into ~target parts, at any scale
+iv = lm.nice_interval(5000.0, 8)
+check("nice_interval 5000/8 rounded", iv == 500.0, str(iv))
+check("nice_interval splits span into >=5 parts", 5000.0 / iv >= 5, str(5000.0 / iv))
+check("nice_interval degrees span", lm.nice_interval(0.05, 8) > 0, str(lm.nice_interval(0.05, 8)))
+check("nice_interval zero span -> 0", lm.nice_interval(0, 8) == 0.0)
+check("nice_interval negative span -> 0", lm.nice_interval(-100, 8) == 0.0)
+
+# unique_name never collides
+check("unique_name free base", lm.unique_name(["a", "b"], "Map") == "Map")
+check("unique_name first collision -> 2", lm.unique_name(["Map"], "Map") == "Map 2")
+check("unique_name chained collisions",
+      lm.unique_name(["Map", "Map 2", "Map 3"], "Map") == "Map 4",
+      lm.unique_name(["Map", "Map 2", "Map 3"], "Map"))
+
+# page_size_mm portrait/landscape + fallback
+check("page A4 portrait", lm.page_size_mm("A4", landscape=False) == (210.0, 297.0))
+check("page A4 landscape swaps axes", lm.page_size_mm("A4", landscape=True) == (297.0, 210.0))
+check("page unknown falls back to A4",
+      lm.page_size_mm("ZZ", landscape=False) == (210.0, 297.0))
+check("page A3 landscape", lm.page_size_mm("A3", landscape=True) == (420.0, 297.0))
 
 # ===================================================================
 # SUMMARY
