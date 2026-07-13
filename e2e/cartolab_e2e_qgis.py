@@ -316,7 +316,7 @@ print("\n--- Layout subsystem ---")
 from qgis.core import (
     QgsLayoutItemMap, QgsLayoutItemLegend, QgsLayoutItemScaleBar,
     QgsLayoutItemLabel, QgsLayoutItemPicture, QgsLayoutItemPolygon,
-    QgsLayoutItemShape, QgsPrintLayout,
+    QgsPrintLayout,
 )
 from planx_cartolab.layout.map_sheet import create_map_sheet
 from planx_cartolab.layout.grid_styler import apply_minimalist_grid, GRID_ID

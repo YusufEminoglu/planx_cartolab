@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 
 from qgis.core import Qgis, QgsApplication
+from qgis.PyQt.QtCore import QTimer
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
 
@@ -23,7 +24,9 @@ class PlanXCartoLab:
         self.action_dashboard = None
         self.action_25d = None
         self.action_annotate = None
+        self.action_welcome = None
         self.dialog = None
+        self.welcome = None
         self.annotation_tool = None
 
     def initProcessing(self) -> None:
@@ -55,11 +58,34 @@ class PlanXCartoLab:
         # Annotation tool action
         bivar_icon_path = os.path.join(icon_dir, "bivariate.png")
         annotate_icon = QIcon(bivar_icon_path) if os.path.exists(bivar_icon_path) else icon
-        self.action_annotate = QAction(annotate_icon, "Inspect Features (Radar Chart)",
-                                        self.iface.mainWindow())
+        self.action_annotate = QAction(
+            annotate_icon, "Inspect Features (Radar Chart)", self.iface.mainWindow())
         self.action_annotate.setCheckable(True)
         self.action_annotate.toggled.connect(self._toggle_annotation_tool)
         self.iface.addPluginToMenu("&PlanX CartoLab", self.action_annotate)
+
+        # Welcome / sample-map action (also the first-run onboarding entry)
+        self.action_welcome = QAction(icon, "Welcome & Sample Map", self.iface.mainWindow())
+        self.action_welcome.triggered.connect(self.open_welcome)
+        self.iface.addPluginToMenu("&PlanX CartoLab", self.action_welcome)
+
+        # First run only: greet the user shortly after startup completes.
+        QTimer.singleShot(1200, self._maybe_show_welcome)
+
+    def _maybe_show_welcome(self) -> None:
+        try:
+            from .ui.onboarding import should_show
+            if should_show():
+                self.open_welcome()
+        except Exception:
+            pass
+
+    def open_welcome(self) -> None:
+        from .ui.onboarding import WelcomeDialog
+        self.welcome = WelcomeDialog(self.iface, self.iface.mainWindow())
+        self.welcome.show()
+        self.welcome.raise_()
+        self.welcome.activateWindow()
 
     def open_dashboard(self) -> None:
         if self.dialog is None:
@@ -100,6 +126,8 @@ class PlanXCartoLab:
                 self.iface.removePluginMenu("&PlanX CartoLab", self.action_25d)
             if self.action_annotate:
                 self.iface.removePluginMenu("&PlanX CartoLab", self.action_annotate)
+            if self.action_welcome:
+                self.iface.removePluginMenu("&PlanX CartoLab", self.action_welcome)
         if self.provider:
             QgsApplication.processingRegistry().removeProvider(self.provider)
             self.provider = None

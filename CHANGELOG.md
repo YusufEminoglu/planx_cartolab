@@ -1,5 +1,14 @@
 # Changelog - PlanX CartoLab
 
+## [1.5.1] - 2026-07-13
+
+### Added
+- **First-run welcome** — a one-time greeting (also reachable from *Plugins → PlanX CartoLab → Welcome & Sample Map*) with a **"Create a sample map"** button that builds a fully-styled demo choropleth and finished map sheet in seconds, from an in-memory layer (no bundled data).
+- **"Rate on the Hub"** link in the dashboard footer.
+
+### Changed
+- Refreshed discovery metadata (tags + description/about) so CartoLab surfaces for common searches — *choropleth, map layout, print layout, atlas, colour ramp, ColorBrewer, colourblind, viridis, thematic map, north arrow* — without changing any behaviour.
+
 ## [1.5.0] - 2026-07-13
 
 ### Added

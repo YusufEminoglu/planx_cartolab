@@ -437,6 +437,14 @@ class CartoLabDashboard(QDialog):
         hint = QLabel("Tip: Use Classification first to understand data distribution, then Bivariate/Cartogram for visualization.")
         hint.setStyleSheet("color:#35545f; font-size:11px;")
         footer.addWidget(hint, 1)
+        rate = QLabel(
+            '<a href="https://plugins.qgis.org/plugins/planx_cartolab/" '
+            'style="color:#3182bd;text-decoration:none;">Enjoying CartoLab? '
+            'Rate it on the Hub&nbsp;&#9733;</a>'
+        )
+        rate.setOpenExternalLinks(True)
+        rate.setStyleSheet("font-size:11px;")
+        footer.addWidget(rate, 0, Qt.AlignmentFlag.AlignRight)
         root.addLayout(footer)
 
         self._on_check_deps()
