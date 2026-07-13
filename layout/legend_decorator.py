@@ -26,7 +26,7 @@ from qgis.core import (
 
 from ..core.bivariate_engine import bivariate_colour_matrix
 
-_MM = QgsUnitTypes.LayoutMillimeters
+_MM = QgsUnitTypes.LayoutUnit.LayoutMillimeters
 
 
 def add_bivariate_legend_to_layout(
@@ -90,7 +90,7 @@ def _build_square(layout, matrix, position, size_mm, x_label, y_label) -> List:
     for ri, row in enumerate(matrix):
         for ci, col in enumerate(row):
             shape = QgsLayoutItemShape(layout)
-            shape.setShapeType(QgsLayoutItemShape.Rectangle)
+            shape.setShapeType(QgsLayoutItemShape.Shape.Rectangle)
             shape.attemptResize(QgsLayoutSize(cell, cell, _MM))
             # matrix row 0 is the high-Y row; draw it at the top
             shape.attemptMove(QgsLayoutPoint(x0 + ci * cell, y0 + ri * cell, _MM))

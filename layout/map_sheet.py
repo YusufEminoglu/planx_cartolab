@@ -35,7 +35,7 @@ from qgis.core import (
 from ..core.layout_math import page_size_mm
 from .layout_utils import unique_layout_name, north_arrow_svg_path
 
-_MM = QgsUnitTypes.LayoutMillimeters
+_MM = QgsUnitTypes.LayoutUnit.LayoutMillimeters
 # A real font fallback chain — QFont("A, B") treats the whole string as one
 # family name and matches nothing, so use setFamilies() for a true cascade.
 _FONT_FAMILIES = ["Inter", "Segoe UI", "Arial", "sans-serif"]

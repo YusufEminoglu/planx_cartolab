@@ -59,22 +59,22 @@ class RidgeMapAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         )
         self.addParameter(
             QgsProcessingParameterNumber(self.N_LINES, "Number of scanlines",
-                                          type=QgsProcessingParameterNumber.Integer,
+                                          type=QgsProcessingParameterNumber.Type.Integer,
                                           defaultValue=60, minValue=5, maxValue=500)
         )
         self.addParameter(
             QgsProcessingParameterNumber(self.VERTICAL_SCALE, "Vertical exaggeration",
-                                          type=QgsProcessingParameterNumber.Double,
+                                          type=QgsProcessingParameterNumber.Type.Double,
                                           defaultValue=1.0, minValue=0.01, maxValue=100.0)
         )
         self.addParameter(
             QgsProcessingParameterNumber(self.LINE_SPACING, "Line spacing (map units)",
-                                          type=QgsProcessingParameterNumber.Double,
+                                          type=QgsProcessingParameterNumber.Type.Double,
                                           defaultValue=1.0, minValue=0.0)
         )
         self.addParameter(
             QgsProcessingParameterNumber(self.SMOOTH, "Smoothing passes (0 = raw)",
-                                          type=QgsProcessingParameterNumber.Integer,
+                                          type=QgsProcessingParameterNumber.Type.Integer,
                                           defaultValue=2, minValue=0, maxValue=20)
         )
         self.addParameter(
@@ -108,7 +108,7 @@ class RidgeMapAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         for current, feat in enumerate(ridge_layer.getFeatures()):
             if feedback.isCanceled():
                 break
-            sink.addFeature(feat, QgsFeatureSink.FastInsert)
+            sink.addFeature(feat, QgsFeatureSink.Flag.FastInsert)
             feedback.setProgress(int(100 * current / total))
 
         feedback.pushInfo(f"Ridge map ready: {total} scanlines.")

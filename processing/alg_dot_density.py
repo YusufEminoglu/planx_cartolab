@@ -67,18 +67,18 @@ class DotDensityAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
 
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
-            self.INPUT, "Input polygon layer", [QgsProcessing.TypeVectorPolygon]))
+            self.INPUT, "Input polygon layer", [QgsProcessing.SourceType.TypeVectorPolygon]))
         self.addParameter(QgsProcessingParameterField(
             self.FIELD, "Count field", parentLayerParameterName=self.INPUT,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterNumber(
             self.VALUE_PER_DOT, "Value represented by one dot",
-            type=QgsProcessingParameterNumber.Double, defaultValue=100.0, minValue=1e-9))
+            type=QgsProcessingParameterNumber.Type.Double, defaultValue=100.0, minValue=1e-9))
         self.addParameter(QgsProcessingParameterNumber(
-            self.SEED, "Random seed", type=QgsProcessingParameterNumber.Integer,
+            self.SEED, "Random seed", type=QgsProcessingParameterNumber.Type.Integer,
             defaultValue=42, minValue=0))
         self.addParameter(QgsProcessingParameterFeatureSink(
-            self.OUTPUT, "Dot-density output", QgsProcessing.TypeVectorPoint))
+            self.OUTPUT, "Dot-density output", QgsProcessing.SourceType.TypeVectorPoint))
 
     def processAlgorithm(self, parameters, context, feedback):
         source = self.parameterAsSource(parameters, self.INPUT, context)
@@ -94,7 +94,7 @@ class DotDensityAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
 
         (sink, dest_id) = self.parameterAsSink(
             parameters, self.OUTPUT, context,
-            out_fields, QgsWkbTypes.Point, source.sourceCrs(),
+            out_fields, QgsWkbTypes.Type.Point, source.sourceCrs(),
         )
 
         total = source.featureCount() or 1
@@ -118,7 +118,7 @@ class DotDensityAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
                         nf = QgsFeature(out_fields)
                         nf.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(x, y)))
                         nf.setAttributes(attrs)
-                        sink.addFeature(nf, QgsFeatureSink.FastInsert)
+                        sink.addFeature(nf, QgsFeatureSink.Flag.FastInsert)
                         dots_written += 1
             feedback.setProgress(int(100 * current / total))
 

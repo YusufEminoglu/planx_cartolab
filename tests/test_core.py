@@ -313,11 +313,11 @@ check("status report non-empty string", isinstance(report, str) and len(report) 
 check("status report title present", "TEST" in report)
 check("status report has OK marker", "[OK]" in report or "[!!]" in report)
 
-ok, msg = dm.install_packages([])
-check("install_packages empty list succeeds", ok and "No packages" in msg)
-
-result = dm.ensure_required(dm.CARTO_LAB_DEPS, auto_install=False)
-check("ensure_required returns bool", isinstance(result, bool))
+# dependency_manager must NOT be able to install anything (no subprocess/pip):
+check("no install_packages (Hub security)", not hasattr(dm, "install_packages"))
+check("no ensure_required (Hub security)", not hasattr(dm, "ensure_required"))
+check("dependency_manager does not import subprocess",
+      "subprocess" not in dir(dm))
 
 # ===================================================================
 # 6. QGIS 2.5D STYLE

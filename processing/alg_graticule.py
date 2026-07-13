@@ -50,12 +50,12 @@ class GraticuleAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterExtent(self.EXTENT, "Grid extent"))
         self.addParameter(QgsProcessingParameterNumber(
             self.X_INTERVAL, "Vertical line (meridian) interval, 0 = auto",
-            type=QgsProcessingParameterNumber.Double, defaultValue=0.0, minValue=0.0))
+            type=QgsProcessingParameterNumber.Type.Double, defaultValue=0.0, minValue=0.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.Y_INTERVAL, "Horizontal line (parallel) interval, 0 = auto",
-            type=QgsProcessingParameterNumber.Double, defaultValue=0.0, minValue=0.0))
+            type=QgsProcessingParameterNumber.Type.Double, defaultValue=0.0, minValue=0.0))
         self.addParameter(QgsProcessingParameterFeatureSink(
-            self.OUTPUT, "Graticule output", QgsProcessing.TypeVectorLine))
+            self.OUTPUT, "Graticule output", QgsProcessing.SourceType.TypeVectorLine))
 
     def processAlgorithm(self, parameters, context, feedback):
         rect = self.parameterAsExtent(parameters, self.EXTENT, context)
@@ -77,7 +77,7 @@ class GraticuleAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
 
         (sink, dest_id) = self.parameterAsSink(
             parameters, self.OUTPUT, context,
-            out_fields, QgsWkbTypes.LineString, crs,
+            out_fields, QgsWkbTypes.Type.LineString, crs,
         )
 
         lines = graticule_lines(xmin, ymin, xmax, ymax, x_step, y_step)
@@ -88,7 +88,7 @@ class GraticuleAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
             nf = QgsFeature(out_fields)
             nf.setGeometry(QgsGeometry.fromPolylineXY(pts))
             nf.setAttributes([ln["orientation"], ln["coord"], ln["label"]])
-            sink.addFeature(nf, QgsFeatureSink.FastInsert)
+            sink.addFeature(nf, QgsFeatureSink.Flag.FastInsert)
 
         feedback.pushInfo(
             f"Graticule: {len(lines)} lines (x step {x_step:g}, y step {y_step:g})."

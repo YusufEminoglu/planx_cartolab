@@ -80,12 +80,12 @@ class LabelPointsAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
 
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
-            self.INPUT, "Input polygon layer", [QgsProcessing.TypeVectorPolygon]))
+            self.INPUT, "Input polygon layer", [QgsProcessing.SourceType.TypeVectorPolygon]))
         self.addParameter(QgsProcessingParameterNumber(
             self.PRECISION, "Precision (map units, 0 = auto)",
-            type=QgsProcessingParameterNumber.Double, defaultValue=0.0, minValue=0.0))
+            type=QgsProcessingParameterNumber.Type.Double, defaultValue=0.0, minValue=0.0))
         self.addParameter(QgsProcessingParameterFeatureSink(
-            self.OUTPUT, "Label points output", QgsProcessing.TypeVectorPoint))
+            self.OUTPUT, "Label points output", QgsProcessing.SourceType.TypeVectorPoint))
 
     def processAlgorithm(self, parameters, context, feedback):
         source = self.parameterAsSource(parameters, self.INPUT, context)
@@ -100,7 +100,7 @@ class LabelPointsAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
 
         (sink, dest_id) = self.parameterAsSink(
             parameters, self.OUTPUT, context,
-            out_fields, QgsWkbTypes.Point, source.sourceCrs(),
+            out_fields, QgsWkbTypes.Type.Point, source.sourceCrs(),
         )
 
         total = source.featureCount() or 1
@@ -121,7 +121,7 @@ class LabelPointsAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
             nf = QgsFeature(out_fields)
             nf.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(x, y)))
             nf.setAttributes(attrs)
-            sink.addFeature(nf, QgsFeatureSink.FastInsert)
+            sink.addFeature(nf, QgsFeatureSink.Flag.FastInsert)
             written += 1
             feedback.setProgress(int(100 * current / total))
 

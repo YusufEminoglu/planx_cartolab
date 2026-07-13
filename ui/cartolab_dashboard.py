@@ -371,16 +371,15 @@ class CartoLabDashboard(QDialog):
         setup_tab = QWidget()
         sl = QVBoxLayout(setup_tab)
         sl.setContentsMargins(12, 12, 12, 12)
-        sl.addWidget(QLabel("Check and install required Python packages for full functionality."))
+        sl.addWidget(QLabel(
+            "CartoLab needs no external packages — it uses only QGIS and its "
+            "bundled NumPy. This panel reports the status of optional libraries."))
         self.setup_status = QTextBrowser()
         sl.addWidget(self.setup_status, 1)
         sr = QHBoxLayout()
         btn_check = QPushButton("Check Dependencies")
         btn_check.clicked.connect(self._on_check_deps)
         sr.addWidget(btn_check)
-        btn_install = QPushButton("Install Missing (pip)")
-        btn_install.clicked.connect(self._on_install_deps)
-        sr.addWidget(btn_install)
         sr.addStretch()
         sl.addLayout(sr)
         self.tabs.addTab(setup_tab, "Setup")
@@ -836,7 +835,7 @@ class CartoLabDashboard(QDialog):
 
     def _vector_layers(self):
         return [lyr for lyr in QgsProject.instance().mapLayers().values()
-                if lyr.type() == QgsMapLayer.VectorLayer]
+                if lyr.type() == QgsMapLayer.LayerType.VectorLayer]
 
     def _build_quick_style_tab(self) -> None:
         w = QWidget()
@@ -1026,7 +1025,7 @@ class CartoLabDashboard(QDialog):
     def _polygon_layers(self):
         layers = []
         for layer in QgsProject.instance().mapLayers().values():
-            if (layer.type() == QgsMapLayer.VectorLayer
+            if (layer.type() == QgsMapLayer.LayerType.VectorLayer
                     and hasattr(layer, "geometryType")
                     and layer.geometryType() == 2):
                 layers.append(layer)
@@ -1654,13 +1653,13 @@ class CartoLabDashboard(QDialog):
 
         # Layer type counts for compatibility hints
         polygons = sum(1 for lyr in layers
-                       if lyr.type() == QgsMapLayer.VectorLayer
+                       if lyr.type() == QgsMapLayer.LayerType.VectorLayer
                        and hasattr(lyr, 'geometryType')
                        and lyr.geometryType() == 2)
         rasters = sum(1 for lyr in layers
-                      if lyr.type() == QgsMapLayer.RasterLayer)
+                      if lyr.type() == QgsMapLayer.LayerType.RasterLayer)
         vectors = sum(1 for lyr in layers
-                      if lyr.type() == QgsMapLayer.VectorLayer)
+                      if lyr.type() == QgsMapLayer.LayerType.VectorLayer)
 
         compat_lines = []
         if polygons:
@@ -1723,36 +1722,6 @@ class CartoLabDashboard(QDialog):
         from ..core.dependency_manager import get_status_report, CARTO_LAB_DEPS
         report = get_status_report(CARTO_LAB_DEPS, "CartoLab Dependencies")
         self.setup_status.setPlainText(report)
-
-    def _on_install_deps(self) -> None:
-        from ..core.dependency_manager import check_packages, install_packages, CARTO_LAB_DEPS
-        _, missing_req, missing_opt = check_packages(CARTO_LAB_DEPS)
-        all_missing = missing_req + missing_opt
-        if not all_missing:
-            QMessageBox.information(self, "CartoLab Setup", "All dependencies already installed.")
-            return
-        msg = (
-            "The following packages will be installed via pip:\n\n"
-            + "\n".join(f"  - {p}" for p in all_missing)
-            + "\n\nQGIS restart recommended afterwards.\n\nContinue?"
-        )
-        if QMessageBox.question(
-            self,
-            "Install Dependencies",
-            msg,
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No,
-        ) != QMessageBox.StandardButton.Yes:
-            return
-        self.setup_status.setPlainText("Installing... this may take a few minutes.\n")
-        ok, output = install_packages(all_missing)
-        self.setup_status.append(output)
-        if ok:
-            self.setup_status.append("\nDone. Restart QGIS for changes to take effect.")
-            self.iface.messageBar().pushSuccess("CartoLab", "Dependencies installed. Restart QGIS recommended.")
-        else:
-            self.setup_status.append("\nErrors occurred. See output above.")
-            self.iface.messageBar().pushCritical("CartoLab", "Installation failed.")
 
     # ── Resize / keyboard ────────────────────────────────────────────
 

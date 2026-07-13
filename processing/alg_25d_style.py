@@ -83,12 +83,12 @@ class Building25DStyleAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
 
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterVectorLayer(
-            self.INPUT, "Polygon layer", [QgsProcessing.TypeVectorPolygon]))
+            self.INPUT, "Polygon layer", [QgsProcessing.SourceType.TypeVectorPolygon]))
         self.addParameter(QgsProcessingParameterField(
             self.HEIGHT_FIELD,
             "Height field",
             parentLayerParameterName=self.INPUT,
-            type=QgsProcessingParameterField.Numeric,
+            type=QgsProcessingParameterField.DataType.Numeric,
         ))
         self.addParameter(QgsProcessingParameterEnum(
             self.HEIGHT_MODE,
@@ -99,7 +99,7 @@ class Building25DStyleAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterNumber(
             self.FLOOR_HEIGHT,
             "Floor height, used only when height source is floor count",
-            type=QgsProcessingParameterNumber.Double,
+            type=QgsProcessingParameterNumber.Type.Double,
             defaultValue=3.5,
             minValue=0.01,
             maxValue=100.0,
@@ -119,7 +119,7 @@ class Building25DStyleAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterNumber(
             self.MAX_FLOORS,
             "Maximum floor bands, 0 scans the layer automatically",
-            type=QgsProcessingParameterNumber.Integer,
+            type=QgsProcessingParameterNumber.Type.Integer,
             defaultValue=0,
             minValue=0,
             maxValue=80,
@@ -133,7 +133,7 @@ class Building25DStyleAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterNumber(
             self.ANGLE,
             "Projection angle in degrees",
-            type=QgsProcessingParameterNumber.Double,
+            type=QgsProcessingParameterNumber.Type.Double,
             defaultValue=110.0,
             minValue=0.0,
             maxValue=359.0,
@@ -141,7 +141,7 @@ class Building25DStyleAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterNumber(
             self.HEIGHT_SCALE,
             "Height scale multiplier",
-            type=QgsProcessingParameterNumber.Double,
+            type=QgsProcessingParameterNumber.Type.Double,
             defaultValue=1.0,
             minValue=0.01,
             maxValue=100.0,
@@ -149,7 +149,7 @@ class Building25DStyleAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterNumber(
             self.MAX_HEIGHT,
             "Maximum rendered height, 0 for no clamp",
-            type=QgsProcessingParameterNumber.Double,
+            type=QgsProcessingParameterNumber.Type.Double,
             defaultValue=0.0,
             minValue=0.0,
             maxValue=1000000.0,
@@ -162,7 +162,7 @@ class Building25DStyleAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterNumber(
             self.STEP_HEIGHT,
             "Step height in map units",
-            type=QgsProcessingParameterNumber.Double,
+            type=QgsProcessingParameterNumber.Type.Double,
             defaultValue=3.5,
             minValue=0.01,
             maxValue=100000.0,
@@ -175,7 +175,7 @@ class Building25DStyleAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterNumber(
             self.SHADOW_SPREAD,
             "Shadow spread in map units",
-            type=QgsProcessingParameterNumber.Double,
+            type=QgsProcessingParameterNumber.Type.Double,
             defaultValue=3.5,
             minValue=0.0,
             maxValue=100000.0,

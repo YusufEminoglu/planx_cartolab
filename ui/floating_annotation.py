@@ -106,7 +106,7 @@ class FloatingAnnotationTool(QgsMapTool):
         # find the topmost visible vector layer
         layers = [
             lyr for lyr in QgsProject.instance().mapLayers().values()
-            if lyr.type() == QgsMapLayer.VectorLayer and lyr.isSpatial()
+            if lyr.type() == QgsMapLayer.LayerType.VectorLayer and lyr.isSpatial()
         ]
         if not layers:
             self.iface.messageBar().pushWarning(

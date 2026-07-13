@@ -53,20 +53,20 @@ class ProportionalSymbolsAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
 
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
-            self.INPUT, "Input layer", [QgsProcessing.TypeVectorAnyGeometry]))
+            self.INPUT, "Input layer", [QgsProcessing.SourceType.TypeVectorAnyGeometry]))
         self.addParameter(QgsProcessingParameterField(
             self.FIELD, "Magnitude field", parentLayerParameterName=self.INPUT,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterNumber(
             self.MAX_SIZE, "Maximum symbol size (mm)",
-            type=QgsProcessingParameterNumber.Double, defaultValue=12.0, minValue=0.1))
+            type=QgsProcessingParameterNumber.Type.Double, defaultValue=12.0, minValue=0.1))
         self.addParameter(QgsProcessingParameterNumber(
             self.MIN_SIZE, "Minimum symbol size (mm)",
-            type=QgsProcessingParameterNumber.Double, defaultValue=1.0, minValue=0.0))
+            type=QgsProcessingParameterNumber.Type.Double, defaultValue=1.0, minValue=0.0))
         self.addParameter(QgsProcessingParameterBoolean(
             self.FLANNERY, "Apply Flannery perceptual compensation", defaultValue=True))
         self.addParameter(QgsProcessingParameterFeatureSink(
-            self.OUTPUT, "Proportional symbols output", QgsProcessing.TypeVectorPoint))
+            self.OUTPUT, "Proportional symbols output", QgsProcessing.SourceType.TypeVectorPoint))
 
     def processAlgorithm(self, parameters, context, feedback):
         source = self.parameterAsSource(parameters, self.INPUT, context)
@@ -103,7 +103,7 @@ class ProportionalSymbolsAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
 
         (sink, dest_id) = self.parameterAsSink(
             parameters, self.OUTPUT, context,
-            out_fields, QgsWkbTypes.Point, source.sourceCrs(),
+            out_fields, QgsWkbTypes.Type.Point, source.sourceCrs(),
         )
 
         total = len(features_raw) or 1
@@ -124,7 +124,7 @@ class ProportionalSymbolsAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
             nf = QgsFeature(out_fields)
             nf.setGeometry(geom.pointOnSurface())
             nf.setAttributes(attrs)
-            sink.addFeature(nf, QgsFeatureSink.FastInsert)
+            sink.addFeature(nf, QgsFeatureSink.Flag.FastInsert)
             feedback.setProgress(int(100 * current / total))
 
         legend = nice_legend_values(v_min, v_max, 3)

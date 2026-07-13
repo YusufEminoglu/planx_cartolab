@@ -70,7 +70,7 @@ def create_isometric_stack_layout(
     layout.setName(unique_layout_name(project, layout_name))
 
     page = layout.pageCollection().page(0)
-    page.setPageSize(QgsLayoutSize(page_width_mm, page_height_mm, QgsUnitTypes.LayoutMillimeters))
+    page.setPageSize(QgsLayoutSize(page_width_mm, page_height_mm, QgsUnitTypes.LayoutUnit.LayoutMillimeters))
 
     # precompute isometric offsets from our affine engine
     from ..core.affine_matrix import compute_isometric_layer_offsets
@@ -97,7 +97,7 @@ def create_isometric_stack_layout(
     for i, (layer, (dx, dy)) in enumerate(zip(layers, offsets)):
         map_item = QgsLayoutItemMap(layout)
         map_item.attemptResize(
-            QgsLayoutSize(map_width, map_height, QgsUnitTypes.LayoutMillimeters)
+            QgsLayoutSize(map_width, map_height, QgsUnitTypes.LayoutUnit.LayoutMillimeters)
         )
         map_item.setExtent(extent)
         map_item.setScale(map_scale)
@@ -107,7 +107,7 @@ def create_isometric_stack_layout(
         map_item.setKeepLayerSet(True)
 
         map_item.attemptMove(
-            QgsLayoutPoint(center_x + dx, center_y - dy, QgsUnitTypes.LayoutMillimeters)
+            QgsLayoutPoint(center_x + dx, center_y - dy, QgsUnitTypes.LayoutUnit.LayoutMillimeters)
         )
 
         # add label text above each map
@@ -121,7 +121,7 @@ def create_isometric_stack_layout(
         label.setFont(font)
         label.adjustSizeToText()
         label.attemptMove(
-            QgsLayoutPoint(center_x + dx, center_y - dy - 8, QgsUnitTypes.LayoutMillimeters)
+            QgsLayoutPoint(center_x + dx, center_y - dy - 8, QgsUnitTypes.LayoutUnit.LayoutMillimeters)
         )
         layout.addLayoutItem(label)
 

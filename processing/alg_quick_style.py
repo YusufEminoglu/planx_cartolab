@@ -83,7 +83,7 @@ class QuickStyleAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
             defaultValue=_MODE_AUTO))
         self.addParameter(QgsProcessingParameterNumber(
             self.CLASSES, "Number of classes (graduated)",
-            type=QgsProcessingParameterNumber.Integer,
+            type=QgsProcessingParameterNumber.Type.Integer,
             defaultValue=5, minValue=2, maxValue=12))
         self.addParameter(QgsProcessingParameterEnum(
             self.METHOD, "Class break method (graduated)",

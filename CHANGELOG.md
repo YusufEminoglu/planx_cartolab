@@ -1,5 +1,14 @@
 # Changelog - PlanX CartoLab
 
+## [1.6.1] - 2026-07-13
+
+### Security
+- Removed the pip/`subprocess` dependency installer that the QGIS Plugin Hub security scan flagged as a critical issue. CartoLab needs no external packages — it uses only QGIS and its bundled NumPy — so the Setup panel now only *reports* optional-library status and never installs anything.
+
+### Fixed
+- Qt6 / QGIS 4 compatibility: all Processing, layout and UI enums are now fully scoped (e.g. `QgsProcessing.SourceType.TypeVectorPolygon`, `QgsWkbTypes.Type.Point`, `QgsUnitTypes.LayoutUnit.LayoutMillimeters`, `QgsMapLayer.LayerType.VectorLayer`), clearing 85 compatibility warnings. Verified on QGIS 3.44 LTR and QGIS 4.2.
+- Test and e2e files are no longer shipped in the Hub package.
+
 ## [1.6.0] - 2026-07-13
 
 ### Added

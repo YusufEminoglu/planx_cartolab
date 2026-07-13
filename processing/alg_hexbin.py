@@ -55,17 +55,17 @@ class HexbinAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
 
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
-            self.INPUT, "Input point layer", [QgsProcessing.TypeVectorPoint]))
+            self.INPUT, "Input point layer", [QgsProcessing.SourceType.TypeVectorPoint]))
         self.addParameter(QgsProcessingParameterNumber(
             self.CELL_SIZE, "Hexagon radius (map units)",
-            type=QgsProcessingParameterNumber.Double, defaultValue=1000.0, minValue=1e-9))
+            type=QgsProcessingParameterNumber.Type.Double, defaultValue=1000.0, minValue=1e-9))
         self.addParameter(QgsProcessingParameterField(
             self.WEIGHT, "Weight field (for sum / mean)", parentLayerParameterName=self.INPUT,
-            type=QgsProcessingParameterField.Numeric, optional=True))
+            type=QgsProcessingParameterField.DataType.Numeric, optional=True))
         self.addParameter(QgsProcessingParameterEnum(
             self.STAT, "Statistic", options=[s[0] for s in self.STATS], defaultValue=0))
         self.addParameter(QgsProcessingParameterFeatureSink(
-            self.OUTPUT, "Hexbin output", QgsProcessing.TypeVectorPolygon))
+            self.OUTPUT, "Hexbin output", QgsProcessing.SourceType.TypeVectorPolygon))
 
     def processAlgorithm(self, parameters, context, feedback):
         source = self.parameterAsSource(parameters, self.INPUT, context)
@@ -114,7 +114,7 @@ class HexbinAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
 
         (sink, dest_id) = self.parameterAsSink(
             parameters, self.OUTPUT, context,
-            out_fields, QgsWkbTypes.Polygon, source.sourceCrs(),
+            out_fields, QgsWkbTypes.Type.Polygon, source.sourceCrs(),
         )
 
         stat_field = {"count": "hex_count", "sum": "hex_sum", "mean": "hex_mean"}[stat]
@@ -128,7 +128,7 @@ class HexbinAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
             nf.setGeometry(QgsGeometry.fromPolygonXY([ring]))
             mean = wsum / count if count else 0.0
             nf.setAttributes([q, r, count, wsum, mean])
-            sink.addFeature(nf, QgsFeatureSink.FastInsert)
+            sink.addFeature(nf, QgsFeatureSink.Flag.FastInsert)
             stat_values.append(count if stat == "count" else (wsum if stat == "sum" else mean))
             feedback.setProgress(50 + int(50 * idx / n_cells))
 

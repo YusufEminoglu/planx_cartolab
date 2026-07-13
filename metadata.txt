@@ -1,6 +1,6 @@
 [general]
 name=PlanX CartoLab
-version=1.6.0
+version=1.6.1
 hasProcessingProvider=yes
 
 category=Vector
@@ -22,6 +22,7 @@ qgisMinimumVersion=3.28
 qgisMaximumVersion=4.99
 
 changelog=
+    PlanX CartoLab 1.6.1 - Security and Qt6 hardening: removed the pip/subprocess dependency installer flagged by the Plugin Hub security scan (CartoLab needs no external packages), fully scoped all Qt6/QGIS 4 enums (85 compatibility warnings cleared), and stopped shipping test files in the package. No user-facing feature changes.
     PlanX CartoLab 1.6.0 - Added Quick Style: one-click graduated (numeric) or categorized (text) rendering for any vector layer, with quantile, equal-interval or geometric-interval breaks. New colour palette library - ColorBrewer plus the colour-blind-safe viridis family - with a live preview and a colour-blind-safe filter. Layout export presets now cover PNG, PDF and SVG at 96 to 600 dpi.
     PlanX CartoLab 1.5.1 - First-run welcome that builds a sample map in seconds, a one-click "Rate on the Hub" link, and refreshed discovery metadata (tags and description) so the plugin is easier to find when searching for choropleth, map layout, colour palettes and thematic mapping.
     PlanX CartoLab 1.5.0 - Added Auto Map Sheet (one-click publication layout from the current view - map, legend, scale bar, north arrow, grid, credits) and a Layout Manager (open, duplicate, delete, export PNG/PDF). Bivariate layout legends are now native editable items instead of embedded SVG (no temp-file leak), the minimalist grid is idempotent with auto-derived intervals, and isometric stacks are proper print layouts. Removed dead code; layout subsystem now covered by real-QGIS e2e (33 checks on both QGIS versions).

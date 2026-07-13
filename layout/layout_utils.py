@@ -103,4 +103,4 @@ def export_layout(layout: QgsLayout, path: str, dpi: int = 300) -> bool:
         settings = QgsLayoutExporter.ImageExportSettings()
         settings.dpi = dpi
         result = exporter.exportToImage(path, settings)
-    return result == QgsLayoutExporter.Success
+    return result == QgsLayoutExporter.ExportResult.Success

@@ -60,12 +60,12 @@ class GeometricIntervalAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
 
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
-            self.INPUT, "Input layer", [QgsProcessing.TypeVectorAnyGeometry]))
+            self.INPUT, "Input layer", [QgsProcessing.SourceType.TypeVectorAnyGeometry]))
         self.addParameter(QgsProcessingParameterField(
             self.FIELD, "Field to classify", parentLayerParameterName=self.INPUT,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterNumber(
-            self.CLASSES, "Number of classes", type=QgsProcessingParameterNumber.Integer,
+            self.CLASSES, "Number of classes", type=QgsProcessingParameterNumber.Type.Integer,
             minValue=2, defaultValue=5, maxValue=20))
         self.addParameter(QgsProcessingParameterEnum(
             self.METHOD, "Classification method",
@@ -136,7 +136,7 @@ class GeometricIntervalAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
             new_feat = QgsFeature(out_fields)
             new_feat.setGeometry(feat.geometry())
             new_feat.setAttributes(attrs)
-            sink.addFeature(new_feat, QgsFeatureSink.FastInsert)
+            sink.addFeature(new_feat, QgsFeatureSink.Flag.FastInsert)
             feedback.setProgress(int(100 * current / total))
 
         # Apply graduated symbology

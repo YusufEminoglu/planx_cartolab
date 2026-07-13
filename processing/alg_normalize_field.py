@@ -55,19 +55,19 @@ class NormalizeFieldAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
 
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
-            self.INPUT, "Input layer", [QgsProcessing.TypeVectorAnyGeometry]))
+            self.INPUT, "Input layer", [QgsProcessing.SourceType.TypeVectorAnyGeometry]))
         self.addParameter(QgsProcessingParameterField(
             self.FIELD, "Value field (numerator)", parentLayerParameterName=self.INPUT,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterEnum(
             self.METHOD, "Method", options=[m[0] for m in nm.METHODS], defaultValue=0))
         self.addParameter(QgsProcessingParameterField(
             self.DENOMINATOR, "Denominator field (Rate only)",
             parentLayerParameterName=self.INPUT,
-            type=QgsProcessingParameterField.Numeric, optional=True))
+            type=QgsProcessingParameterField.DataType.Numeric, optional=True))
         self.addParameter(QgsProcessingParameterNumber(
             self.SCALE, "Rate scale (e.g. 1000, 100000)",
-            type=QgsProcessingParameterNumber.Double, defaultValue=1.0, minValue=1e-12))
+            type=QgsProcessingParameterNumber.Type.Double, defaultValue=1.0, minValue=1e-12))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUTPUT, "Normalized output"))
 
@@ -126,7 +126,7 @@ class NormalizeFieldAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
             nf = QgsFeature(out_fields)
             nf.setGeometry(feat.geometry())
             nf.setAttributes(attrs)
-            sink.addFeature(nf, QgsFeatureSink.FastInsert)
+            sink.addFeature(nf, QgsFeatureSink.Flag.FastInsert)
             if val is not None:
                 valid_values.append(float(val))
             feedback.setProgress(int(100 * i / total))

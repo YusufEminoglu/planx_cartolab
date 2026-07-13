@@ -66,16 +66,16 @@ class CartogramAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterField(self.FIELD, "Area-representation field",
                                          parentLayerParameterName=self.INPUT,
-                                         type=QgsProcessingParameterField.Numeric)
+                                         type=QgsProcessingParameterField.DataType.Numeric)
         )
         self.addParameter(
             QgsProcessingParameterNumber(self.MAX_ITERATIONS, "Max iterations",
-                                          type=QgsProcessingParameterNumber.Integer,
+                                          type=QgsProcessingParameterNumber.Type.Integer,
                                           defaultValue=30, minValue=1, maxValue=200)
         )
         self.addParameter(
             QgsProcessingParameterNumber(self.MAX_ERROR, "Max average error (%)",
-                                          type=QgsProcessingParameterNumber.Double,
+                                          type=QgsProcessingParameterNumber.Type.Double,
                                           defaultValue=5.0, minValue=0.1, maxValue=100.0)
         )
         self.addParameter(
@@ -129,7 +129,7 @@ class CartogramAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         cleaned_layer = context.getMapLayer(cleaned["OUTPUT"])
 
         for feat in cleaned_layer.getFeatures():
-            sink.addFeature(feat, QgsFeatureSink.FastInsert)
+            sink.addFeature(feat, QgsFeatureSink.Flag.FastInsert)
 
         error_pct = (avg_error - 1.0) * 100.0
         feedback.pushInfo(
