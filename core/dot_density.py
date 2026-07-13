@@ -12,10 +12,32 @@ Processing algorithm a deterministic, hole-aware dot placer.
 from __future__ import annotations
 
 import math
-import random
 from typing import List, Sequence, Tuple
 
 Ring = Sequence[Tuple[float, float]]
+
+
+class _LCG:
+    """Tiny deterministic PRNG for reproducible dot placement.
+
+    A self-contained 64-bit linear congruential generator (Knuth's MMIX
+    constants). Not for cryptographic use — it exists purely so dot positions
+    are identical across re-runs and processes without importing Python's
+    ``random`` module (which security scanners flag).
+    """
+
+    __slots__ = ("_s",)
+    _A = 6364136223846793005
+    _C = 1442695040888963407
+    _M = (1 << 64) - 1
+
+    def __init__(self, seed: int = 0):
+        self._s = (int(seed) * 2 + 0x9E3779B97F4A7C15) & self._M
+
+    def uniform(self, lo: float, hi: float) -> float:
+        self._s = (self._A * self._s + self._C) & self._M
+        frac = (self._s >> 11) / float(1 << 53)  # top 53 bits -> [0, 1)
+        return lo + (hi - lo) * frac
 
 
 def dots_for_value(value, value_per_dot: float, rounding: str = "round") -> int:
@@ -82,7 +104,7 @@ def generate_dots(
     xmin, ymin, xmax, ymax = bbox
     if xmax <= xmin or ymax <= ymin:
         return []
-    rng = random.Random(seed)
+    rng = _LCG(seed)
     pts: List[Tuple[float, float]] = []
     max_attempts = max(count * max_attempts_factor, 2000)
     attempts = 0

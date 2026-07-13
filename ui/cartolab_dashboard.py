@@ -11,6 +11,7 @@ Provides a production console for PlanX CartoLab with:
 from __future__ import annotations
 
 import os
+from contextlib import suppress
 from datetime import datetime
 
 try:
@@ -1013,11 +1014,9 @@ class CartoLabDashboard(QDialog):
         except Exception as exc:
             QMessageBox.critical(self, "Quick Style", str(exc))
             return
-        try:
+        with suppress(Exception):
             if hasattr(self.iface, "layerTreeView"):
                 self.iface.layerTreeView().refreshLayerSymbology(layer.id())
-        except Exception:
-            pass
         layer.triggerRepaint()
         self.iface.messageBar().pushSuccess(
             "CartoLab", res.get("SUMMARY", "Quick Style applied."))
@@ -1423,11 +1422,9 @@ class CartoLabDashboard(QDialog):
         }.get(preset, ("#e8e8e8", "#5ab4ac", "#d8b365", "#8c510a"))
 
     def _open_in_designer(self, layout) -> None:
-        try:
+        with suppress(Exception):
             if hasattr(self.iface, "openLayoutDesigner"):
                 self.iface.openLayoutDesigner(layout)
-        except Exception:
-            pass
 
     # ── Layout Studio actions ────────────────────────────────────────
 

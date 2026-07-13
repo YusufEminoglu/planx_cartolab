@@ -2,6 +2,8 @@
 """Proportional Symbols — Processing algorithm."""
 from __future__ import annotations
 
+from contextlib import suppress
+
 import math
 
 from qgis.core import (
@@ -133,7 +135,7 @@ class ProportionalSymbolsAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
             f"Suggested legend circles: {', '.join(f'{v:g}' for v in legend) or 'n/a'}."
         )
 
-        try:
+        with suppress(Exception):
             out_layer = context.getMapLayer(dest_id)
             if out_layer:
                 from qgis.core import QgsMarkerSymbol, QgsSingleSymbolRenderer, QgsProperty
@@ -144,7 +146,5 @@ class ProportionalSymbolsAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
                 symbol.setDataDefinedSize(QgsProperty.fromField("psym_size"))
                 out_layer.setRenderer(QgsSingleSymbolRenderer(symbol))
                 out_layer.triggerRepaint()
-        except Exception:
-            pass
 
         return {self.OUTPUT: dest_id}

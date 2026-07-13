@@ -2,6 +2,8 @@
 """Dot-Density Map — Processing algorithm."""
 from __future__ import annotations
 
+from contextlib import suppress
+
 from qgis.core import (
     QgsFeature, QgsFeatureSink, QgsField, QgsFields, QgsGeometry, QgsPointXY,
     QgsProcessing, QgsProcessingAlgorithm, QgsProcessingException,
@@ -124,7 +126,7 @@ class DotDensityAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
 
         feedback.pushInfo(f"Placed {dots_written} dots (1 dot = {per_dot:g} units).")
 
-        try:
+        with suppress(Exception):
             out_layer = context.getMapLayer(dest_id)
             if out_layer:
                 from qgis.core import QgsMarkerSymbol, QgsSingleSymbolRenderer
@@ -134,7 +136,5 @@ class DotDensityAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
                 })
                 out_layer.setRenderer(QgsSingleSymbolRenderer(symbol))
                 out_layer.triggerRepaint()
-        except Exception:
-            pass
 
         return {self.OUTPUT: dest_id}

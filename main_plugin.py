@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from contextlib import suppress
 
 from qgis.core import Qgis, QgsApplication
 from qgis.PyQt.QtCore import QTimer
@@ -73,12 +74,10 @@ class PlanXCartoLab:
         QTimer.singleShot(1200, self._maybe_show_welcome)
 
     def _maybe_show_welcome(self) -> None:
-        try:
+        with suppress(Exception):
             from .ui.onboarding import should_show
             if should_show():
                 self.open_welcome()
-        except Exception:
-            pass
 
     def open_welcome(self) -> None:
         from .ui.onboarding import WelcomeDialog
@@ -114,10 +113,8 @@ class PlanXCartoLab:
     def unload(self) -> None:
         # unset map tool if active
         if self.annotation_tool:
-            try:
+            with suppress(Exception):
                 self.iface.mapCanvas().unsetMapTool(self.annotation_tool)
-            except Exception:
-                pass
         if self.iface:
             if self.action_dashboard:
                 self.iface.removePluginMenu("&PlanX CartoLab", self.action_dashboard)

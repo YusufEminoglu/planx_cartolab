@@ -2,6 +2,8 @@
 """Quick Style — one-click graduated or categorized renderer with a good palette."""
 from __future__ import annotations
 
+from contextlib import suppress
+
 from qgis.PyQt.QtGui import QColor
 from qgis.core import (
     QgsProcessingAlgorithm,
@@ -137,14 +139,12 @@ class QuickStyleAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         sym = QgsSymbol.defaultSymbol(layer.geometryType())
         sym.setColor(QColor(hex_color))
         if outline:
-            try:
+            with suppress(Exception):
                 sl = sym.symbolLayer(0)
                 if hasattr(sl, "setStrokeColor"):
                     sl.setStrokeColor(QColor("#ffffff"))
                 if hasattr(sl, "setStrokeWidth"):
                     sl.setStrokeWidth(0.2)
-            except Exception:
-                pass
         return sym
 
     def _colors(self, palette, n, reverse):

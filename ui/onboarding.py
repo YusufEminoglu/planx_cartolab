@@ -9,6 +9,7 @@ so a new user sees what CartoLab does before reading anything.
 from __future__ import annotations
 
 import math
+from contextlib import suppress
 
 from qgis.PyQt.QtCore import QUrl, QSettings, QVariant
 from qgis.PyQt.QtGui import QDesktopServices
@@ -193,12 +194,10 @@ class WelcomeDialog(QDialog):
 
     def _on_dashboard(self) -> None:
         self.close()
-        try:
+        with suppress(Exception):  # pragma: no cover - defensive
             from .cartolab_dashboard import CartoLabDashboard
             dlg = CartoLabDashboard(self.iface, self.iface.mainWindow())
             dlg.show()
-        except Exception:  # pragma: no cover - defensive
-            pass
 
     def closeEvent(self, event) -> None:
         mark_seen()

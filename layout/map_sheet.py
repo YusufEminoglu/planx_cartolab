@@ -10,6 +10,7 @@ Layout Designer.
 """
 from __future__ import annotations
 
+from contextlib import suppress
 from typing import List, Optional
 
 from qgis.PyQt.QtGui import QColor, QFont
@@ -52,12 +53,10 @@ def _font(size: float, bold: bool = False) -> QFont:
 def _resolve_layers(iface, project: QgsProject) -> List:
     """Visible canvas layers if a canvas is available, else all project layers."""
     if iface is not None:
-        try:
+        with suppress(Exception):
             canvas_layers = iface.mapCanvas().layers()
             if canvas_layers:
                 return list(canvas_layers)
-        except Exception:
-            pass
     return [
         node.layer()
         for node in project.layerTreeRoot().findLayers()
@@ -68,24 +67,20 @@ def _resolve_layers(iface, project: QgsProject) -> List:
 def _resolve_extent(iface, layers) -> Optional[QgsRectangle]:
     """Current canvas extent if possible, else the combined extent of layers."""
     if iface is not None:
-        try:
+        with suppress(Exception):
             ext = iface.mapCanvas().extent()
             if ext is not None and not ext.isEmpty():
                 return QgsRectangle(ext)
-        except Exception:
-            pass
     extent = None
     for layer in layers:
-        try:
+        with suppress(Exception):
             le = layer.extent()
-        except Exception:
-            continue
-        if le is None or le.isEmpty():
-            continue
-        if extent is None:
-            extent = QgsRectangle(le)
-        else:
-            extent.combineExtentWith(le)
+            if le is None or le.isEmpty():
+                continue
+            if extent is None:
+                extent = QgsRectangle(le)
+            else:
+                extent.combineExtentWith(le)
     return extent
 
 
@@ -172,11 +167,9 @@ def create_map_sheet(
     layout.addLayoutItem(map_item)
 
     if add_grid:
-        try:
+        with suppress(Exception):
             from .grid_styler import apply_minimalist_grid
             apply_minimalist_grid(layout, map_id="cartolab_map")
-        except Exception:
-            pass
 
     # --- title / subtitle ------------------------------------------------
     if add_title:

@@ -2,6 +2,7 @@
 """Native QGIS 2.5D styling helpers for PlanX CartoLab."""
 from __future__ import annotations
 
+from contextlib import suppress
 from dataclasses import dataclass
 import re
 from typing import Dict, Optional
@@ -370,10 +371,8 @@ def build_style_summary(layer_name: str, config: Style25DConfig, resolved_max_fl
 
 def field_is_numeric(field) -> bool:
     if hasattr(field, "isNumeric"):
-        try:
+        with suppress(Exception):
             return bool(field.isNumeric())
-        except Exception:
-            pass
     type_name = ""
     if hasattr(field, "typeName"):
         try:

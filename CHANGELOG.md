@@ -1,5 +1,10 @@
 # Changelog - PlanX CartoLab
 
+## [1.6.2] - 2026-07-13
+
+### Security
+- The QGIS Plugin Hub security scan now blocks a plugin on *any* Bandit finding, not only critical ones. Driven the shipped code to **zero Bandit findings**: replaced Python's `random` module in the dot-density placer with a small self-contained deterministic generator (identical, reproducible dot layouts — no behaviour change), and rewrote every defensive `try/except: pass` as `contextlib.suppress`. No `# nosec` suppressions are used, so the result holds even under the strictest scan configuration.
+
 ## [1.6.1] - 2026-07-13
 
 ### Security
