@@ -71,6 +71,14 @@ DEFAULT_CARD_COLUMNS = 2 if IS_QGIS4 else 3
 
 ALGO_GROUPS = [
     (
+        "Quick Style",
+        "#2b8a6f",
+        [
+            ("Quick Style (auto choropleth / categories)", "planx_cartolab:quick_style",
+             "One-click graduated or categorized renderer with ColorBrewer / colour-blind-safe palettes."),
+        ],
+    ),
+    (
         "2.5D Styling",
         "#9b6b43",
         [
@@ -147,6 +155,9 @@ ALGO_GROUPS = [
 REQUIRED_IDS = [aid for _, _, items in ALGO_GROUPS for _, aid, _ in items]
 
 CATEGORY_GROUPS = {
+    "Quick Style": [
+        "planx_cartolab:quick_style",
+    ],
     "2.5D Styling": [
         "planx_cartolab:building_25d_style",
     ],
@@ -379,6 +390,7 @@ class CartoLabDashboard(QDialog):
         ql = QVBoxLayout(qa_tab)
         ql.setContentsMargins(12, 12, 12, 12)
         quick = [
+            ("Open Quick Style Panel", lambda: self.show_panel("Quick Style")),
             ("Open 2.5D Styling Panel", self.show_25d_panel),
             ("Inspect Features (Radar Chart on Click)", self._on_activate_annotation),
             ("Run 2.5D Building Style", lambda: self._run_algorithm("planx_cartolab:building_25d_style", "2.5D Building Style")),
@@ -406,6 +418,9 @@ class CartoLabDashboard(QDialog):
             ql.addWidget(b)
         ql.addStretch()
         self.tabs.addTab(qa_tab, "Quick Actions")
+
+        # Quick Style tab (broadest-appeal one-click styling)
+        self._build_quick_style_tab()
 
         # 2.5D Styling tab
         self._build_25d_tab()
@@ -809,6 +824,205 @@ class CartoLabDashboard(QDialog):
             self.tabs.setCurrentWidget(self.tab_25d)
             self._refresh_25d_layers()
 
+    def show_panel(self, tab_name: str) -> None:
+        for i in range(self.tabs.count()):
+            if self.tabs.tabText(i) == tab_name:
+                self.tabs.setCurrentIndex(i)
+                break
+        if tab_name == "Quick Style" and hasattr(self, "qs_layer_combo"):
+            self._refresh_qs_layers()
+
+    # ── Quick Style panel ─────────────────────────────────────────────
+
+    def _vector_layers(self):
+        return [lyr for lyr in QgsProject.instance().mapLayers().values()
+                if lyr.type() == QgsMapLayer.VectorLayer]
+
+    def _build_quick_style_tab(self) -> None:
+        w = QWidget()
+        outer = QVBoxLayout(w)
+        outer.setContentsMargins(12, 12, 12, 12)
+
+        gb = self._make_group("Quick Style — one-click thematic styling")
+        g = QGridLayout(gb)
+        g.setHorizontalSpacing(10)
+        g.setVerticalSpacing(6)
+
+        intro = QLabel(
+            "Style any vector layer instantly: pick a field and a palette, and "
+            "CartoLab classifies numeric fields into a graduated map or text "
+            "fields into categories — with colour-blind-safe palettes built in."
+        )
+        intro.setWordWrap(True)
+        g.addWidget(intro, 0, 0, 1, 2)
+
+        g.addWidget(QLabel("Layer:"), 1, 0)
+        self.qs_layer_combo = QComboBox()
+        self.qs_layer_combo.currentIndexChanged.connect(self._refresh_qs_fields)
+        g.addWidget(self.qs_layer_combo, 1, 1)
+
+        g.addWidget(QLabel("Field:"), 2, 0)
+        self.qs_field_combo = QComboBox()
+        g.addWidget(self.qs_field_combo, 2, 1)
+
+        g.addWidget(QLabel("Style as:"), 3, 0)
+        self.qs_mode_combo = QComboBox()
+        self.qs_mode_combo.addItems(["Auto", "Graduated (numeric)", "Categorized (unique)"])
+        g.addWidget(self.qs_mode_combo, 3, 1)
+
+        g.addWidget(QLabel("Classes:"), 4, 0)
+        self.qs_classes_spin = QSpinBox()
+        self.qs_classes_spin.setRange(2, 12)
+        self.qs_classes_spin.setValue(5)
+        self.qs_classes_spin.valueChanged.connect(self._update_qs_preview)
+        g.addWidget(self.qs_classes_spin, 4, 1)
+
+        g.addWidget(QLabel("Break method:"), 5, 0)
+        self.qs_method_combo = QComboBox()
+        self.qs_method_combo.addItems(["Quantile (equal count)", "Equal interval",
+                                       "Geometric interval"])
+        g.addWidget(self.qs_method_combo, 5, 1)
+
+        g.addWidget(QLabel("Palette:"), 6, 0)
+        self.qs_palette_combo = QComboBox()
+        self.qs_palette_combo.currentIndexChanged.connect(self._update_qs_preview)
+        g.addWidget(self.qs_palette_combo, 6, 1)
+
+        self.qs_preview = QFrame()
+        self.qs_preview.setMinimumHeight(20)
+        self.qs_preview.setStyleSheet("border-radius:4px;border:1px solid #cfdee2;")
+        g.addWidget(self.qs_preview, 7, 1)
+
+        opts = QHBoxLayout()
+        self.qs_cbsafe_check = QCheckBox("Colour-blind safe only")
+        self.qs_cbsafe_check.toggled.connect(self._populate_qs_palettes)
+        self.qs_reverse_check = QCheckBox("Reverse")
+        self.qs_reverse_check.toggled.connect(self._update_qs_preview)
+        self.qs_outline_check = QCheckBox("White outline")
+        self.qs_outline_check.setChecked(True)
+        opts.addWidget(self.qs_cbsafe_check)
+        opts.addWidget(self.qs_reverse_check)
+        opts.addWidget(self.qs_outline_check)
+        opts.addStretch()
+        g.addLayout(opts, 8, 0, 1, 2)
+
+        btn = QPushButton("Apply Quick Style")
+        btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        btn.clicked.connect(self._on_apply_quick_style)
+        g.addWidget(btn, 9, 0, 1, 2)
+
+        outer.addWidget(gb)
+        outer.addStretch()
+        self.tabs.addTab(w, "Quick Style")
+
+        self._populate_qs_palettes()
+        self._refresh_qs_layers()
+
+    def _populate_qs_palettes(self) -> None:
+        from ..core import palettes as _pal
+        if not hasattr(self, "qs_palette_combo"):
+            return
+        current = self.qs_palette_combo.currentText()
+        cb_only = self.qs_cbsafe_check.isChecked()
+        names = [n for n in _pal.ordered_names()
+                 if (not cb_only or _pal.is_colorblind_safe(n))]
+        self.qs_palette_combo.blockSignals(True)
+        self.qs_palette_combo.clear()
+        for n in names:
+            suffix = "  ·  safe" if _pal.is_colorblind_safe(n) else ""
+            self.qs_palette_combo.addItem(n + suffix, n)
+        # restore selection if still present
+        for i in range(self.qs_palette_combo.count()):
+            if self.qs_palette_combo.itemData(i) == current:
+                self.qs_palette_combo.setCurrentIndex(i)
+                break
+        self.qs_palette_combo.blockSignals(False)
+        self._update_qs_preview()
+
+    def _update_qs_preview(self) -> None:
+        from ..core import palettes as _pal
+        if not hasattr(self, "qs_preview"):
+            return
+        name = self.qs_palette_combo.currentData()
+        if not name:
+            return
+        n = max(2, self.qs_classes_spin.value())
+        cols = _pal.get_palette(name, n)
+        if self.qs_reverse_check.isChecked():
+            cols = list(reversed(cols))
+        stops = ", ".join(
+            f"stop:{i / (len(cols) - 1):.3f} {c}" for i, c in enumerate(cols))
+        self.qs_preview.setStyleSheet(
+            "border-radius:4px;border:1px solid #cfdee2;"
+            f"background:qlineargradient(x1:0,y1:0,x2:1,y2:0,{stops});")
+
+    def _refresh_qs_layers(self) -> None:
+        if not hasattr(self, "qs_layer_combo"):
+            return
+        current = self.qs_layer_combo.currentData()
+        self.qs_layer_combo.blockSignals(True)
+        self.qs_layer_combo.clear()
+        for lyr in self._vector_layers():
+            self.qs_layer_combo.addItem(lyr.name(), lyr.id())
+        if current is not None:
+            idx = self.qs_layer_combo.findData(current)
+            if idx >= 0:
+                self.qs_layer_combo.setCurrentIndex(idx)
+        self.qs_layer_combo.blockSignals(False)
+        self._refresh_qs_fields()
+
+    def _refresh_qs_fields(self) -> None:
+        if not hasattr(self, "qs_field_combo"):
+            return
+        self.qs_field_combo.clear()
+        layer = self._layer_by_id(self.qs_layer_combo.currentData())
+        if layer is None:
+            return
+        for f in layer.fields():
+            self.qs_field_combo.addItem(f.name())
+
+    def _on_apply_quick_style(self) -> None:
+        from ..core import palettes as _pal
+        if processing is None:
+            QMessageBox.warning(self, "Quick Style", "Processing framework unavailable.")
+            return
+        layer = self._layer_by_id(self.qs_layer_combo.currentData())
+        if layer is None:
+            QMessageBox.information(self, "Quick Style", "Load and select a vector layer.")
+            return
+        field = self.qs_field_combo.currentText()
+        if not field:
+            QMessageBox.information(self, "Quick Style", "Select a field to style.")
+            return
+        palette = self.qs_palette_combo.currentData() or _pal.default_palette()
+        try:
+            pidx = _pal.ordered_names().index(palette)
+        except ValueError:
+            pidx = 0
+        params = {
+            "INPUT": layer,
+            "FIELD": field,
+            "MODE": self.qs_mode_combo.currentIndex(),
+            "CLASSES": self.qs_classes_spin.value(),
+            "METHOD": self.qs_method_combo.currentIndex(),
+            "PALETTE": pidx,
+            "REVERSE": self.qs_reverse_check.isChecked(),
+            "OUTLINE": self.qs_outline_check.isChecked(),
+        }
+        try:
+            res = processing.run("planx_cartolab:quick_style", params)
+        except Exception as exc:
+            QMessageBox.critical(self, "Quick Style", str(exc))
+            return
+        try:
+            if hasattr(self.iface, "layerTreeView"):
+                self.iface.layerTreeView().refreshLayerSymbology(layer.id())
+        except Exception:
+            pass
+        layer.triggerRepaint()
+        self.iface.messageBar().pushSuccess(
+            "CartoLab", res.get("SUMMARY", "Quick Style applied."))
+
     def _polygon_layers(self):
         layers = []
         for layer in QgsProject.instance().mapLayers().values():
@@ -1095,12 +1309,22 @@ class CartoLabDashboard(QDialog):
         gm.addLayout(actions)
 
         exports = QHBoxLayout()
-        btn_png = QPushButton("Export PNG…")
-        btn_png.clicked.connect(lambda: self._on_export_layout("png"))
-        btn_pdf = QPushButton("Export PDF…")
-        btn_pdf.clicked.connect(lambda: self._on_export_layout("pdf"))
-        exports.addWidget(btn_png)
-        exports.addWidget(btn_pdf)
+        exports.addWidget(QLabel("Export:"))
+        self.export_format_combo = QComboBox()
+        self.export_format_combo.addItem("PNG (image)", "png")
+        self.export_format_combo.addItem("PDF (vector)", "pdf")
+        self.export_format_combo.addItem("SVG (vector)", "svg")
+        exports.addWidget(self.export_format_combo, 1)
+        exports.addWidget(QLabel("DPI:"))
+        self.export_dpi_combo = QComboBox()
+        for lbl, val in (("96 · screen", 96), ("150", 150),
+                         ("300 · print", 300), ("600 · high", 600)):
+            self.export_dpi_combo.addItem(lbl, val)
+        self.export_dpi_combo.setCurrentIndex(2)
+        exports.addWidget(self.export_dpi_combo)
+        btn_export = QPushButton("Export…")
+        btn_export.clicked.connect(self._on_export_layout)
+        exports.addWidget(btn_export)
         gm.addLayout(exports)
         lyt.addWidget(gb_mgr)
 
@@ -1274,15 +1498,19 @@ class CartoLabDashboard(QDialog):
         self._refresh_layout_combo()
         self.iface.messageBar().pushSuccess("CartoLab", f"Deleted layout '{name}'.")
 
-    def _on_export_layout(self, fmt: str) -> None:
+    def _on_export_layout(self, _checked: bool = False) -> None:
         layout = self._require_layout("Export Layout")
         if layout is None:
             return
-        ext = "pdf" if fmt == "pdf" else "png"
-        filt = "PDF document (*.pdf)" if ext == "pdf" else "PNG image (*.png)"
+        ext = self.export_format_combo.currentData()
+        dpi = self.export_dpi_combo.currentData()
+        filt = {
+            "png": "PNG image (*.png)",
+            "pdf": "PDF document (*.pdf)",
+            "svg": "SVG image (*.svg)",
+        }.get(ext, "PNG image (*.png)")
         safe = "".join(c if c.isalnum() else "_" for c in layout.name())
-        default = os.path.join(
-            os.path.expanduser("~"), f"{safe}.{ext}")
+        default = os.path.join(os.path.expanduser("~"), f"{safe}.{ext}")
         path, _ = QFileDialog.getSaveFileName(
             self, f"Export {ext.upper()}", default, filt)
         if not path:
@@ -1291,7 +1519,7 @@ class CartoLabDashboard(QDialog):
             path += "." + ext
         try:
             from ..layout.layout_utils import export_layout
-            success = export_layout(layout, path, dpi=300)
+            success = export_layout(layout, path, dpi=int(dpi))
         except Exception as exc:
             QMessageBox.critical(self, "Export Error", str(exc))
             return
@@ -1389,6 +1617,8 @@ class CartoLabDashboard(QDialog):
                 self.iso_layer_list.addItem(layer.name())
         if hasattr(self, "layout_combo"):
             self._refresh_layout_combo()
+        if hasattr(self, "qs_layer_combo"):
+            self._refresh_qs_layers()
 
         for card in self.card_widgets:
             is_ready = reg.algorithmById(card.algo_id) is not None

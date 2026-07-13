@@ -1,10 +1,10 @@
 [general]
 name=PlanX CartoLab
-version=1.5.1
+version=1.6.0
 hasProcessingProvider=yes
 
 category=Vector
-tags=cartography, thematic map, choropleth, bivariate, cartogram, dot-density, proportional-symbols, hexbin, value-by-alpha, ridge-maps, 2.5d, buildings, map layout, print layout, atlas, legend, north arrow, scale bar, graticule, labels, color ramp, colorbrewer, colorblind, viridis, normalization, geometric-interval, symbology, map design, export, planx
+tags=cartography, thematic map, choropleth, quick style, graduated, categorized, bivariate, cartogram, dot-density, proportional-symbols, hexbin, value-by-alpha, ridge-maps, 2.5d, buildings, map layout, print layout, atlas, legend, north arrow, scale bar, graticule, labels, color ramp, colorbrewer, colorblind, viridis, symbology, map design, export, planx
 
 description=Design publication-quality thematic maps and print layouts in QGIS: choropleths, bivariate maps, cartograms, ridge maps, dot-density, proportional symbols and hexbins; native 2.5D building styling; one-click map layouts with legend, scale bar and north arrow; and colorblind-safe color palettes.
 about=PlanX CartoLab is a thematic mapping and print-layout studio for QGIS. It builds publication-ready choropleths (including bivariate and Value-by-Alpha), continuous-area cartograms, ridge-line relief maps, dot-density and Flannery proportional-symbol maps, hexbin aggregation, coordinate graticules and native 2.5D building styling - then assembles a complete print layout (map, legend, scale bar, north arrow, coordinate grid and credits) in one click. Includes adaptive classification (Geometric Interval, Fisher-Jenks, Head/Tail Breaks), choropleth normalization and rates, visual-center label points, and a Layout Manager to duplicate and export layouts to PNG/PDF. No external dependencies - pure QGIS.
@@ -22,6 +22,7 @@ qgisMinimumVersion=3.28
 qgisMaximumVersion=4.99
 
 changelog=
+    PlanX CartoLab 1.6.0 - Added Quick Style: one-click graduated (numeric) or categorized (text) rendering for any vector layer, with quantile, equal-interval or geometric-interval breaks. New colour palette library - ColorBrewer plus the colour-blind-safe viridis family - with a live preview and a colour-blind-safe filter. Layout export presets now cover PNG, PDF and SVG at 96 to 600 dpi.
     PlanX CartoLab 1.5.1 - First-run welcome that builds a sample map in seconds, a one-click "Rate on the Hub" link, and refreshed discovery metadata (tags and description) so the plugin is easier to find when searching for choropleth, map layout, colour palettes and thematic mapping.
     PlanX CartoLab 1.5.0 - Added Auto Map Sheet (one-click publication layout from the current view - map, legend, scale bar, north arrow, grid, credits) and a Layout Manager (open, duplicate, delete, export PNG/PDF). Bivariate layout legends are now native editable items instead of embedded SVG (no temp-file leak), the minimalist grid is idempotent with auto-derived intervals, and isometric stacks are proper print layouts. Removed dead code; layout subsystem now covered by real-QGIS e2e (33 checks on both QGIS versions).
     PlanX CartoLab 1.4.3 - Packaging hygiene: internal AI-agent work-order files (ENHANCEMENT_PLAN, DEEPSEEK_PROMPT, REPORT) are now always excluded from the Hub zip regardless of filename version suffix.

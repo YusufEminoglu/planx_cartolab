@@ -116,6 +116,8 @@ from planx_cartolab.core import label_points as lblp
 from planx_cartolab.core import graticule as grat
 from planx_cartolab.core import normalize as norm
 from planx_cartolab.core import layout_math as lm
+from planx_cartolab.core import palettes as pal
+from planx_cartolab.core import quick_style as qs
 
 # ---------------------------------------------------------------------------
 # Test framework
@@ -611,6 +613,89 @@ check("page A4 landscape swaps axes", lm.page_size_mm("A4", landscape=True) == (
 check("page unknown falls back to A4",
       lm.page_size_mm("ZZ", landscape=False) == (210.0, 297.0))
 check("page A3 landscape", lm.page_size_mm("A3", landscape=True) == (420.0, 297.0))
+
+# ===================================================================
+# PALETTES — ColorBrewer + scientific colour ramps
+# ===================================================================
+section("Palettes")
+
+def _is_hex(c):
+    return isinstance(c, str) and len(c) == 7 and c[0] == "#" and \
+        all(ch in "0123456789abcdefABCDEF" for ch in c[1:])
+
+# every palette yields valid hex at several class counts
+_bad = []
+for _name in pal.PALETTES:
+    for _n in (1, 3, 5, 7):
+        cols = pal.get_palette(_name, _n)
+        if len(cols) != _n or not all(_is_hex(c) for c in cols):
+            _bad.append(f"{_name}@{_n}")
+check("all palettes produce n valid hex colours", not _bad, str(_bad[:5]))
+
+# sequential endpoints match the gradient ends
+blues = pal.get_palette("Blues", 9)
+check("sequential get_palette length", len(blues) == 9)
+check("sequential first == first stop", blues[0].lower() == "#f7fbff")
+check("sequential last == last stop", blues[-1].lower() == "#08306b")
+
+# single class returns one colour
+check("get_palette n=1 -> one colour", len(pal.get_palette("Viridis", 1)) == 1)
+check("get_palette n=0 -> empty", pal.get_palette("Viridis", 0) == [])
+
+# qualitative takes swatches in order and cycles when short
+set2 = pal.get_palette("Set2", 3)
+check("qualitative first three exact",
+      set2 == ["#66c2a5", "#fc8d62", "#8da0cb"], str(set2))
+check("qualitative cycles when n>len",
+      len(pal.get_palette("Set2", 20)) == 20)
+
+# colour-blind safety flags
+check("viridis is cb-safe", pal.is_colorblind_safe("Viridis"))
+check("spectral is not cb-safe", not pal.is_colorblind_safe("Spectral"))
+check("RdYlGn not cb-safe (red-green)", not pal.is_colorblind_safe("RdYlGn"))
+
+# listing + filters
+check("list all non-empty", len(pal.list_palettes()) == len(pal.PALETTES))
+check("list sequential only", all(pal.palette_kind(n) == pal.SEQUENTIAL
+                                  for n in pal.list_palettes(kind=pal.SEQUENTIAL)))
+check("list cb-safe excludes Spectral", "Spectral" not in pal.list_palettes(cb_safe_only=True))
+check("list cb-safe includes Viridis", "Viridis" in pal.list_palettes(cb_safe_only=True))
+
+# defaults + unknown handling
+check("default sequential is Viridis", pal.default_palette(pal.SEQUENTIAL) == "Viridis")
+check("default diverging is RdBu", pal.default_palette(pal.DIVERGING) == "RdBu")
+try:
+    pal.get_palette("NoSuchPalette", 5)
+    check("unknown palette raises", False)
+except ValueError:
+    check("unknown palette raises", True)
+
+# ===================================================================
+# QUICK STYLE — class breaks
+# ===================================================================
+section("Quick Style")
+
+vals = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+qb = qs.quantile_breaks(vals, 5)
+check("quantile returns n+1 edges", len(qb) == 6, str(qb))
+check("quantile edges monotonic", all(qb[i] <= qb[i + 1] for i in range(len(qb) - 1)))
+check("quantile spans data", qb[0] == 1 and qb[-1] == 10)
+
+ei = qs.equal_interval_breaks(vals, 5)
+check("equal interval n+1 edges", len(ei) == 6)
+check("equal interval evenly spaced",
+      all(abs((ei[i + 1] - ei[i]) - 1.8) < 1e-9 for i in range(5)), str(ei))
+
+check("quantile degenerate (all equal)", qs.quantile_breaks([5, 5, 5], 4) == [5, 5])
+check("equal degenerate (all equal)", qs.equal_interval_breaks([5, 5, 5], 4) == [5, 5])
+check("breaks ignore None", len(qs.quantile_breaks([1, None, 2, None, 3], 2)) == 3)
+check("empty values -> empty", qs.quantile_breaks([], 5) == [])
+
+check("dedupe drops zero-width", qs.dedupe_edges([1, 1, 2, 3, 3]) == [1, 2, 3])
+check("edges_to_ranges pairs", qs.edges_to_ranges([0, 1, 2, 3]) ==
+      [(0, 1), (1, 2), (2, 3)])
+check("edges_to_ranges skips dup class",
+      qs.edges_to_ranges([0, 0, 1, 2]) == [(0, 1), (1, 2)])
 
 # ===================================================================
 # SUMMARY

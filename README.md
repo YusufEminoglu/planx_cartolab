@@ -25,6 +25,7 @@ The map types journals and design studios actually ask for —
 
 | | |
 |---|---|
+| ⚡ **One-click Quick Style** | Style any layer in a click — graduated for numbers, categories for text — with a **colour palette library** (ColorBrewer + the colour-blind-safe **viridis** family) and a live preview. Sensible defaults mean the first click already looks good. |
 | 🏢 **2.5D that survives** | A native QGIS `25dRenderer` engine with presets, per-floor colour bands and one legend rule per floor — a reusable, legend-friendly replacement for ad-hoc QML extrusion hacks. One click exports the style back to QML. |
 | 🎨 **Dual-variable honesty** | Bivariate choropleths (3×3 palettes, custom corner colours) and **Value-by-Alpha** maps that fade unreliable values instead of hiding them — reliability-aware visualisation built in. |
 | 📐 **Classification for skewed cities** | Adaptive Geometric Interval, Fisher-Jenks and Head/Tail Breaks — made for the long-tailed indicators urban data actually has. |
@@ -43,6 +44,8 @@ Everything is reachable from the **CartoLab Dashboard** (`Plugins → PlanX Cart
 
 | Module | What it does | Surface |
 |---|---|---|
+| **Quick Style** | One click: graduated (numeric) or categorized (text) renderer with quantile / equal-interval / geometric-interval breaks and a colour-palette picker | Dashboard panel + Processing |
+| **Colour Palettes** | ColorBrewer + colour-blind-safe viridis/magma/plasma/inferno/cividis, sampled to any class count, with a colour-blind-safe filter | Quick Style panel |
 | **2.5D Building Styling** | Height/floor-field extrusion, material presets, shadows, wall shading, stepped floors, per-floor colour bands, QML export | Dashboard panel + Processing |
 | **Bivariate Choropleth** | Two variables, one map; 3×3 palettes incl. custom corner colours; diamond/square legends | Processing + layout |
 | **Value-by-Alpha** | Value drives hue, reliability drives opacity | Processing |
@@ -57,7 +60,7 @@ Everything is reachable from the **CartoLab Dashboard** (`Plugins → PlanX Cart
 | **Choropleth Normalization & Rates** | Rate, z-score, robust z, min-max, percentile rank, log — prep before classifying | Processing |
 | **Feature Inspector** | Floating HTML feature cards with radar-style attribute charts | Dashboard |
 | **Auto Map Sheet** | Complete print layout from the current view — map, legend, scale bar, north arrow, grid, credits — in one click | Dashboard → Layout |
-| **Layout Manager** | List, open, duplicate, delete and export (PNG/PDF) project layouts | Dashboard → Layout |
+| **Layout Manager** | List, open, duplicate, delete and export (PNG / PDF / SVG, 96–600 dpi) project layouts | Dashboard → Layout |
 | **Layout Decorators** | Native bivariate legends, isometric layer stacks, idempotent minimalist grids, typography hierarchy | Dashboard → Layout |
 
 ---

@@ -1,5 +1,16 @@
 # Changelog - PlanX CartoLab
 
+## [1.6.0] - 2026-07-13
+
+### Added
+- **Quick Style** — a new one-click Processing algorithm and dashboard panel that styles any vector layer: a graduated renderer for numeric fields or a categorized renderer for text fields, with quantile / equal-interval / geometric-interval class breaks. The dashboard panel has a live palette preview and applies the style to the selected layer instantly.
+- **Colour palette library** (`core/palettes.py`) — ColorBrewer sequential/diverging/qualitative sets plus the perceptually-uniform scientific ramps (viridis, magma, plasma, inferno, cividis), each carrying a colour-blind-safe flag, sampled to any class count. A "colour-blind safe only" filter is built into the Quick Style panel.
+- **Layout export presets** — export any layout to PNG, PDF or SVG at 96 / 150 / 300 / 600 dpi from the Layout Manager.
+
+### Changed
+- A graduated Quick Style on a field with a single distinct value now degrades gracefully to one class instead of failing.
+- The provider now ships 13 Processing algorithms (Quick Style added); the e2e harness pins and verifies the count.
+
 ## [1.5.1] - 2026-07-13
 
 ### Added

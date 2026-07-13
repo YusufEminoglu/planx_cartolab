@@ -51,8 +51,8 @@ QgsApplication.processingRegistry().addProvider(_prov)
 
 # Regression guard: prevent silent algorithm-count drift
 _algo_count = len(list(_prov.algorithms()))
-assert _algo_count == 12, f"expected 12 algorithms, got {_algo_count}"
-print(f"Provider algorithm count: {_algo_count} (pinned at 12)\n")
+assert _algo_count == 13, f"expected 13 algorithms, got {_algo_count}"
+print(f"Provider algorithm count: {_algo_count} (pinned at 13)\n")
 assert all(alg.helpUrl() == 'https://github.com/YusufEminoglu/planx_cartolab#module-catalog' for alg in _prov.algorithms()), 'helpUrl regression detected'
 
 CRS = "EPSG:3857"
@@ -309,6 +309,26 @@ out, _ = run("planx_cartolab:building_25d_style",
 ok("building_25d_style summary", out is not None and isinstance(out.get("SUMMARY"), str)
    and len(out.get("SUMMARY", "")) > 10)
 
+# ---------------------------------------------------------------------------
+# Quick Style — one-click graduated / categorized renderer
+# ---------------------------------------------------------------------------
+print("\n--- Quick Style ---")
+from qgis.core import QgsGraduatedSymbolRenderer, QgsCategorizedSymbolRenderer
+
+run("planx_cartolab:quick_style",
+    {"INPUT": polys, "FIELD": "score", "MODE": 1, "CLASSES": 5, "METHOD": 0,
+     "PALETTE": 0, "REVERSE": False, "OUTLINE": True}, "quick_style_graduated")
+ok("quick_style applies graduated renderer with 5 classes",
+   isinstance(polys.renderer(), QgsGraduatedSymbolRenderer)
+   and len(polys.renderer().ranges()) == 5, str(type(polys.renderer()).__name__))
+
+run("planx_cartolab:quick_style",
+    {"INPUT": polys, "FIELD": "floors", "MODE": 2, "CLASSES": 5, "METHOD": 0,
+     "PALETTE": 0, "REVERSE": False, "OUTLINE": True}, "quick_style_categorized")
+ok("quick_style applies categorized renderer",
+   isinstance(polys.renderer(), QgsCategorizedSymbolRenderer)
+   and len(polys.renderer().categories()) >= 2, str(type(polys.renderer()).__name__))
+
 # ===========================================================================
 # LAYOUT SUBSYSTEM (real QgsPrintLayout assembly)
 # ===========================================================================
@@ -357,6 +377,10 @@ ok("isometric stack is print layout with 2 maps",
 
 _png = os.path.join(tempfile.gettempdir(), "cartolab_e2e_sheet.png")
 ok("layout exports to PNG", export_layout(sheet, _png, dpi=72) and os.path.exists(_png))
+_pdf = os.path.join(tempfile.gettempdir(), "cartolab_e2e_sheet.pdf")
+ok("layout exports to PDF", export_layout(sheet, _pdf, dpi=72) and os.path.exists(_pdf))
+_svg = os.path.join(tempfile.gettempdir(), "cartolab_e2e_sheet.svg")
+ok("layout exports to SVG", export_layout(sheet, _svg, dpi=72) and os.path.exists(_svg))
 
 # ===========================================================================
 print("\n" + "=" * 60)

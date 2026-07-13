@@ -76,10 +76,12 @@ def north_arrow_svg_path() -> Optional[str]:
 
 def export_layout(layout: QgsLayout, path: str, dpi: int = 300) -> bool:
     """
-    Export ``layout`` to PNG or PDF (chosen by the ``path`` extension).
+    Export ``layout`` to PNG, PDF or SVG (chosen by the ``path`` extension).
 
-    Returns ``True`` on success. Any pre-existing target file is removed
-    first so raster drivers do not refuse to overwrite.
+    PDF and SVG are vector formats (``dpi`` affects only rasterised effects);
+    any other extension is treated as a raster image at ``dpi``. Returns
+    ``True`` on success. A pre-existing target file is removed first so raster
+    drivers do not refuse to overwrite.
     """
     exporter = QgsLayoutExporter(layout)
     ext = os.path.splitext(path)[1].lower()
@@ -93,6 +95,10 @@ def export_layout(layout: QgsLayout, path: str, dpi: int = 300) -> bool:
         settings = QgsLayoutExporter.PdfExportSettings()
         settings.dpi = dpi
         result = exporter.exportToPdf(path, settings)
+    elif ext == ".svg":
+        settings = QgsLayoutExporter.SvgExportSettings()
+        settings.dpi = dpi
+        result = exporter.exportToSvg(path, settings)
     else:
         settings = QgsLayoutExporter.ImageExportSettings()
         settings.dpi = dpi

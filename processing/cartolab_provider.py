@@ -19,6 +19,7 @@ from .alg_hexbin import HexbinAlgorithm
 from .alg_label_points import LabelPointsAlgorithm
 from .alg_graticule import GraticuleAlgorithm
 from .alg_normalize_field import NormalizeFieldAlgorithm
+from .alg_quick_style import QuickStyleAlgorithm
 
 
 class CartoLabProvider(QgsProcessingProvider):
@@ -52,3 +53,4 @@ class CartoLabProvider(QgsProcessingProvider):
         self.addAlgorithm(LabelPointsAlgorithm())
         self.addAlgorithm(GraticuleAlgorithm())
         self.addAlgorithm(NormalizeFieldAlgorithm())
+        self.addAlgorithm(QuickStyleAlgorithm())
