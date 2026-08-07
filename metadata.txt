@@ -1,15 +1,15 @@
 [general]
 name=PlanX CartoLab
-version=1.6.4
+version=1.6.5
 hasProcessingProvider=yes
 
 category=Vector
 tags=cartography, thematic map, choropleth, quick style, graduated, categorized, bivariate, cartogram, dot-density, proportional-symbols, hexbin, value-by-alpha, ridge-maps, 2.5d, buildings, map layout, print layout, atlas, legend, north arrow, scale bar, graticule, labels, color ramp, colorbrewer, colorblind, viridis, symbology, map design, export, planx
 
 description=Design publication-quality thematic maps and print layouts in QGIS: choropleths, bivariate maps, cartograms, ridge maps, dot-density, proportional symbols and hexbins; native 2.5D building styling; one-click map layouts with legend, scale bar and north arrow; and colorblind-safe color palettes.
-about=PlanX CartoLab is a thematic mapping and print-layout studio for QGIS. It builds publication-ready choropleths (including bivariate and Value-by-Alpha), continuous-area cartograms, ridge-line relief maps, dot-density and Flannery proportional-symbol maps, hexbin aggregation, coordinate graticules and native 2.5D building styling - then assembles a complete print layout (map, legend, scale bar, north arrow, coordinate grid and credits) in one click. Includes adaptive classification (Geometric Interval, Fisher-Jenks, Head/Tail Breaks), choropleth normalization and rates, visual-center label points, and a Layout Manager to duplicate and export layouts to PNG/PDF. No external dependencies - pure QGIS.
+about=PlanX CartoLab is a thematic mapping and print-layout studio for QGIS. It builds publication-ready choropleths (including bivariate and Value-by-Alpha), continuous-area cartograms, ridge-line relief maps, dot-density and Flannery proportional-symbol maps, hexbin aggregation, coordinate graticules and native 2.5D building styling - then assembles a complete print layout (map, legend, scale bar, north arrow, coordinate grid and credits) in one click. Includes adaptive classification (Geometric Interval, Fisher-Jenks, Head/Tail Breaks), choropleth normalization and rates, visual-center label points, and a Layout Manager to duplicate and export layouts to PNG/PDF. No external dependencies - pure QGIS. Online User Manual & Documentation: https://yusufeminoglu.github.io/planx_cartolab/ | If you find this plugin helpful, please consider starring the repository on GitHub (https://github.com/YusufEminoglu/planx_cartolab)!
 
-homepage=https://github.com/YusufEminoglu/planx_cartolab
+homepage=https://yusufeminoglu.github.io/planx_cartolab/
 repository=https://github.com/YusufEminoglu/planx_cartolab
 tracker=https://github.com/YusufEminoglu/planx_cartolab/issues
 
