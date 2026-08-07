@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [1.6.4] - 2026-08-07
+
+- Add floating Save as PDF button to reference manual
+
 ## [1.6.2] - 2026-07-13
 
 ### Security
