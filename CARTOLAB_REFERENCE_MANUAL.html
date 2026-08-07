@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PlanX CartoLab — Comprehensive Reference Manual v1.6.2</title>
+<style>
+/* ═══════════════════════════════════════════════════════════════════════════
+   PlanX CartoLab — Reference Manual Design System
+   Palette: Deep indigo + vibrant accents — cartographic design studio
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Primary — deep indigo (cartographic precision, print quality) */
+  --cl-indigo-900: #1a1038;
+  --cl-indigo-800: #241a4a;
+  --cl-indigo-700: #2f245e;
+  --cl-indigo-600: #3b2e73;
+  --cl-indigo-500: #483a88;
+  --cl-indigo-400: #5f4fa0;
+  --cl-indigo-300: #8273c2;
+  --cl-indigo-200: #a99dda;
+  --cl-indigo-100: #cec7ed;
+  --cl-indigo-50:  #e9e5f6;
+
+  /* Accent — vibrant magenta/coral (design energy) */
+  --cl-accent-600: #b91c5a;
+  --cl-accent-500: #d42a6a;
+  --cl-accent-400: #e84d85;
+  --cl-accent-300: #f277a0;
+  --cl-accent-200: #f7a4be;
+  --cl-accent-100: #fccfdd;
+
+  /* Secondary accent — teal (data precision) */
+  --cl-teal-600: #0d7377;
+  --cl-teal-500: #14919b;
+  --cl-teal-400: #25b0ba;
+
+  /* Neutrals — warm paper */
+  --cl-paper-900: #1c1917;
+  --cl-paper-800: #2d2825;
+  --cl-paper-700: #4a4340;
+  --cl-paper-600: #5f5753;
+  --cl-paper-500: #7a706b;
+  --cl-paper-400: #a09892;
+  --cl-paper-300: #c4bbb5;
+  --cl-paper-200: #ddd5cf;
+  --cl-paper-100: #ede6e0;
+  --cl-paper-50:  #f7f2ed;
+  --cl-paper-25:  #fcfaf7;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --shadow-sm: 0 1px 3px rgba(26,16,56,.07);
+  --shadow-md: 0 4px 16px rgba(26,16,56,.10);
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; scroll-padding-top: 24px; }
+
+body {
+  font-family: var(--font-body); font-size: 15px; line-height: 1.7;
+  color: var(--cl-paper-800); background: var(--cl-paper-25);
+  -webkit-font-smoothing: antialiased; display: flex; min-height: 100vh;
+}
+
+/* ═══════════════ SIDEBAR ═══════════════ */
+nav#sidebar {
+  position: fixed; top: 0; left: 0; bottom: 0; width: 270px;
+  background: linear-gradient(180deg, var(--cl-indigo-900) 0%, var(--cl-indigo-800) 100%);
+  color: #fff; overflow-y: auto; overflow-x: hidden; z-index: 100;
+  display: flex; flex-direction: column;
+  box-shadow: 2px 0 24px rgba(26,16,56,.28);
+}
+nav#sidebar::-webkit-scrollbar { width: 5px; }
+nav#sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,.14); border-radius: 3px; }
+
+.sidebar-header { padding: 26px 20px 16px; border-bottom: 1px solid rgba(255,255,255,.10); }
+.sidebar-header .brand { font-family: var(--font-display); font-size: 1.15rem; font-weight: 700; letter-spacing: -0.01em; color: #fff; line-height: 1.25; }
+.sidebar-header .brand span { display: block; font-size: .68rem; font-weight: 500; text-transform: uppercase; letter-spacing: .12em; color: var(--cl-indigo-200); margin-top: 2px; }
+.sidebar-header .version { font-size: .65rem; color: var(--cl-indigo-300); margin-top: 5px; font-family: var(--font-mono); }
+
+.sidebar-nav { flex: 1; padding: 8px 0; }
+.sidebar-nav a { display: block; padding: 7px 20px; color: rgba(255,255,255,.68); text-decoration: none; font-size: .82rem; font-weight: 440; transition: all .15s; border-left: 3px solid transparent; }
+.sidebar-nav a:hover { color: #fff; background: rgba(255,255,255,.05); border-left-color: var(--cl-indigo-300); }
+.sidebar-nav a.active { color: #fff; background: rgba(255,255,255,.08); border-left-color: var(--cl-accent-400); font-weight: 600; }
+.sidebar-nav .group-label { font-size: .63rem; font-weight: 700; text-transform: uppercase; letter-spacing: .10em; color: var(--cl-indigo-200); padding: 15px 20px 3px; }
+.sidebar-nav .group-label:first-child { padding-top: 2px; }
+.sidebar-footer { padding: 14px 20px; border-top: 1px solid rgba(255,255,255,.10); font-size: .63rem; color: rgba(255,255,255,.34); line-height: 1.6; }
+
+/* ═══════════════ MAIN ═══════════════ */
+main { margin-left: 270px; flex: 1; min-width: 0; }
+
+.hero {
+  background: linear-gradient(135deg, var(--cl-indigo-900) 0%, var(--cl-indigo-700) 30%, var(--cl-indigo-600) 60%, #4a2e80 100%);
+  color: #fff; padding: 60px 48px 54px; position: relative; overflow: hidden;
+}
+.hero::after { content: ''; position: absolute; top: -40%; right: -8%; width: 420px; height: 420px; background: radial-gradient(circle, rgba(232,77,133,.08) 0%, transparent 70%); border-radius: 50%; pointer-events: none; }
+.hero::before { content: ''; position: absolute; bottom: -20%; left: 15%; width: 260px; height: 260px; background: radial-gradient(circle, rgba(37,176,186,.07) 0%, transparent 70%); border-radius: 50%; pointer-events: none; }
+.hero-inner { position: relative; z-index: 1; max-width: 920px; }
+.hero h1 { font-family: var(--font-display); font-size: 2.5rem; font-weight: 800; letter-spacing: -0.025em; line-height: 1.12; margin-bottom: 10px; }
+.hero h1 em { font-style: normal; color: var(--cl-accent-400); }
+.hero .tagline { font-size: 1.08rem; font-weight: 400; color: rgba(255,255,255,.74); max-width: 600px; line-height: 1.55; }
+.hero .meta-row { display: flex; gap: 24px; margin-top: 24px; flex-wrap: wrap; }
+.hero .meta-chip { background: rgba(255,255,255,.09); border: 1px solid rgba(255,255,255,.13); border-radius: 100px; padding: 5px 16px; font-size: .76rem; font-weight: 500; color: rgba(255,255,255,.84); font-family: var(--font-mono); letter-spacing: .02em; }
+
+.content-area { max-width: 920px; padding: 36px 48px 80px; }
+
+/* Sections */
+.section-intro { margin-bottom: 44px; padding-bottom: 28px; border-bottom: 1px solid var(--cl-paper-200); }
+.section-intro h2 { font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; color: var(--cl-paper-900); margin-bottom: 10px; letter-spacing: -0.01em; }
+.section-intro p { color: var(--cl-paper-600); font-size: .93rem; max-width: 700px; line-height: 1.7; }
+
+/* Group header */
+.group-header { margin: 52px 0 24px; padding-bottom: 12px; border-bottom: 2px solid var(--cl-indigo-100); display: flex; align-items: baseline; gap: 12px; }
+.group-header .group-num { font-family: var(--font-mono); font-size: .76rem; font-weight: 700; color: var(--cl-indigo-600); background: var(--cl-indigo-50); padding: 3px 10px; border-radius: 100px; white-space: nowrap; }
+.group-header h3 { font-family: var(--font-display); font-size: 1.28rem; font-weight: 700; color: var(--cl-paper-900); letter-spacing: -0.01em; }
+
+/* Algorithm card */
+.alg-card { background: #fff; border: 1px solid var(--cl-paper-200); border-radius: var(--radius-md); margin-bottom: 28px; box-shadow: var(--shadow-sm); overflow: hidden; transition: box-shadow .2s; }
+.alg-card:hover { box-shadow: var(--shadow-md); }
+.alg-card:target { border-color: var(--cl-indigo-300); box-shadow: 0 0 0 3px rgba(95,79,160,.14); scroll-margin-top: 28px; }
+.alg-card-header { padding: 20px 26px 0; display: flex; align-items: flex-start; gap: 14px; }
+.alg-icon { width: 42px; height: 42px; border-radius: var(--radius-sm); background: linear-gradient(135deg, var(--cl-indigo-500), var(--cl-indigo-700)); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #fff; font-size: 1.1rem; }
+.alg-card-header .alg-info { flex: 1; min-width: 0; }
+.alg-card-header h4 { font-family: var(--font-display); font-size: 1.12rem; font-weight: 700; color: var(--cl-paper-900); margin-bottom: 3px; }
+.alg-card-header .alg-id { font-family: var(--font-mono); font-size: .66rem; color: var(--cl-paper-500); letter-spacing: .04em; }
+
+.alg-card-body { padding: 14px 26px 20px; }
+.alg-desc { color: var(--cl-paper-700); font-size: .87rem; line-height: 1.65; margin-bottom: 16px; }
+.alg-card-body h5 { font-family: var(--font-display); font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--cl-indigo-600); margin: 18px 0 8px; padding-bottom: 5px; border-bottom: 1px solid var(--cl-indigo-50); }
+
+.params-table { width: 100%; border-collapse: collapse; font-size: .82rem; margin: 6px 0 12px; }
+.params-table th { background: var(--cl-paper-50); color: var(--cl-paper-700); font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; padding: 8px 12px; text-align: left; border-bottom: 2px solid var(--cl-paper-200); }
+.params-table td { padding: 7px 12px; border-bottom: 1px solid var(--cl-paper-100); color: var(--cl-paper-700); vertical-align: top; }
+.params-table tr:last-child td { border-bottom: none; }
+.params-table .param-name { font-family: var(--font-mono); font-size: .79rem; font-weight: 600; color: var(--cl-paper-800); }
+.params-table .param-type { font-family: var(--font-mono); font-size: .73rem; color: var(--cl-indigo-500); }
+.params-table .param-default { font-family: var(--font-mono); font-size: .74rem; color: var(--cl-paper-500); }
+
+.formula-block { background: var(--cl-paper-50); border-left: 4px solid var(--cl-indigo-400); padding: 13px 17px; margin: 10px 0; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; font-family: var(--font-mono); font-size: .82rem; color: var(--cl-paper-800); line-height: 1.8; overflow-x: auto; }
+.formula-block .var { color: var(--cl-indigo-600); font-weight: 600; }
+.formula-block .op { color: var(--cl-paper-500); }
+
+.acad-note { background: linear-gradient(135deg, #fef5f8, #fff); border: 1px solid var(--cl-accent-200); border-radius: var(--radius-sm); padding: 12px 16px; margin: 12px 0; font-size: .82rem; color: var(--cl-paper-700); line-height: 1.6; }
+.acad-note strong { color: var(--cl-accent-600); }
+.interp-box { background: var(--cl-indigo-50); border: 1px solid var(--cl-indigo-200); border-radius: var(--radius-sm); padding: 12px 16px; margin: 12px 0; font-size: .82rem; color: var(--cl-paper-700); line-height: 1.6; }
+.interp-box strong { color: var(--cl-indigo-600); }
+.output-fields { font-size: .80rem; line-height: 1.6; color: var(--cl-paper-700); }
+.output-fields code { font-family: var(--font-mono); font-size: .77rem; background: var(--cl-paper-50); padding: 1px 6px; border-radius: 3px; color: var(--cl-indigo-600); }
+.cite { font-size: .75rem; color: var(--cl-paper-500); line-height: 1.5; margin-top: 5px; font-style: italic; }
+
+.callout { border-radius: var(--radius-md); padding: 16px 20px; margin: 24px 0; font-size: .85rem; line-height: 1.65; }
+.callout-tip { background: #f8f6fc; border: 1px solid #d8d0f0; color: #2d1f5c; }
+.callout-warn { background: #fffaf5; border: 1px solid #fcd9b0; color: #5c3508; }
+.callout-info { background: #f5fafc; border: 1px solid #c0dfe8; color: #1a3650; }
+
+/* Palette preview */
+.palette-strip { display: flex; height: 32px; border-radius: var(--radius-sm); overflow: hidden; margin: 6px 0 14px; }
+.palette-strip div { flex: 1; }
+
+/* Gallery grid */
+.gallery-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 16px 0; }
+.gallery-card { background: #fff; border: 1px solid var(--cl-paper-200); border-radius: var(--radius-md); padding: 18px 20px; }
+.gallery-card h5 { font-family: var(--font-display); font-size: .90rem; font-weight: 700; color: var(--cl-indigo-600); margin-bottom: 4px; }
+.gallery-card p { font-size: .80rem; color: var(--cl-paper-600); line-height: 1.5; }
+
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 16px 0; }
+.stat-tile { background: #fff; border: 1px solid var(--cl-paper-200); border-radius: var(--radius-sm); padding: 15px; text-align: center; }
+.stat-tile .stat-value { font-family: var(--font-display); font-size: 1.8rem; font-weight: 800; color: var(--cl-indigo-600); line-height: 1.1; }
+.stat-tile .stat-label { font-size: .68rem; color: var(--cl-paper-500); text-transform: uppercase; letter-spacing: .06em; margin-top: 2px; }
+
+@media (max-width: 860px) { nav#sidebar { display: none; } main { margin-left: 0; } .hero { padding: 36px 22px 32px; } .hero h1 { font-size: 1.7rem; } .content-area { padding: 22px 18px 56px; } }
+
+.refman-footer { margin-top: 56px; padding-top: 26px; border-top: 2px solid var(--cl-paper-200); font-size: .75rem; color: var(--cl-paper-500); line-height: 1.7; }
+.refman-footer strong { color: var(--cl-paper-700); }
+
+@keyframes target-flash { from { background: #fef5f8; } to { background: transparent; } }
+.alg-card:target { animation: target-flash 1.5s ease-out; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ SIDEBAR ═══════════ -->
+<nav id="sidebar">
+<div class="sidebar-header">
+  <div class="brand">PlanX CartoLab<span>Thematic Mapping Studio</span></div>
+  <div class="version">Reference Manual — v1.6.2</div>
+</div>
+<div class="sidebar-nav">
+  <a href="#overview">Overview &amp; Philosophy</a>
+  <a href="#quick-start">Quick Start</a>
+  <a href="#palette-library">Colour Palette Library</a>
+  <a href="#dashboard">Dashboard &amp; Layout Tools</a>
+
+  <div class="group-label">Data Preparation</div>
+  <a href="#alg-normalize">Normalization &amp; Rates</a>
+
+  <div class="group-label">Classification</div>
+  <a href="#alg-classify">Advanced Classification</a>
+
+  <div class="group-label">Thematic Mapping</div>
+  <a href="#alg-bivariate">Bivariate Choropleth</a>
+  <a href="#alg-vba">Value-by-Alpha (VbA)</a>
+  <a href="#alg-dot-density">Dot-Density Map</a>
+  <a href="#alg-prop-symbols">Proportional Symbols</a>
+  <a href="#alg-ridge-map">Ridge Map</a>
+
+  <div class="group-label">Spatial Transformation</div>
+  <a href="#alg-cartogram">Continuous-Area Cartogram</a>
+  <a href="#alg-hexbin">Hexbin Aggregation</a>
+
+  <div class="group-label">Map Reference</div>
+  <a href="#alg-graticule">Graticule / Reference Grid</a>
+  <a href="#alg-label-points">Visual-Center Label Points</a>
+
+  <div class="group-label">2.5D &amp; Quick Style</div>
+  <a href="#alg-25d">Apply 2.5D Building Style</a>
+  <a href="#alg-quick-style">Quick Style</a>
+
+  <div class="group-label">Appendices</div>
+  <a href="#design-notes">Cartographic Design Notes</a>
+  <a href="#references">Academic References</a>
+</div>
+<div class="sidebar-footer">PlanX CartoLab<br>Yusuf Eminoğlu · Dokuz Eylül University<br>Department of City &amp; Regional Planning</div>
+</nav>
+
+<!-- ═══════════ MAIN ═══════════ -->
+<main>
+
+<section class="hero">
+<div class="hero-inner">
+  <h1>PlanX <em>CartoLab</em></h1>
+  <p class="tagline">Design publication-quality thematic maps and print layouts in QGIS — bivariate choropleths, continuous cartograms, ridge maps, dot-density, proportional symbols, hexbins, 2.5D buildings, and one-click map sheets. Pure QGIS, zero external dependencies.</p>
+  <div class="meta-row">
+    <span class="meta-chip">v1.6.2</span>
+    <span class="meta-chip">13 algorithms</span>
+    <span class="meta-chip">7 analytical groups</span>
+    <span class="meta-chip">QGIS 3.28 – 4.99</span>
+    <span class="meta-chip">GPL-3.0</span>
+    <span class="meta-chip">ColorBrewer + Viridis</span>
+  </div>
+</div>
+</section>
+
+<div class="content-area">
+
+<!-- OVERVIEW -->
+<section id="overview" class="section-intro">
+<h2>Overview &amp; Design Philosophy</h2>
+<p><strong>PlanX CartoLab</strong> is a thematic mapping and print-layout studio for QGIS. It bridges the gap between analytical GIS outputs and publication-ready cartography — every tool produces styled, legend-ready vector layers or directly modifies the QGIS rendering engine. The plugin is built on a single conviction: <em>a map that is hard to read is a map that will not be read</em>. CartoLab encodes cartographic best practices (perceptual scaling, colour-blind-safe palettes, adaptive classification) as Processing algorithms that produce reproducible, defensible map designs.</p>
+
+<div class="stats-grid" style="margin-top:20px;">
+  <div class="stat-tile"><div class="stat-value">13</div><div class="stat-label">Processing Algorithms</div></div>
+  <div class="stat-tile"><div class="stat-value">7</div><div class="stat-label">Analytical Groups</div></div>
+  <div class="stat-tile"><div class="stat-value">25+</div><div class="stat-label">Colour Palettes</div></div>
+  <div class="stat-tile"><div class="stat-value">3</div><div class="stat-label">Classifiers</div></div>
+  <div class="stat-tile"><div class="stat-value">0</div><div class="stat-label">External Dependencies</div></div>
+</div>
+
+<p style="margin-top:18px;">Every algorithm operates inside the QGIS Processing framework — all maps are <strong>deterministic, repeatable, and batch-scriptable</strong>. CartoLab applies renderers and symbology directly to layers via QGIS's rendering API; there are no temporary image exports or raster intermediaries unless the algorithm intrinsically produces raster output. The plugin ships with the complete ColorBrewer 2.0 palette collection and the perceptually-uniform viridis family, both accessible from any styling tool.</p>
+
+<div class="callout callout-info">
+<strong>Design principle.</strong> CartoLab follows a <em>prepare → classify → style → layout</em> pipeline. Normalize raw counts into map-ready rates. Classify with an algorithm appropriate to the data distribution. Apply a perceptually-tested colour palette. Assemble the result into a print layout with legend, scale bar, north arrow, and grid — all in one click with Auto Map Sheet.
+</div>
+</section>
+
+<!-- QUICK START -->
+<section id="quick-start" class="section-intro">
+<h2>Quick Start</h2>
+<div class="callout callout-tip">
+<strong>New user path.</strong> (1) On first launch, CartoLab offers to build a sample map — accept to see the full pipeline in action. (2) Select any polygon layer, run <strong>Quick Style</strong> with a numeric field and the Viridis palette — you have a choropleth in one step. (3) For publication: run <strong>Auto Map Sheet</strong> to assemble the current map view into a print layout with legend, scale bar, north arrow, grid, and credits. (4) Explore the <strong>Colour Palette Library</strong> in the dashboard to find palettes filtered by colour-blind safety.
+</div>
+</section>
+
+<!-- PALETTE LIBRARY -->
+<section id="palette-library" class="section-intro">
+<h2>Colour Palette Library</h2>
+<p>CartoLab ships 25+ palettes organized by data type, with a colour-blind-safe flag on each. All palettes are sampled to an arbitrary class count via linear interpolation (sequential/diverging) or ordered cycling (qualitative).</p>
+<div class="gallery-grid">
+  <div class="gallery-card"><h5>Scientific Perceptually-Uniform</h5><p>Viridis, Magma, Plasma, Inferno, Cividis — all colour-blind-safe. Designed for continuous data where perceptual linearity matters (readers should see equal steps as equal differences).</p><div class="palette-strip"><div style="background:#440154"></div><div style="background:#3b528b"></div><div style="background:#21918c"></div><div style="background:#5ec962"></div><div style="background:#fde725"></div></div></div>
+  <div class="gallery-card"><h5>ColorBrewer Sequential</h5><p>Blues, Greens, Oranges, Reds, Purples, Greys — all colour-blind-safe. Single-hue progressions for ordered data (low→high).</p></div>
+  <div class="gallery-card"><h5>ColorBrewer Diverging</h5><p>RdBu, PuOr, BrBG, PRGn, RdYlBu, RdYlGn, Spectral — most colour-blind-safe. Two-hue ramps for data with a meaningful midpoint (e.g., change from baseline).</p></div>
+  <div class="gallery-card"><h5>ColorBrewer Qualitative</h5><p>Set1, Set2, Set3, Pastel1, Dark2, Paired, Accent. Discrete hues for categorical data — no implied ordering. Not all are colour-blind-safe; the dashboard filter identifies which are.</p></div>
+</div>
+</section>
+
+<!-- DASHBOARD -->
+<section id="dashboard" class="section-intro">
+<h2>Dashboard &amp; Layout Tools</h2>
+<p>Beyond the Processing Toolbox algorithms, CartoLab provides a dockable dashboard and layout automation tools accessible from the plugin toolbar.</p>
+<div class="gallery-grid">
+  <div class="gallery-card"><h5>Auto Map Sheet</h5><p>One-click print layout from the current map canvas view. Assembles map frame, legend (auto-detected from active layer's renderer), scale bar, north arrow, coordinate grid, and credits footer. Configurable DPI (96–600), export formats (PNG, PDF, SVG).</p></div>
+  <div class="gallery-card"><h5>Layout Manager</h5><p>Open, duplicate, rename, delete, and batch-export print layouts. Each layout preset carries its own DPI and format configuration. PNG/PDF/SVG export at 96–600 dpi.</p></div>
+  <div class="gallery-card"><h5>Colour Palette Browser</h5><p>Live preview of any palette on the current map. Filter by colour-blind-safe status. Shows the palette kind (sequential/diverging/qualitative) and sample count.</p></div>
+  <div class="gallery-card"><h5>Floating Annotation</h5><p>Place styled HTML annotation boxes on the map canvas. Useful for inset explanations, data source credits, or analytical notes that travel with the map view.</p></div>
+  <div class="gallery-card"><h5>Onboarding</h5><p>First-run welcome dialog that builds a sample map in seconds, demonstrating the full CartoLab pipeline — from normalization through classification to styled output — on bundled sample data.</p></div>
+</div>
+</section>
+
+<!-- ═══════════════ DATA PREPARATION ═══════════════ -->
+<div class="group-header"><span class="group-num">Data Prep</span><h3>Data Preparation</h3></div>
+
+<article class="alg-card" id="alg-normalize">
+<div class="alg-card-header"><div class="alg-icon">📐</div><div class="alg-info"><h4>Choropleth Normalization &amp; Rates</h4><div class="alg-id">normalize_field</div></div></div>
+<div class="alg-card-body">
+  <div class="alg-desc">Transforms raw count fields into map-ready values. The single most important preprocessing step in choropleth mapping: mapping a raw count as colour simply redraws the population distribution. Normalization removes the size effect so the map shows <em>rates, densities, or relative intensities</em> — the quantities that actually vary independently of enumeration unit size.</div>
+  <h5>Parameters</h5>
+  <table class="params-table">
+    <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td class="param-name">INPUT</td><td class="param-type">Vector Layer</td><td class="param-default">—</td><td>Input layer</td></tr>
+      <tr><td class="param-name">FIELD</td><td class="param-type">Numeric Field</td><td class="param-default">—</td><td>Numerator value field</td></tr>
+      <tr><td class="param-name">METHOD</td><td class="param-type">Enum</td><td class="param-default">Rate</td><td>Rate / Z-score / Robust z (MAD) / Min-max / Percentile rank / Log₁₀</td></tr>
+      <tr><td class="param-name">DENOMINATOR</td><td class="param-type">Numeric Field (opt)</td><td class="param-default">—</td><td>Denominator (Rate method only)</td></tr>
+      <tr><td class="param-name">SCALE</td><td class="param-type">Double</td><td class="param-default">1.0</td><td>Rate multiplier (e.g. 100,000 for per-100k)</td></tr>
+      <tr><td class="param-name">OUTPUT</td><td class="param-type">Vector Layer</td><td class="param-default">—</td><td>Output with <code>norm_value</code> field</td></tr>
+    </tbody>
+  </table>
+  <div class="formula-block"><span class="var">rate</span> <span class="op">=</span> (<span class="var">numerator</span> / <span class="var">denominator</span>) × <span class="var">scale</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="var">z</span> <span class="op">=</span> (<span class="var">x</span> − <span class="var">μ</span>) / <span class="var">σ</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="var">robust_z</span> <span class="op">=</span> (<span class="var">x</span> − median) / MAD</div>
+  <div class="acad-note"><strong>Cartographic rule.</strong> Never map a raw count. Always normalize by area (density), population (per-capita rate), or another defensible denominator. The choice of denominator is a <em>cartographic argument</em>, not a technical convenience — it encodes what the map claims to show. A map of "crime per square kilometre" and a map of "crime per 1,000 residents" can look entirely different from the same raw count data.</div>
+</div>
+</article>
+
+<!-- ═══════════════ CLASSIFICATION ═══════════════ -->
+<div class="group-header"><span class="group-num">Classification</span><h3>Classification</h3></div>
+
+<article class="alg-card" id="alg-classify">
+<div class="alg-card-header"><div class="alg-icon">📊</div><div class="alg-info"><h4>Advanced Classification (GIC / Head-Tail / Fisher-Jenks)</h4><div class="alg-id">geometric_interval_classification</div></div></div>
+<div class="alg-card-body">
+  <div class="alg-desc">Classifies a numeric field using one of three advanced algorithms, each optimized for a different distribution shape. The choice of classifier is the second-most consequential cartographic decision after normalization — it determines which patterns the map reveals and which it obscures.</div>
+  <h5>Parameters</h5>
+  <table class="params-table">
+    <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td class="param-name">INPUT</td><td class="param-type">Vector Layer</td><td class="param-default">—</td><td>Input layer</td></tr>
+      <tr><td class="param-name">FIELD</td><td class="param-type">Numeric Field</td><td class="param-default">—</td><td>Field to classify</td></tr>
+      <tr><td class="param-name">CLASSES</td><td class="param-type">Integer</td><td class="param-default">5</td><td>Number of classes (2–20)</td></tr>
+      <tr><td class="param-name">METHOD</td><td class="param-type">Enum</td><td class="param-default">GIC</td><td>Adaptive GIC / Head-Tail Breaks / Fisher-Jenks</td></tr>
+      <tr><td class="param-name">OUTPUT</td><td class="param-type">Vector Layer</td><td class="param-default">—</td><td>Output with <code>gic_class</code> field + graduated renderer</td></tr>
+    </tbody>
+  </table>
+  <div class="interp-box">
+    <strong>When to use which.</strong><br>
+    <strong>Adaptive GIC:</strong> Best general-purpose classifier. Handles skewed continuous data by computing class breaks that follow a geometric progression — narrower bins in the dense part of the distribution, wider bins in the sparse tail. Produces legible maps for the skewed distributions that dominate planning data.<br>
+    <strong>Head/Tail Breaks:</strong> For heavy-tailed / power-law distributions (city sizes, traffic volumes, wealth). Recursively splits data at the arithmetic mean, identifying a hierarchy of "head" (above-mean) and "tail" (below-mean) clusters. Reveals the nested structure that conventional classifiers collapse.<br>
+    <strong>Fisher-Jenks:</strong> Minimizes within-class variance — the statistically optimal classifier for a given class count. Computationally intensive (dynamic programming); best when statistical fidelity is the primary concern and class count is small (≤7).
+  </div>
+  <div class="cite">Jenks, G.F. (1967). "The Data Model Concept in Statistical Mapping." <em>International Yearbook of Cartography</em> 7: 186–190. · Jiang, B. (2013). "Head/Tail Breaks: A New Classification Scheme for Data with a Heavy-Tailed Distribution." <em>The Professional Geographer</em> 65(3): 482–494.</div>
+</div>
+</article>
+
+<!-- ═══════════════ THEMATIC MAPPING ═══════════════ -->
+<div class="group-header"><span class="group-num">Thematic</span><h3>Thematic Mapping</h3></div>
+<p style="color:var(--cl-paper-600);font-size:.85rem;margin-bottom:24px;">The core cartographic algorithms. Each produces a distinct visual encoding of spatial data — colour matrices, opacity channels, dot textures, sized symbols, and waveform profiles.</p>
+
+<article class="alg-card" id="alg-bivariate">
+<div class="alg-card-header"><div class="alg-icon">🎨</div><div class="alg-info"><h4>Bivariate Choropleth Map</h4><div class="alg-id">bivariate_choropleth</div></div></div>
+<div class="alg-card-body">
+  <div class="alg-desc">Creates an N×N bivariate choropleth by classifying two numeric fields and assigning each polygon a cell in a 2D colour matrix. The four corner colours (Low-Low, Low-High, High-Low, High-High) define the colour space; intermediate cells are interpolated. Automatically applies a categorized renderer with the full bivariate legend. Output fields: <code>bivar_x_class</code>, <code>bivar_y_class</code>, <code>bivar_class</code> (e.g., "(1,2)").</div>
+  <h5>Parameters</h5>
+  <table class="params-table">
+    <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td class="param-name">INPUT</td><td class="param-type">Vector Layer</td><td class="param-default">—</td><td>Input polygon layer</td></tr>
+      <tr><td class="param-name">FIELD_X</td><td class="param-type">Numeric Field</td><td class="param-default">—</td><td>X-axis variable</td></tr>
+      <tr><td class="param-name">FIELD_Y</td><td class="param-type">Numeric Field</td><td class="param-default">—</td><td>Y-axis variable</td></tr>
+      <tr><td class="param-name">CLASSES</td><td class="param-type">Integer</td><td class="param-default">3</td><td>Grid size (2–5; 3×3 = 9 colours)</td></tr>
+      <tr><td class="param-name">METHOD</td><td class="param-type">Enum</td><td class="param-default">Geometric</td><td>Geometric Interval / Fisher-Jenks</td></tr>
+      <tr><td class="param-name">COLOR_LL/HL/LH/HH</td><td class="param-type">Color</td><td class="param-default">corners</td><td>Four corner colours of the bivariate matrix</td></tr>
+      <tr><td class="param-name">OUTPUT</td><td class="param-type">Vector Layer</td><td class="param-default">—</td><td>Auto-styled bivariate choropleth</td></tr>
+    </tbody>
+  </table>
+  <div class="acad-note"><strong>Cartographic design.</strong> Bivariate maps encode two variables simultaneously — but readers can only interpret ~3–5 distinguishable classes per axis. Beyond 4×4 (16 colours), the matrix becomes illegible. The four corners should follow a tested scheme: typically LL=pale neutral, LH=blue, HL=red/pink, HH=brown/purple, following Brewer's diagnostic colour scheme recommendations. The automatic post-processor applies semi-transparent white polygon outlines (alpha=140) for clean separation without the "jigsaw puzzle" effect of heavy black borders.</div>
+  <div class="cite">Brewer, C.A. (1994). "Color Use Guidelines for Mapping and Visualization." In <em>Visualization in Modern Cartography</em>, Elsevier, 123–147. · Brewer, C.A. &amp; Pickle, L. (2002). "Evaluation of Methods for Classifying Epidemiological Data." <em>Annals of the AAG</em> 92(4): 662–681.</div>
+</div>
+</article>
+
+<article class="alg-card" id="alg-vba">
+<div class="alg-card-header"><div class="alg-icon">🔆</div><div class="alg-info"><h4>Value-by-Alpha (VbA) Map</h4><div class="alg-id">value_by_alpha</div></div></div>
+<div class="alg-card-body">
+  <div class="alg-desc">Encodes a secondary reliability/uncertainty variable as opacity (alpha channel). The primary variable drives colour intensity; the secondary variable controls transparency — highly reliable areas are opaque and visually dominant; uncertain areas fade into the background. Adds <code>vba_alpha</code> (0–255) and <code>vba_alpha_pct</code> (0–100) fields. Configure min/max opacity (default 25–255) to control the visual weight of uncertain data.</div>
+  <h5>Parameters</h5>
+  <table class="params-table">
+    <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td class="param-name">INPUT</td><td class="param-type">Vector Layer</td><td class="param-default">—</td><td>Input layer</td></tr>
+      <tr><td class="param-name">FIELD_COLOUR</td><td class="param-type">Numeric Field</td><td class="param-default">—</td><td>Primary variable (colour)</td></tr>
+      <tr><td class="param-name">FIELD_ALPHA</td><td class="param-type">Numeric Field</td><td class="param-default">—</td><td>Reliability variable (opacity)</td></tr>
+      <tr><td class="param-name">ALPHA_MIN</td><td class="param-type">Integer</td><td class="param-default">25</td><td>Minimum opacity (0–255)</td></tr>
+      <tr><td class="param-name">ALPHA_MAX</td><td class="param-type">Integer</td><td class="param-default">255</td><td>Maximum opacity (0–255)</td></tr>
+      <tr><td class="param-name">OUTPUT</td><td class="param-type">Vector Layer</td><td class="param-default">—</td><td>VbA output with alpha fields</td></tr>
+    </tbody>
+  </table>
+  <div class="interp-box"><strong>Use case.</strong> VbA is the standard method for visually communicating confidence alongside estimate. Map census income (colour) with sampling error margin (alpha) → affluent areas with large error bars appear washed out, correctly signalling that the colour is less trustworthy there. Map model predictions with cross-validation R² as the alpha variable → well-predicted areas pop, poorly-predicted areas recede.</div>
+  <div class="cite">Roth, R.E., Woodruff, A.W. &amp; Johnson, Z.F. (2010). "Value-by-Alpha Maps: An Alternative Technique to the Cartogram." <em>The Cartographic Journal</em> 47(2): 130–140.</div>
+</div>
+</article>
+
+<article class="alg-card" id="alg-dot-density">
+<div class="alg-card-header"><div class="alg-icon">•</div><div class="alg-info"><h4>Dot-Density Map</h4><div class="alg-id">dot_density</div></div></div>
+<div class="alg-card-body">
+  <div class="alg-desc">Scatters dots inside polygons — one dot per N units of a count field — so data density reads as visual texture rather than colour. Seeded placement (deterministic, reproducible) with hole-awareness (dots avoid interior holes). Each dot inherits its source polygon's attributes, enabling multi-group dot maps by colouring dots categorically.</div>
+  <h5>Parameters</h5>
+  <table class="params-table">
+    <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td class="param-name">INPUT</td><td class="param-type">Polygon Layer</td><td class="param-default">—</td><td>Input polygon layer</td></tr>
+      <tr><td class="param-name">FIELD</td><td class="param-type">Numeric Field</td><td class="param-default">—</td><td>Count field</td></tr>
+      <tr><td class="param-name">VALUE_PER_DOT</td><td class="param-type">Double</td><td class="param-default">100.0</td><td>Population value each dot represents</td></tr>
+      <tr><td class="param-name">SEED</td><td class="param-type">Integer</td><td class="param-default">42</td><td>Deterministic seed for reproducible placement</td></tr>
+      <tr><td class="param-name">OUTPUT</td><td class="param-type">Point Layer</td><td class="param-default">—</td><td>Dot points with source attributes</td></tr>
+    </tbody>
+  </table>
+  <div class="acad-note"><strong>Dot value selection.</strong> Choose <code>VALUE_PER_DOT</code> so the densest polygon produces at most a few hundred dots — too many dots merge into a solid fill; too few lose the texture effect. Good rule of thumb: max dots per polygon ≈ 300. For a polygon with 30,000 population, set VALUE_PER_DOT = 100. The pure-Python generator (no random module, deterministic from seed) ensures identical output on every run.</div>
+</div>
+</article>
+
+<article class="alg-card" id="alg-prop-symbols">
+<div class="alg-card-header"><div class="alg-icon">⭕</div><div class="alg-info"><h4>Proportional Symbols (Flannery)</h4><div class="alg-id">proportional_symbols</div></div></div>
+<div class="alg-card-body">
+  <div class="alg-desc">Places a point at each feature centroid with symbol size proportional to a numeric field. Flannery perceptual compensation (size = value<sup>0.5716</sup>) corrects for the well-documented tendency of map readers to underestimate circle areas — without it, large values appear too small relative to their true magnitude. Adds a <code>psym_size</code> field (mm) for data-defined marker size, plus suggested nested legend values.</div>
+  <h5>Parameters</h5>
+  <table class="params-table">
+    <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td class="param-name">INPUT</td><td class="param-type">Vector Layer</td><td class="param-default">—</td><td>Input layer</td></tr>
+      <tr><td class="param-name">FIELD</td><td class="param-type">Numeric Field</td><td class="param-default">—</td><td>Magnitude field</td></tr>
+      <tr><td class="param-name">MAX_SIZE</td><td class="param-type">Double</td><td class="param-default">12.0</td><td>Max symbol diameter (mm)</td></tr>
+      <tr><td class="param-name">MIN_SIZE</td><td class="param-type">Double</td><td class="param-default">1.0</td><td>Min symbol diameter (mm)</td></tr>
+      <tr><td class="param-name">FLANNERY</td><td class="param-type">Boolean</td><td class="param-default">true</td><td>Apply Flannery perceptual compensation</td></tr>
+      <tr><td class="param-name">OUTPUT</td><td class="param-type">Point Layer</td><td class="param-default">—</td><td>Output with <code>psym_size</code> field</td></tr>
+    </tbody>
+  </table>
+  <div class="formula-block"><span class="var">size</span> <span class="op">=</span> <span class="var">min</span> + (<span class="var">max</span> − <span class="var">min</span>) · (<span class="var">value</span><sup><span class="var">k</span></sup> − <span class="var">min_val</span><sup><span class="var">k</span></sup>) / (<span class="var">max_val</span><sup><span class="var">k</span></sup> − <span class="var">min_val</span><sup><span class="var">k</span></sup>)&nbsp;&nbsp; <span class="var">k</span>=0.5716 (Flannery) or 0.5 (true area)</div>
+  <div class="cite">Flannery, J.J. (1971). "The Relative Effectiveness of Some Common Graduated Point Symbols in the Presentation of Quantitative Data." <em>The Canadian Cartographer</em> 8(2): 96–109.</div>
+</div>
+</article>
+
+<article class="alg-card" id="alg-ridge-map">
+<div class="alg-card-header"><div class="alg-icon">〰️</div><div class="alg-info"><h4>Ridge Map (Joy Division Style)</h4><div class="alg-id">ridge_map</div></div></div>
+<div class="alg-card-body">
+  <div class="alg-desc">Generates overlapping waveform profiles from a single-band raster by deforming horizontal scanlines vertically according to raster values. Produces a vector line layer suitable for dark-background styling with transparency — the iconic "joyplot" aesthetic. Best raster inputs: DEM, density surfaces, LST, impervious surface ratio. Control vertical exaggeration, line spacing, smoothing passes, and clip extent.</div>
+  <h5>Parameters</h5>
+  <table class="params-table">
+    <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td class="param-name">RASTER</td><td class="param-type">Raster</td><td class="param-default">—</td><td>Single-band input raster</td></tr>
+      <tr><td class="param-name">N_LINES</td><td class="param-type">Integer</td><td class="param-default">60</td><td>Scanline count (5–500)</td></tr>
+      <tr><td class="param-name">VERTICAL_SCALE</td><td class="param-type">Double</td><td class="param-default">1.0</td><td>Vertical exaggeration (0.01–100)</td></tr>
+      <tr><td class="param-name">LINE_SPACING</td><td class="param-type">Double</td><td class="param-default">1.0</td><td>Baseline spacing in map units</td></tr>
+      <tr><td class="param-name">SMOOTH</td><td class="param-type">Integer</td><td class="param-default">2</td><td>Smoothing passes (0=raw, 20=max)</td></tr>
+      <tr><td class="param-name">EXTENT</td><td class="param-type">Extent (opt)</td><td class="param-default">—</td><td>Clip extent</td></tr>
+      <tr><td class="param-name">OUTPUT</td><td class="param-type">Line Layer</td><td class="param-default">—</td><td>Ridge line vectors</td></tr>
+    </tbody>
+  </table>
+  <div class="interp-box"><strong>Styling tip.</strong> Use a dark canvas background (#1a1a2e or similar), apply a light-coloured stroke (white or pale cyan) with 20–40% opacity, and set line width to 0.3–0.5 mm. The overlapping transparent lines create the characteristic "glow" where ridges intersect. For elevation data, a single-hue gradient (dark blue for low valleys → bright white for high peaks) works well.</div>
+</div>
+</article>
+
+<!-- ═══════════════ SPATIAL TRANSFORMATION ═══════════════ -->
+<div class="group-header"><span class="group-num">Transform</span><h3>Spatial Transformation</h3></div>
+
+<article class="alg-card" id="alg-cartogram">
+<div class="alg-card-header"><div class="alg-icon">🔄</div><div class="alg-info"><h4>Continuous-Area Cartogram (Diffusion)</h4><div class="alg-id">compute_cartogram</div></div></div>
+<div class="alg-card-body">
+  <div class="alg-desc">Distorts polygon areas to be proportional to a numeric field using the diffusion method of Gastner &amp; Newman (2004). The algorithm iteratively displaces polygon boundaries — treating area as a density that diffuses from high-density to low-density regions — until each polygon's area represents its field value. A zero-width buffer fixes topology issues on exit. Outputs the final iteration count and residual average error (%) as processing outputs.</div>
+  <h5>Parameters</h5>
+  <table class="params-table">
+    <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td class="param-name">INPUT</td><td class="param-type">Polygon Layer</td><td class="param-default">—</td><td>Input polygon layer (≥2 features)</td></tr>
+      <tr><td class="param-name">FIELD</td><td class="param-type">Numeric Field</td><td class="param-default">—</td><td>Area-representation field</td></tr>
+      <tr><td class="param-name">MAX_ITERATIONS</td><td class="param-type">Integer</td><td class="param-default">30</td><td>Max iterations (1–200)</td></tr>
+      <tr><td class="param-name">MAX_ERROR</td><td class="param-type">Double</td><td class="param-default">5.0</td><td>Max average error % (0.1–100)</td></tr>
+      <tr><td class="param-name">OUTPUT</td><td class="param-type">Polygon Layer</td><td class="param-default">—</td><td>Cartogram output</td></tr>
+    </tbody>
+  </table>
+  <div class="formula-block">Density <span class="var">ρ<sub>i</sub></span> <span class="op">=</span> <span class="var">value<sub>i</sub></span> / <span class="var">area<sub>i</sub></span>&nbsp;&nbsp;→&nbsp;&nbsp;Diffusion flux ∝ ∇<span class="var">ρ</span>&nbsp;&nbsp;→&nbsp;&nbsp;Boundary displacement until <span class="var">ρ</span> uniform</div>
+  <div class="acad-note"><strong>Algorithm.</strong> The Gastner-Newman diffusion method is the gold standard for continuous-area cartograms. Unlike rubber-sheet algorithms that can produce self-intersecting geometries, the diffusion approach preserves topology and produces smooth, recognizable shapes even at high distortion levels. The Gaussian-weighted diffusion kernel with adaptive damping (implemented in CartoLab's CartogramEngine) improves convergence on irregular polygon tessellations.</div>
+  <div class="cite">Gastner, M.T. &amp; Newman, M.E.J. (2004). "Diffusion-based method for producing density-equalizing maps." <em>PNAS</em> 101(20): 7499–7504.</div>
+</div>
+</article>
+
+<article class="alg-card" id="alg-hexbin">
+<div class="alg-card-header"><div class="alg-icon">⬡</div><div class="alg-info"><h4>Hexbin Aggregation</h4><div class="alg-id">hexbin_aggregate</div></div></div>
+<div class="alg-card-body">
+  <div class="alg-desc">Aggregates a point layer into a pointy-top hexagonal grid. Only hexagons that contain points are emitted — dense scatterplots become clean, overplot-free density surfaces. Supports count, sum, and mean statistics on an optional weight field. Output carries <code>hex_count</code>, <code>hex_sum</code>, and <code>hex_mean</code> fields and is auto-graduated on the chosen statistic. Cell size is the hexagon radius in map units.</div>
+  <h5>Parameters</h5>
+  <table class="params-table">
+    <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td class="param-name">INPUT</td><td class="param-type">Point Layer</td><td class="param-default">—</td><td>Input point layer</td></tr>
+      <tr><td class="param-name">CELL_SIZE</td><td class="param-type">Double</td><td class="param-default">1000.0</td><td>Hexagon radius (map units)</td></tr>
+      <tr><td class="param-name">WEIGHT</td><td class="param-type">Numeric Field (opt)</td><td class="param-default">—</td><td>Weight field for sum/mean</td></tr>
+      <tr><td class="param-name">STAT</td><td class="param-type">Enum</td><td class="param-default">Count</td><td>Count / Sum / Mean</td></tr>
+      <tr><td class="param-name">OUTPUT</td><td class="param-type">Polygon Layer</td><td class="param-default">—</td><td>Hexbin grid with stats</td></tr>
+    </tbody>
+  </table>
+  <div class="acad-note"><strong>Why hexagons?</strong> Hexagonal binning is superior to square grids for visual analysis: hexagons have a lower perimeter-to-area ratio (less visual clutter from grid lines), each cell has 6 equidistant neighbours (square grids have 4 edge + 4 corner neighbours at different distances), and the hexagonal lattice avoids the vertical/horizontal streaking artifacts that square grids can create. CartoLab uses pointy-top hexagons (flat sides are vertical).</div>
+  <div class="cite">Carr, D.B., Littlefield, R.J., Nicholson, W.L. &amp; Littlefield, J.S. (1987). "Scatterplot Matrix Techniques for Large N." <em>Journal of the American Statistical Association</em> 82(398): 424–436.</div>
+</div>
+</article>
+
+<!-- ═══════════════ MAP REFERENCE ═══════════════ -->
+<div class="group-header"><span class="group-num">Reference</span><h3>Map Reference</h3></div>
+
+<article class="alg-card" id="alg-graticule">
+<div class="alg-card-header"><div class="alg-icon">📐</div><div class="alg-info"><h4>Graticule / Reference Grid</h4><div class="alg-id">graticule_grid</div></div></div>
+<div class="alg-card-body">
+  <div class="alg-desc">Generates a line layer of meridians and parallels across a user-specified extent on "nice" round coordinate intervals. Each line carries its orientation (vertical/horizontal), constant coordinate value, and a formatted label string — label the output with the <code>label</code> field for automatic coordinate annotation. Leave an interval at 0 to auto-pick a round step that produces ~8 lines across the extent.</div>
+  <h5>Parameters</h5>
+  <table class="params-table">
+    <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td class="param-name">EXTENT</td><td class="param-type">Extent</td><td class="param-default">—</td><td>Grid extent (in target CRS)</td></tr>
+      <tr><td class="param-name">X_INTERVAL</td><td class="param-type">Double</td><td class="param-default">0.0</td><td>Meridian spacing (0=auto)</td></tr>
+      <tr><td class="param-name">Y_INTERVAL</td><td class="param-type">Double</td><td class="param-default">0.0</td><td>Parallel spacing (0=auto)</td></tr>
+      <tr><td class="param-name">OUTPUT</td><td class="param-type">Line Layer</td><td class="param-default">—</td><td>Graticule line vectors</td></tr>
+    </tbody>
+  </table>
+</div>
+</article>
+
+<article class="alg-card" id="alg-label-points">
+<div class="alg-card-header"><div class="alg-icon">📍</div><div class="alg-info"><h4>Visual-Center Label Points (Polylabel)</h4><div class="alg-id">label_points</div></div></div>
+<div class="alg-card-body">
+  <div class="alg-desc">Computes the visual center of each polygon — the interior point farthest from any polygon edge — using the polylabel algorithm (Mapbox). Unlike centroids (which can fall outside concave polygons or in narrow inlets), the visual center is guaranteed to be inside the polygon and in the position that maximizes label legibility. Configurable precision (default 1.0 map units). Output is a point layer with <code>dist_to_edge</code> field.</div>
+  <h5>Parameters</h5>
+  <table class="params-table">
+    <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td class="param-name">INPUT</td><td class="param-type">Polygon Layer</td><td class="param-default">—</td><td>Input polygon layer</td></tr>
+      <tr><td class="param-name">PRECISION</td><td class="param-type">Double</td><td class="param-default">1.0</td><td>Search precision (map units)</td></tr>
+      <tr><td class="param-name">OUTPUT</td><td class="param-type">Point Layer</td><td class="param-default">—</td><td>Visual-center points</td></tr>
+    </tbody>
+  </table>
+  <div class="formula-block">polylabel: quad-tree search for the point maximizing distance to the polygon boundary, with precision <span class="var">ε</span></div>
+  <div class="acad-note"><strong>Algorithm.</strong> The polylabel algorithm recursively subdivides the polygon's bounding box using a quad-tree, computing the signed distance to the polygon boundary at each cell center. Cells that cannot contain a better point (because their radius + best distance so far &lt; distance to boundary at cell center) are pruned. This is O(n log n) in practice and produces points perceptually centered in the polygon's "widest" region — ideal for label placement.</div>
+</div>
+</article>
+
+<!-- ═══════════════ 2.5D & QUICK STYLE ═══════════════ -->
+<div class="group-header"><span class="group-num">Styling</span><h3>2.5D Styling &amp; Quick Style</h3></div>
+
+<article class="alg-card" id="alg-25d">
+<div class="alg-card-header"><div class="alg-icon">🏢</div><div class="alg-info"><h4>Apply 2.5D Building Style</h4><div class="alg-id">building_25d_style</div></div></div>
+<div class="alg-card-body">
+  <div class="alg-desc">Applies a polished native QGIS 2.5D renderer to a loaded polygon layer — no plugin renderer, no WebGL, pure QGIS engine. Supports two height modes (real height in metres, or floor count × floor height), two render modes (native 2.5D material with configurable roof/wall/shadow, or per-floor colour bands with selectable palettes), stepped extrusion for architectural detail, soft shadows, and QML export. Configurable viewing angle, height scale, and max height clamp.</div>
+  <h5>Parameters</h5>
+  <table class="params-table">
+    <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td class="param-name">INPUT</td><td class="param-type">Polygon Layer</td><td class="param-default">—</td><td>Building footprint layer</td></tr>
+      <tr><td class="param-name">HEIGHT_FIELD</td><td class="param-type">Numeric Field</td><td class="param-default">—</td><td>Height or floor-count field</td></tr>
+      <tr><td class="param-name">HEIGHT_MODE</td><td class="param-type">Enum</td><td class="param-default">Metres</td><td>Metres / Floor count × floor height</td></tr>
+      <tr><td class="param-name">RENDER_MODE</td><td class="param-type">Enum</td><td class="param-default">Native</td><td>Native 2.5D material / Per-floor colour bands</td></tr>
+      <tr><td class="param-name">PRESET</td><td class="param-type">Enum</td><td class="param-default">—</td><td>Material preset (White Modern, Sandstone, Dark Slate, Terracotta, Glass Blue, Concrete)</td></tr>
+      <tr><td class="param-name">ANGLE</td><td class="param-type">Double</td><td class="param-default">70°</td><td>Viewing angle (0–180)</td></tr>
+      <tr><td class="param-name">SHADOW_ENABLED</td><td class="param-type">Boolean</td><td class="param-default">true</td><td>Enable soft shadows</td></tr>
+      <tr><td class="param-name">STEPPED</td><td class="param-type">Boolean</td><td class="param-default">false</td><td>Stepped extrusion for roof detail</td></tr>
+    </tbody>
+  </table>
+  <div class="interp-box"><strong>Floor bands mode.</strong> When render mode is set to per-floor colour bands, CartoLab creates one QGIS renderer rule per floor band with graduated colours — the ground floor is the darkest shade, the top floor the lightest (or reverse, depending on palette). This produces a Lego-style stacked effect that makes floor-count data legible at a glance. Selectable palettes include Viridis, Magma, Blues, Greens, and warm/cool gradients. Auto-detected max floors from the data.</div>
+</div>
+</article>
+
+<article class="alg-card" id="alg-quick-style">
+<div class="alg-card-header"><div class="alg-icon">⚡</div><div class="alg-info"><h4>Quick Style (Auto Choropleth / Categories)</h4><div class="alg-id">quick_style</div></div></div>
+<div class="alg-card-body">
+  <div class="alg-desc">Style any vector layer in one step. Pick a field and a colour palette (ColorBrewer or the colour-blind-safe viridis family). CartoLab auto-detects field type: numeric fields → graduated renderer with configurable class count and method (Quantile, Equal Interval, Geometric Interval); text fields → categorized renderer with unique-value colours. The renderer is applied to the selected layer in place — no intermediate output layer, no duplication. Reversible with QGIS's rendering history.</div>
+  <h5>Parameters</h5>
+  <table class="params-table">
+    <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td class="param-name">INPUT</td><td class="param-type">Vector Layer</td><td class="param-default">—</td><td>Layer to style (modified in place)</td></tr>
+      <tr><td class="param-name">FIELD</td><td class="param-type">Field</td><td class="param-default">—</td><td>Field to base styling on</td></tr>
+      <tr><td class="param-name">MODE</td><td class="param-type">Enum</td><td class="param-default">Auto</td><td>Auto / Graduated / Categorized</td></tr>
+      <tr><td class="param-name">CLASSES</td><td class="param-type">Integer</td><td class="param-default">5</td><td>Number of classes (graduated, 2–12)</td></tr>
+      <tr><td class="param-name">METHOD</td><td class="param-type">Enum</td><td class="param-default">Quantile</td><td>Quantile / Equal Interval / Geometric Interval</td></tr>
+      <tr><td class="param-name">PALETTE</td><td class="param-type">Enum</td><td class="param-default">Viridis</td><td>Palette name from the 25+ palette library</td></tr>
+      <tr><td class="param-name">REVERSE</td><td class="param-type">Boolean</td><td class="param-default">false</td><td>Reverse palette order</td></tr>
+    </tbody>
+  </table>
+  <div class="interp-box"><strong>When to use each method.</strong> Quantile (equal count) ensures every class has roughly the same number of features — good for highlighting relative rank, bad when outliers should stand alone. Equal interval is simple and interpretable — good when data are uniformly distributed, bad for skewed data (most features fall in 1–2 classes). Geometric interval adapts to skew — best general-purpose choice for the heavy-tailed distributions common in planning data.</div>
+</div>
+</article>
+
+<!-- ═══════════════ DESIGN NOTES ═══════════════ -->
+<section id="design-notes" class="section-intro" style="margin-top:36px;">
+<h2>Cartographic Design Notes</h2>
+<h5 style="margin-top:16px;">The Normalize-First Rule</h5>
+<p style="font-size:.85rem;color:var(--cl-paper-700);">Every choropleth map should display a <strong>rate, density, or proportion</strong>, never a raw count. A map of "total population by district" is a map of district size — large districts will always appear dominant regardless of their actual population density. Normalize by area (population/km²), by population (cases per 100,000 residents), or by another meaningful denominator before applying any colour ramp. CartoLab's Normalize Field tool enforces this rule with six normalization methods.</p>
+
+<h5 style="margin-top:16px;">Colour-Blind-Safe Design</h5>
+<p style="font-size:.85rem;color:var(--cl-paper-700);">Approximately 8% of men and 0.5% of women have some form of colour vision deficiency (CVD). CartoLab's palette library flags each palette with a <code>cb_safe</code> boolean. All five scientific palettes (Viridis, Magma, Plasma, Inferno, Cividis) and most ColorBrewer sequential/diverging palettes are CVD-safe. The dashboard filter toggles to show only CVD-safe palettes. When publishing maps for general audiences, always verify your palette choice against a CVD simulation.</p>
+
+<h5 style="margin-top:16px;">Perceptual Scaling</h5>
+<p style="font-size:.85rem;color:var(--cl-paper-700);">Map readers systematically underestimate the area of circles — a circle representing value 100 looks only about 70% as large as it should relative to a circle representing value 50. Flannery (1971) quantified this as a power-law exponent of ~0.87 (readers perceive area ∝ radius<sup>1.74</sup> rather than radius²). The Flannery compensation exponent (0.5716) corrects for this by sizing symbols so their <em>perceived</em> area is proportional to the data value. CartoLab's Proportional Symbols tool applies this by default; disable it only for true mathematical area-proportional symbols when exact geometric scaling is required.</p>
+
+<h5 style="margin-top:16px;">Classification and the Modifiable Areal Unit Problem (MAUP)</h5>
+<p style="font-size:.85rem;color:var(--cl-paper-700);">Changing the number of classes changes the map — sometimes dramatically. Five classes may show a clear regional pattern that seven classes fragment into noise. There is no "correct" class count; the choice should be defended in relation to the map's purpose. For exploratory analysis, use 5–7 classes with Geometric Interval (robust to skew). For publication, test 3–5 class counts and choose the one that tells the clearest story without oversimplifying. CartoLab's Advanced Classification tool makes this testing fast — re-run with different class counts and compare.</p>
+
+<h5 style="margin-top:16px;">Print Layout Resolution</h5>
+<p style="font-size:.85rem;color:var(--cl-paper-700);">CartoLab's Layout Manager exports at configurable DPI (96–600). For screen viewing, 96–150 DPI is sufficient. For print, 300 DPI is the standard for most publications; 600 DPI for maps with fine linework or small text. PDF is the recommended vector format — it preserves text editability and scales to any resolution. PNG at 300 DPI produces a raster suitable for Word/PowerPoint documents. SVG preserves full editability in vector graphics software.</p>
+</section>
+
+<!-- ═══════════════ REFERENCES ═══════════════ -->
+<section id="references" class="section-intro" style="margin-top:36px;">
+<h2>Academic References</h2>
+<div style="font-size:.79rem;color:var(--cl-paper-700);line-height:2.0;margin-top:12px;">
+<p><strong>Brewer, C.A.</strong> (1994). "Color Use Guidelines for Mapping and Visualization." In <em>Visualization in Modern Cartography</em>, Elsevier, 123–147.</p>
+<p><strong>Brewer, C.A.</strong> (2003). "A Transition in Improving Maps: The ColorBrewer Example." <em>Cartography and Geographic Information Science</em> 30(2): 159–162.</p>
+<p><strong>Brewer, C.A. &amp; Pickle, L.</strong> (2002). "Evaluation of Methods for Classifying Epidemiological Data on Choropleth Maps in Series." <em>Annals of the AAG</em> 92(4): 662–681.</p>
+<p><strong>Carr, D.B., Littlefield, R.J., Nicholson, W.L. &amp; Littlefield, J.S.</strong> (1987). "Scatterplot Matrix Techniques for Large N." <em>JASA</em> 82(398): 424–436.</p>
+<p><strong>Dent, B.D., Torguson, J.S. &amp; Hodler, T.W.</strong> (2009). <em>Cartography: Thematic Map Design</em> (6th ed.). McGraw-Hill.</p>
+<p><strong>Flannery, J.J.</strong> (1971). "The Relative Effectiveness of Some Common Graduated Point Symbols." <em>The Canadian Cartographer</em> 8(2): 96–109.</p>
+<p><strong>Gastner, M.T. &amp; Newman, M.E.J.</strong> (2004). "Diffusion-based method for producing density-equalizing maps." <em>PNAS</em> 101(20): 7499–7504.</p>
+<p><strong>Jenks, G.F.</strong> (1967). "The Data Model Concept in Statistical Mapping." <em>International Yearbook of Cartography</em> 7: 186–190.</p>
+<p><strong>Jiang, B.</strong> (2013). "Head/Tail Breaks: A New Classification Scheme for Data with a Heavy-Tailed Distribution." <em>The Professional Geographer</em> 65(3): 482–494.</p>
+<p><strong>Roth, R.E., Woodruff, A.W. &amp; Johnson, Z.F.</strong> (2010). "Value-by-Alpha Maps: An Alternative Technique to the Cartogram." <em>The Cartographic Journal</em> 47(2): 130–140.</p>
+<p><strong>Slocum, T.A., McMaster, R.B., Kessler, F.C. &amp; Howard, H.H.</strong> (2009). <em>Thematic Cartography and Geovisualization</em> (3rd ed.). Pearson.</p>
+</div>
+</section>
+
+<footer class="refman-footer">
+  <strong>PlanX CartoLab — Comprehensive Reference Manual v1.6.2.</strong><br>
+  Developed by Yusuf Eminoğlu with cartographic best practices from the peer-reviewed literature. Dokuz Eylül University, Department of City and Regional Planning.<br>
+  Licensed under GPL-3.0. Source repository: <a href="https://github.com/YusufEminoglu/planx_cartolab" style="color:var(--cl-indigo-500);">github.com/YusufEminoglu/planx_cartolab</a>.<br>
+  <em>Colour palettes: ColorBrewer 2.0 (Brewer, Penn State) and viridis family (van der Walt, Smith &amp; Firing for Matplotlib). Pure QGIS — zero external Python dependencies.</em>
+</footer>
+
+</div>
+</main>
+
+<script>
+(function() {
+  const links = document.querySelectorAll('#sidebar a[href^="#"]');
+  if (!links.length) return;
+  const sections = [];
+  links.forEach(a => { const el = document.getElementById(a.getAttribute('href').slice(1)); if (el) sections.push({ el, link: a }); });
+  function update() { const sy = window.scrollY + 100; let cur = sections[0]; for (const s of sections) { if (s.el.offsetTop <= sy) cur = s; } links.forEach(a => a.classList.remove('active')); if (cur) cur.link.classList.add('active'); }
+  window.addEventListener('scroll', update, { passive: true }); update();
+  const active = document.querySelector('#sidebar a.active');
+  if (active) active.scrollIntoView({ block: 'center', behavior: 'instant' });
+})();
+</script>
+
+
+<!-- PDF PRINT BUTTON -->
+<style>
+#print-pdf-btn {
+  position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+  background: #13a0a0; color: white; border: none; border-radius: 8px;
+  padding: 10px 18px; font-size: 14px; font-weight: 600; cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0,0,0,.2); transition: all .2s;
+  display: flex; align-items: center; gap: 8px;
+}
+#print-pdf-btn:hover { background: #0d7a7a; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.25); }
+@media print { #print-pdf-btn { display: none !important; } }
+@media (max-width: 768px) { #print-pdf-btn { bottom: 12px; right: 12px; padding: 8px 14px; font-size: 12px; } }
+</style>
+<button id="print-pdf-btn" onclick="window.print()" title="Save as PDF / Print">🖨️ Save as PDF</button>
+
+</body>
+</html>
