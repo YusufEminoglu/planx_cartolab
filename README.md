@@ -22,6 +22,11 @@ The map types journals and design studios actually ask for —
 
 ---
 
+## 📖 Documentation
+
+**[Comprehensive Academic Reference Manual](https://yusufeminoglu.github.io/planx_cartolab/)** — complete documentation of every feature, parameter, and workflow. Hosted on GitHub Pages.
+
+
 ## ✨ Why CartoLab?
 
 | | |
