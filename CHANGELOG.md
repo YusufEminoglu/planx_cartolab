@@ -1,6 +1,12 @@
 # Changelog - PlanX CartoLab
 
+## [1.9.2] - 2026-08-13
+
+### Changed
+- Icon Background Transparency: Restored original plugin icon motif (`icons/icon.png`) while removing solid background color for clean transparent toolbar integration.
+
 ## [1.9.1] - 2026-08-13
+
 
 ### Changed
 - Full-Frame Crisp Icon Refresh: Replaced plugin icon with full-bleed high-contrast cartographic 128x128 PNG (`icons/icon.png`) for maximum toolbar legibility.
