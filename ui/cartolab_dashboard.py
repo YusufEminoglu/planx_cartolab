@@ -321,22 +321,111 @@ class CartoLabDashboard(QDialog):
         hl.addWidget(self.status_chip, 0, Qt.AlignmentFlag.AlignRight)
         root.addWidget(hero)
 
-        # ── Tabs ──
+        # ── 3 Streamlined Studio Workspaces ──
         self.tabs = QTabWidget()
         root.addWidget(self.tabs, 1)
 
-        # Overview tab
-        self.overview = QTextBrowser()
-        self.tabs.addTab(self.overview, "Overview")
+        # Workspace 1: 🎨 Symbology & Thematic Studio
+        self._build_symbology_studio_tab()
 
-        # Modules tab (card grid)
+        # Workspace 2: 📐 Layout Automation Studio
+        self._build_layout_tab()
+
+        # Workspace 3: ⚡ Processing Algorithm Hub
+        self._build_modules_tab()
+
+        # Collapsible Bottom Drawer: 📊 Diagnostics & Run Log
+        self._build_diagnostics_drawer(root)
+
+        self._on_check_deps()
+
+    def _build_symbology_studio_tab(self) -> None:
+        """Workspace 1: Unified Symbology & Thematic Studio (Quick Style, 2.5D, Advanced Suite)."""
+        studio_widget = QWidget()
+        layout = QVBoxLayout(studio_widget)
+        layout.setContentsMargins(4, 4, 4, 4)
+
+        self.symbology_sub_tabs = QTabWidget()
+
+        # Sub-tab 1: Quick Style
+        qs_widget = QWidget()
+        qs_layout = QVBoxLayout(qs_widget)
+        qs_layout.setContentsMargins(8, 8, 8, 8)
+        self._build_quick_style_contents(qs_layout)
+        self.symbology_sub_tabs.addTab(qs_widget, "🎨 Quick Style (Choropleth & Categories)")
+
+        # Sub-tab 2: 2.5D Building Extrusion
+        self.tab_25d = QScrollArea()
+        self.tab_25d.setWidgetResizable(True)
+        self.tab_25d.setFrameShape(QFrame.Shape.NoFrame)
+        tab_body = QWidget()
+        self.tab_25d.setWidget(tab_body)
+        self._build_25d_contents(tab_body)
+        self.symbology_sub_tabs.addTab(self.tab_25d, "🏢 2.5D Building Extrusion")
+
+        # Sub-tab 3: Advanced Thematic Suite
+        thematic_widget = self._build_thematic_suite_subwidget()
+        self.symbology_sub_tabs.addTab(thematic_widget, "🗺️ Advanced Thematic Suite")
+
+        layout.addWidget(self.symbology_sub_tabs)
+        self.tabs.addTab(studio_widget, "🎨 Symbology & Thematic Studio")
+
+    def _build_thematic_suite_subwidget(self) -> QWidget:
+        """Interactive quick launcher grid for advanced thematic algorithms."""
+        w = QWidget()
+        lyt = QVBoxLayout(w)
+        lyt.setContentsMargins(12, 12, 12, 12)
+
+        gb = self._make_group("Advanced Thematic Mapping Algorithms")
+        grid = QGridLayout(gb)
+        grid.setSpacing(10)
+
+        intro = QLabel(
+            "Launch publication-ready thematic algorithms directly with automatic styling and geometry generation:"
+        )
+        intro.setStyleSheet("color: #2b4d57; font-size: 12px;")
+        grid.addWidget(intro, 0, 0, 1, 2)
+
+        algos = [
+            ("Bivariate Choropleth", "planx_cartolab:bivariate_choropleth", "NxN colour matrix from two numeric fields with bilinear interpolation."),
+            ("Value-by-Alpha (VbA)", "planx_cartolab:value_by_alpha", "Encode data reliability/uncertainty as opacity."),
+            ("Ridge Map (Joyplot)", "planx_cartolab:ridge_map", "Raster-to-vector scanline deformation - Joy Division style wave profiles."),
+            ("Dot-Density Map", "planx_cartolab:dot_density", "Seeded, hole-aware dots inside polygons - one dot per N units."),
+            ("Proportional Symbols (Flannery)", "planx_cartolab:proportional_symbols", "Perceptually compensated graduated point symbols."),
+            ("Hexbin Aggregation", "planx_cartolab:hexbin_aggregate", "Bin point layers into pointy-top hex grids with summary metrics."),
+        ]
+
+        for i, (name, aid, desc) in enumerate(algos):
+            card = QFrame()
+            card.setProperty("classCard", "true")
+            cv = QVBoxLayout(card)
+            cv.setContentsMargins(8, 8, 8, 8)
+            title = QLabel(f"<b>{name}</b>")
+            title.setStyleSheet("color:#173741; font-size:13px;")
+            d_lbl = QLabel(desc)
+            d_lbl.setWordWrap(True)
+            d_lbl.setStyleSheet("color:#4a6871; font-size:11px;")
+            btn = QPushButton("Run Algorithm")
+            btn.clicked.connect(lambda _, x=aid, n=name: self._run_algorithm(x, n))
+            cv.addWidget(title)
+            cv.addWidget(d_lbl, 1)
+            cv.addWidget(btn, 0, Qt.AlignmentFlag.AlignRight)
+            r, c = divmod(i, 2)
+            grid.addWidget(card, r + 1, c)
+
+        lyt.addWidget(gb)
+        lyt.addStretch()
+        return w
+
+    def _build_modules_tab(self) -> None:
+        """Workspace 3: Searchable Card Catalog for Processing Algorithms."""
         mod_tab = QWidget()
         ml = QVBoxLayout(mod_tab)
         ml.setContentsMargins(8, 8, 8, 8)
 
         filter_row = QHBoxLayout()
         self.search = QLineEdit()
-        self.search.setPlaceholderText("Filter modules...")
+        self.search.setPlaceholderText("Filter processing algorithms...")
         self.search.textChanged.connect(self._filter_cards)
         filter_row.addWidget(self.search, 1)
         self.group_filter = QComboBox()
@@ -364,94 +453,31 @@ class CartoLabDashboard(QDialog):
         self.cards_grid.setVerticalSpacing(8)
         self.cards_scroll.setWidget(cards_host)
         ml.addWidget(self.cards_scroll, 1)
-        self.tabs.addTab(mod_tab, "Modules")
+        self.tabs.addTab(mod_tab, "⚡ Processing Algorithm Hub")
 
         self._build_cards()
 
-        # Setup tab
-        setup_tab = QWidget()
-        sl = QVBoxLayout(setup_tab)
-        sl.setContentsMargins(12, 12, 12, 12)
-        sl.addWidget(QLabel(
-            "CartoLab needs no external packages — it uses only QGIS and its "
-            "bundled NumPy. This panel reports the status of optional libraries."))
-        self.setup_status = QTextBrowser()
-        sl.addWidget(self.setup_status, 1)
-        sr = QHBoxLayout()
-        btn_check = QPushButton("Check Dependencies")
-        btn_check.clicked.connect(self._on_check_deps)
-        sr.addWidget(btn_check)
-        sr.addStretch()
-        sl.addLayout(sr)
-        self.tabs.addTab(setup_tab, "Setup")
+    def _build_diagnostics_drawer(self, root_layout: QVBoxLayout) -> None:
+        """Collapsible Bottom Console for Diagnostics, Run Logs, and System Status."""
+        drawer_frame = QFrame()
+        drawer_frame.setStyleSheet("background: #e4eeef; border: 1px solid #cbd8dc; border-radius: 6px;")
+        drawer_layout = QVBoxLayout(drawer_frame)
+        drawer_layout.setContentsMargins(8, 4, 8, 4)
 
-        # Quick Actions tab
-        qa_tab = QWidget()
-        ql = QVBoxLayout(qa_tab)
-        ql.setContentsMargins(12, 12, 12, 12)
-        quick = [
-            ("Open Quick Style Panel", lambda: self.show_panel("Quick Style")),
-            ("Open 2.5D Styling Panel", self.show_25d_panel),
-            ("Inspect Features (Radar Chart on Click)", self._on_activate_annotation),
-            ("Run 2.5D Building Style", lambda: self._run_algorithm("planx_cartolab:building_25d_style", "2.5D Building Style")),
-            ("Run Bivariate Choropleth",
-             lambda: self._run_algorithm("planx_cartolab:bivariate_choropleth", "Bivariate")),
-            ("Run Geometric Interval Classification",
-             lambda: self._run_algorithm("planx_cartolab:geometric_interval_classification", "GIC")),
-            ("Run Cartogram",
-             lambda: self._run_algorithm("planx_cartolab:compute_cartogram", "Cartogram")),
-            ("Run Ridge Map",
-             lambda: self._run_algorithm("planx_cartolab:ridge_map", "Ridge Map")),
-            ("Run Value-by-Alpha",
-             lambda: self._run_algorithm("planx_cartolab:value_by_alpha", "VbA")),
-            ("Run Dot-Density Map", lambda: self._run_algorithm("planx_cartolab:dot_density", "Dot Density")),
-            ("Run Proportional Symbols", lambda: self._run_algorithm("planx_cartolab:proportional_symbols", "Proportional Symbols")),
-            ("Run Hexbin Aggregation", lambda: self._run_algorithm("planx_cartolab:hexbin_aggregate", "Hexbin")),
-            ("Run Visual-Center Label Points", lambda: self._run_algorithm("planx_cartolab:label_points", "Label Points")),
-            ("Run Graticule / Reference Grid", lambda: self._run_algorithm("planx_cartolab:graticule_grid", "Graticule")),
-            ("Run Choropleth Normalization", lambda: self._run_algorithm("planx_cartolab:normalize_field", "Normalize")),
-            ("Copy Project Diagnostics", self._on_copy_diagnostics),
-        ]
-        for label, fn in quick:
-            b = QPushButton(label)
-            b.clicked.connect(fn)
-            ql.addWidget(b)
-        ql.addStretch()
-        self.tabs.addTab(qa_tab, "Quick Actions")
+        hdr_row = QHBoxLayout()
+        self.drawer_toggle_btn = QPushButton("📊 Diagnostics & Run Log (Collapsible)")
+        self.drawer_toggle_btn.setObjectName("ghost")
+        self.drawer_toggle_btn.setCheckable(True)
+        self.drawer_toggle_btn.setChecked(False)
+        self.drawer_toggle_btn.clicked.connect(self._toggle_diagnostics_drawer)
+        hdr_row.addWidget(self.drawer_toggle_btn)
 
-        # Quick Style tab (broadest-appeal one-click styling)
-        self._build_quick_style_tab()
+        refresh_btn = QPushButton("Refresh Status")
+        refresh_btn.setObjectName("ghost")
+        refresh_btn.clicked.connect(self._refresh)
+        hdr_row.addWidget(refresh_btn)
+        hdr_row.addStretch(1)
 
-        # 2.5D Styling tab
-        self._build_25d_tab()
-
-        # Layout Tools tab
-        self._build_layout_tab()
-
-        # Recent Runs tab
-        rl_tab = QWidget()
-        rl = QVBoxLayout(rl_tab)
-        rl.setContentsMargins(8, 8, 8, 8)
-        self.runlog = QTextBrowser()
-        rl.addWidget(self.runlog, 1)
-        clear = QPushButton("Clear Log")
-        clear.setObjectName("ghost")
-        clear.clicked.connect(self._clear_runlog)
-        rl.addWidget(clear, 0, Qt.AlignmentFlag.AlignRight)
-        self.tabs.addTab(rl_tab, "Recent Runs")
-
-        # User-facing readiness tab
-        self.readiness = QTextBrowser()
-        self.tabs.addTab(self.readiness, "Readiness")
-
-        # Footer
-        footer = QHBoxLayout()
-        refresh = QPushButton("Refresh")
-        refresh.clicked.connect(self._refresh)
-        footer.addWidget(refresh)
-        hint = QLabel("Tip: Use Classification first to understand data distribution, then Bivariate/Cartogram for visualization.")
-        hint.setStyleSheet("color:#35545f; font-size:11px;")
-        footer.addWidget(hint, 1)
         rate = QLabel(
             '<a href="https://plugins.qgis.org/plugins/planx_cartolab/" '
             'style="color:#3182bd;text-decoration:none;">Enjoying CartoLab? '
@@ -459,10 +485,45 @@ class CartoLabDashboard(QDialog):
         )
         rate.setOpenExternalLinks(True)
         rate.setStyleSheet("font-size:11px;")
-        footer.addWidget(rate, 0, Qt.AlignmentFlag.AlignRight)
-        root.addLayout(footer)
+        hdr_row.addWidget(rate, 0, Qt.AlignmentFlag.AlignRight)
+        drawer_layout.addLayout(hdr_row)
 
-        self._on_check_deps()
+        self.drawer_body = QTabWidget()
+        self.drawer_body.setVisible(False)
+        self.drawer_body.setMaximumHeight(180)
+
+        # Sub-tab 1: Dependency Setup
+        setup_w = QWidget()
+        sl = QVBoxLayout(setup_w)
+        sl.setContentsMargins(6, 6, 6, 6)
+        self.setup_status = QTextBrowser()
+        sl.addWidget(self.setup_status, 1)
+        self.drawer_body.addTab(setup_w, "System Dependencies")
+
+        # Sub-tab 2: Run Log
+        rl_w = QWidget()
+        rl = QVBoxLayout(rl_w)
+        rl.setContentsMargins(6, 6, 6, 6)
+        self.runlog = QTextBrowser()
+        rl.addWidget(self.runlog, 1)
+        clear_btn = QPushButton("Clear Log")
+        clear_btn.setObjectName("ghost")
+        clear_btn.clicked.connect(self._clear_runlog)
+        rl.addWidget(clear_btn, 0, Qt.AlignmentFlag.AlignRight)
+        self.drawer_body.addTab(rl_w, "Recent Run Log")
+
+        # Sub-tab 3: System Overview & Readiness
+        self.overview = QTextBrowser()
+        self.readiness = self.overview  # alias
+        self.drawer_body.addTab(self.overview, "Readiness & Coverage")
+
+        drawer_layout.addWidget(self.drawer_body)
+        root_layout.addWidget(drawer_frame)
+
+    def _toggle_diagnostics_drawer(self) -> None:
+        visible = self.drawer_toggle_btn.isChecked()
+        self.drawer_body.setVisible(visible)
+
 
     # ── Module cards ─────────────────────────────────────────────────
 
@@ -781,7 +842,156 @@ class CartoLabDashboard(QDialog):
         lyt.addWidget(self.style25d_status)
         lyt.addStretch()
 
-        self.tabs.addTab(self.tab_25d, "2.5D Styling")
+        self._refresh_25d_layers()
+        self._on_25d_preset_changed()
+        self._on_25d_mode_changed()
+
+    def _build_25d_contents(self, tab_body: QWidget) -> None:
+        lyt = QVBoxLayout(tab_body)
+        lyt.setContentsMargins(12, 12, 12, 12)
+        lyt.setSpacing(10)
+
+        source_group = self._make_group("Layer and Height")
+        source_layout = QGridLayout(source_group)
+        source_layout.setColumnMinimumWidth(0, 150)
+        source_layout.setColumnStretch(1, 1)
+        source_layout.setColumnStretch(2, 0)
+        source_layout.addWidget(QLabel("Polygon layer:"), 0, 0)
+        self.layer25d_combo = QComboBox()
+        self.layer25d_combo.currentIndexChanged.connect(self._refresh_25d_fields)
+        source_layout.addWidget(self.layer25d_combo, 0, 1)
+        refresh_layers = QPushButton("Refresh Layers")
+        refresh_layers.setObjectName("ghost")
+        refresh_layers.clicked.connect(self._refresh_25d_layers)
+        source_layout.addWidget(refresh_layers, 0, 2)
+
+        source_layout.addWidget(QLabel("Height field:"), 1, 0)
+        self.height25d_combo = QComboBox()
+        self.height25d_combo.currentIndexChanged.connect(self._on_25d_height_field_changed)
+        source_layout.addWidget(self.height25d_combo, 1, 1, 1, 2)
+
+        source_layout.addWidget(QLabel("Height source:"), 2, 0)
+        self.mode25d_combo = QComboBox()
+        self.mode25d_combo.addItem("Height field is already in metres/map units", HEIGHT_MODE_HEIGHT)
+        self.mode25d_combo.addItem("Floor count field (floors x floor height)", HEIGHT_MODE_FLOOR_COUNT)
+        self.mode25d_combo.currentIndexChanged.connect(self._on_25d_mode_changed)
+        source_layout.addWidget(self.mode25d_combo, 2, 1, 1, 2)
+
+        source_layout.addWidget(QLabel("Visual preset:"), 3, 0)
+        self.preset25d_combo = QComboBox()
+        for key, preset in STYLE_25D_PRESETS.items():
+            self.preset25d_combo.addItem(preset["label"], key)
+        self.preset25d_combo.currentIndexChanged.connect(self._on_25d_preset_changed)
+        source_layout.addWidget(self.preset25d_combo, 3, 1, 1, 2)
+        lyt.addWidget(source_group)
+
+        geom_group = self._make_group("Extrusion Geometry")
+        geom_layout = QGridLayout(geom_group)
+        geom_layout.setColumnMinimumWidth(0, 125)
+        geom_layout.setColumnMinimumWidth(2, 125)
+        geom_layout.setColumnStretch(1, 1)
+        geom_layout.setColumnStretch(3, 1)
+        self.angle25d_spin = self._make_double_spin(0, 359, 110, 1, " degrees")
+        self.scale25d_spin = self._make_double_spin(0.01, 100, 1, 0.1, "x")
+        self.floor_height25d_spin = self._make_double_spin(0.01, 100, 3.5, 0.1, " map units/floor")
+        self.max25d_spin = self._make_double_spin(0, 1000000, 0, 1, " map units")
+        self.step25d_check = QCheckBox("Snap heights to stepped floors")
+        self.step25d_spin = self._make_double_spin(0.01, 100000, 3.5, 0.1, " map units")
+
+        geom_layout.addWidget(QLabel("Projection angle:"), 0, 0)
+        geom_layout.addWidget(self.angle25d_spin, 0, 1)
+        geom_layout.addWidget(QLabel("Vertical scale:"), 0, 2)
+        geom_layout.addWidget(self.scale25d_spin, 0, 3)
+        self.floor_height25d_label = QLabel("Floor height:")
+        geom_layout.addWidget(self.floor_height25d_label, 1, 0)
+        geom_layout.addWidget(self.floor_height25d_spin, 1, 1)
+        geom_layout.addWidget(QLabel("Maximum height:"), 1, 2)
+        geom_layout.addWidget(self.max25d_spin, 1, 3)
+        geom_layout.addWidget(self.step25d_check, 2, 0, 1, 2)
+        geom_layout.addWidget(self.step25d_spin, 2, 2, 1, 2)
+        lyt.addWidget(geom_group)
+
+        floor_group = self._make_group("Floor Colour Bands")
+        floor_layout = QGridLayout(floor_group)
+        floor_layout.setColumnMinimumWidth(0, 150)
+        floor_layout.setColumnMinimumWidth(2, 150)
+        floor_layout.setColumnStretch(1, 1)
+        floor_layout.setColumnStretch(3, 1)
+        self.floor_bands25d_check = QCheckBox("Colour each floor separately")
+        self.floor_bands25d_check.toggled.connect(self._on_25d_floor_bands_changed)
+        self.floor_palette25d_label = QLabel("Floor palette:")
+        self.floor_palette25d_combo = QComboBox()
+        for key, palette in FLOOR_BAND_PALETTES.items():
+            self.floor_palette25d_combo.addItem(palette["label"], key)
+        self.floor_palette25d_combo.currentIndexChanged.connect(self._update_25d_status_preview)
+        self.max_floors25d_label = QLabel("Maximum floor bands:")
+        self.max_floors25d_spin = QSpinBox()
+        self.max_floors25d_spin.setRange(0, 80)
+        self.max_floors25d_spin.setSpecialValueText("Auto from layer")
+        self.max_floors25d_spin.setValue(0)
+        self.max_floors25d_spin.setToolTip("Use 0 to scan the selected floor-count field and match the layer automatically.")
+        self.max_floors25d_spin.valueChanged.connect(self._update_25d_status_preview)
+
+        floor_layout.addWidget(self.floor_bands25d_check, 0, 0, 1, 2)
+        floor_layout.addWidget(self.floor_palette25d_label, 1, 0)
+        floor_layout.addWidget(self.floor_palette25d_combo, 1, 1)
+        floor_layout.addWidget(self.max_floors25d_label, 1, 2)
+        floor_layout.addWidget(self.max_floors25d_spin, 1, 3)
+        lyt.addWidget(floor_group)
+
+        light_group = self._make_group("Lighting and Materials")
+        light_layout = QGridLayout(light_group)
+        light_layout.setColumnMinimumWidth(0, 110)
+        light_layout.setColumnMinimumWidth(2, 125)
+        light_layout.setColumnStretch(1, 1)
+        light_layout.setColumnStretch(3, 1)
+        self.roof25d_btn = self._make_color_button("#f2cf96")
+        self.wall25d_btn = self._make_color_button("#b36f43")
+        self.shadow25d_btn = self._make_color_button("#202833")
+        self.shadow25d_check = QCheckBox("Enable soft shadow")
+        self.shadow25d_check.setChecked(True)
+        self.wall_shading25d_check = QCheckBox("Enable directional wall shading")
+        self.wall_shading25d_check.setChecked(True)
+        self.shadow_spread25d_spin = self._make_double_spin(0, 100000, 3.5, 0.5, " map units")
+
+        self.roof25d_btn.clicked.connect(lambda: self._pick_25d_color(self.roof25d_btn, "Roof Color"))
+        self.wall25d_btn.clicked.connect(lambda: self._pick_25d_color(self.wall25d_btn, "Wall Color"))
+        self.shadow25d_btn.clicked.connect(lambda: self._pick_25d_color(self.shadow25d_btn, "Shadow Color"))
+
+        light_layout.addWidget(QLabel("Roof color:"), 0, 0)
+        light_layout.addWidget(self.roof25d_btn, 0, 1)
+        light_layout.addWidget(QLabel("Wall color:"), 0, 2)
+        light_layout.addWidget(self.wall25d_btn, 0, 3)
+        light_layout.addWidget(QLabel("Shadow color:"), 1, 0)
+        light_layout.addWidget(self.shadow25d_btn, 1, 1)
+        light_layout.addWidget(QLabel("Shadow spread:"), 1, 2)
+        light_layout.addWidget(self.shadow_spread25d_spin, 1, 3)
+        light_layout.addWidget(self.shadow25d_check, 2, 0, 1, 2)
+        light_layout.addWidget(self.wall_shading25d_check, 2, 2, 1, 2)
+        lyt.addWidget(light_group)
+
+        action_row = QHBoxLayout()
+        apply_btn = QPushButton("Apply 2.5D Style")
+        apply_btn.clicked.connect(self._on_apply_25d_style)
+        action_row.addWidget(apply_btn)
+        save_btn = QPushButton("Save QML Style")
+        save_btn.setObjectName("ghost")
+        save_btn.clicked.connect(self._on_save_25d_qml)
+        action_row.addWidget(save_btn)
+        copy_btn = QPushButton("Copy Style Summary")
+        copy_btn.setObjectName("ghost")
+        copy_btn.clicked.connect(self._on_copy_25d_summary)
+        action_row.addWidget(copy_btn)
+        for button in (apply_btn, save_btn, copy_btn):
+            button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        action_row.addStretch()
+        lyt.addLayout(action_row)
+
+        self.style25d_status = QTextBrowser()
+        self.style25d_status.setMaximumHeight(150)
+        lyt.addWidget(self.style25d_status)
+        lyt.addStretch()
+
         self._refresh_25d_layers()
         self._on_25d_preset_changed()
         self._on_25d_mode_changed()
@@ -820,17 +1030,25 @@ class CartoLabDashboard(QDialog):
             self._set_color_button(button, color.name())
 
     def show_25d_panel(self) -> None:
-        if hasattr(self, "tab_25d"):
-            self.tabs.setCurrentWidget(self.tab_25d)
-            self._refresh_25d_layers()
+        self.show_panel("2.5d")
 
     def show_panel(self, tab_name: str) -> None:
-        for i in range(self.tabs.count()):
-            if self.tabs.tabText(i) == tab_name:
-                self.tabs.setCurrentIndex(i)
-                break
-        if tab_name == "Quick Style" and hasattr(self, "qs_layer_combo"):
-            self._refresh_qs_layers()
+        name = tab_name.lower()
+        if "layout" in name:
+            self.tabs.setCurrentIndex(1)
+        elif "processing" in name or "module" in name or "hub" in name:
+            self.tabs.setCurrentIndex(2)
+        else:
+            self.tabs.setCurrentIndex(0)
+            if hasattr(self, "symbology_sub_tabs"):
+                if "2.5d" in name:
+                    self.symbology_sub_tabs.setCurrentIndex(1)
+                    self._refresh_25d_layers()
+                elif "thematic" in name or "bivariate" in name:
+                    self.symbology_sub_tabs.setCurrentIndex(2)
+                else:
+                    self.symbology_sub_tabs.setCurrentIndex(0)
+                    self._refresh_qs_layers()
 
     # ── Quick Style panel ─────────────────────────────────────────────
 
@@ -838,11 +1056,7 @@ class CartoLabDashboard(QDialog):
         return [lyr for lyr in QgsProject.instance().mapLayers().values()
                 if lyr.type() == QgsMapLayer.LayerType.VectorLayer]
 
-    def _build_quick_style_tab(self) -> None:
-        w = QWidget()
-        outer = QVBoxLayout(w)
-        outer.setContentsMargins(12, 12, 12, 12)
-
+    def _build_quick_style_contents(self, outer: QVBoxLayout) -> None:
         gb = self._make_group("Quick Style — one-click thematic styling")
         g = QGridLayout(gb)
         g.setHorizontalSpacing(10)
@@ -913,10 +1127,10 @@ class CartoLabDashboard(QDialog):
 
         outer.addWidget(gb)
         outer.addStretch()
-        self.tabs.addTab(w, "Quick Style")
 
         self._populate_qs_palettes()
         self._refresh_qs_layers()
+
 
     def _populate_qs_palettes(self) -> None:
         from ..core import palettes as _pal

@@ -1,5 +1,12 @@
 # Changelog - PlanX CartoLab
 
+## [1.7.0] - 2026-08-13
+
+### Changed
+- Major GUI Consolidation: Restructured 9 scattered tabs into 3 streamlined Studio Workspaces: `🎨 Symbology & Thematic Studio`, `📐 Layout Automation Studio`, and `⚡ Processing Algorithm Hub`.
+- Added collapsible bottom Diagnostics & Run Log console drawer for system status, dependency reports, and execution logs.
+- Eliminated redundant `Quick Actions` button list and scattered text browsers.
+
 ## [1.6.5] - 2026-08-07
 
 - Added online user manual link (https://yusufeminoglu.github.io/planx_cartolab/) and GitHub repository star call-to-action.
