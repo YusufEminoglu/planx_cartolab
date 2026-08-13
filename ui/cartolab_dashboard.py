@@ -425,7 +425,8 @@ class CartoLabDashboard(QDialog):
 
         filter_row = QHBoxLayout()
         self.search = QLineEdit()
-        self.search.setPlaceholderText("Filter processing algorithms...")
+        self.search.setPlaceholderText("Filter processing algorithms… (Ctrl+F search, Ctrl+R refresh)")
+
         self.search.textChanged.connect(self._filter_cards)
         filter_row.addWidget(self.search, 1)
         self.group_filter = QComboBox()

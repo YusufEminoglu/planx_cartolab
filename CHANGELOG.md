@@ -1,6 +1,13 @@
 # Changelog - PlanX CartoLab
 
+## [1.7.4] - 2026-08-13
+
+### Changed
+- Processing Hub UX Polish: Added keyboard shortcut tips (Ctrl+F search, Ctrl+R refresh) and search placeholder guidance.
+- Documentation Sync: Updated online user reference manual `docs/CARTOLAB_REFERENCE_MANUAL.html` and `docs/index.html` to v1.7.4 reflecting the 3 Studio Workspaces architecture.
+
 ## [1.7.3] - 2026-08-13
+
 
 ### Added
 - Layout Page Presets: Added A4 Landscape, A3 Landscape, Square 1:1, and A4 Portrait layout presets.
