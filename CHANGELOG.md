@@ -1,6 +1,14 @@
 # Changelog - PlanX CartoLab
 
+## [1.8.0] - 2026-08-13
+
+### Added
+- Print Layout Designer Integration: Added automatic attachment to QGIS Print Layout Designer windows (`QgsLayoutDesignerInterface`).
+- Dedicated Layout Toolbar: Added `PlanX CartoLab` toolbar directly inside the Print Layout Designer window with 1-click Bivariate Legend, Swiss Typography & Grid, Isometric Layer Stack, and 300 DPI Export & Open.
+- Print Layout Menu Integration: Added `PlanX CartoLab` menu inside the layout designer's menu bar.
+
 ## [1.7.4] - 2026-08-13
+
 
 ### Changed
 - Processing Hub UX Polish: Added keyboard shortcut tips (Ctrl+F search, Ctrl+R refresh) and search placeholder guidance.

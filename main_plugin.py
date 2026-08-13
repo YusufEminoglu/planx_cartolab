@@ -73,6 +73,12 @@ class PlanXCartoLab:
         # First run only: greet the user shortly after startup completes.
         QTimer.singleShot(1200, self._maybe_show_welcome)
 
+        # Print Layout Designer window integration (attach toolbar & menu to layout windows)
+        with suppress(Exception):
+            from .layout.designer_integration import setup_designer_integration
+            setup_designer_integration(self.iface)
+
+
     def _maybe_show_welcome(self) -> None:
         with suppress(Exception):
             from .ui.onboarding import should_show

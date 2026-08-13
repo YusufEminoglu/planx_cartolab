@@ -703,6 +703,15 @@ check("edges_to_ranges skips dup class",
       qs.edges_to_ranges([0, 0, 1, 2]) == [(0, 1), (1, 2)])
 
 # ===================================================================
+# PRINT LAYOUT DESIGNER INTEGRATION
+# ===================================================================
+section("Print Layout Designer Integration")
+from planx_cartolab.layout import designer_integration as di
+check("designer_integration setup function exists", callable(di.setup_designer_integration))
+check("designer_integration attach function exists", callable(di.attach_cartolab_to_designer))
+
+
+# ===================================================================
 # SUMMARY
 # ===================================================================
 section("RESULTS")
