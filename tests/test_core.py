@@ -749,6 +749,13 @@ check("style_layout_legend function exists", callable(ls.style_layout_legend))
 from planx_cartolab.layout import title_block as tb
 check("add_publication_title_block function exists", callable(tb.add_publication_title_block))
 
+from planx_cartolab.layout import locator_map as lm
+check("add_locator_inset_map function exists", callable(lm.add_locator_inset_map))
+
+from planx_cartolab.layout import coordinate_grid as cg
+check("apply_coordinate_grid_decorator function exists", callable(cg.apply_coordinate_grid_decorator))
+
+
 
 
 

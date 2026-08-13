@@ -1,6 +1,14 @@
 # Changelog - PlanX CartoLab
 
+## [2.3.0] - 2026-08-13
+
+### Added
+- Locator Inset Map Decorator (`layout/locator_map.py`): Added `add_locator_inset_map` function creating a secondary corner map frame linked to the primary map extent with an automatic extent overview rectangle.
+- Coordinate Grid Decorator (`layout/coordinate_grid.py`): Added `apply_coordinate_grid_decorator` function applying publication coordinate grids with cross markers, zebra borders, and coordinate annotations.
+- Layout Studio Extension: Integrated 1-click Locator Inset Map and Coordinate Grid buttons into the CartoLab Layout Studio Dock panel.
+
 ## [2.2.0] - 2026-08-13
+
 
 ### Added
 - Publication Legend Styler (`layout/legend_styler.py`): Added `style_layout_legend` function providing clean typography, column count, symbol sizes, and spacing for layout legends.

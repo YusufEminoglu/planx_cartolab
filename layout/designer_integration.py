@@ -329,6 +329,41 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
     btn_dock_legend_style.clicked.connect(_dock_legend_style)
     fl_elem.addRow(btn_dock_legend_style)
 
+    btn_dock_locator = QPushButton("📍 Add Locator / Inset Map")
+
+    def _dock_locator():
+        layout = _get_designer_layout(designer)
+        if not layout:
+            return
+        try:
+            from .locator_map import add_locator_inset_map
+            add_locator_inset_map(layout)
+            if hasattr(iface, "messageBar"):
+                iface.messageBar().pushSuccess("CartoLab", "Locator inset map frame added to layout.")
+        except Exception as exc:
+            QMessageBox.critical(parent_win, "Locator Map Error", str(exc))
+
+    btn_dock_locator.clicked.connect(_dock_locator)
+    fl_elem.addRow(btn_dock_locator)
+
+    btn_dock_grid = QPushButton("🌐 Apply Coordinate Grid")
+
+    def _dock_grid():
+        layout = _get_designer_layout(designer)
+        if not layout:
+            return
+        try:
+            from .coordinate_grid import apply_coordinate_grid_decorator
+            apply_coordinate_grid_decorator(layout)
+            if hasattr(iface, "messageBar"):
+                iface.messageBar().pushSuccess("CartoLab", "Coordinate grid applied to layout map.")
+        except Exception as exc:
+            QMessageBox.critical(parent_win, "Coordinate Grid Error", str(exc))
+
+    btn_dock_grid.clicked.connect(_dock_grid)
+    fl_elem.addRow(btn_dock_grid)
+
+
     lyt_dec.addWidget(gb_map_elem)
 
     lyt_dec.addStretch()
