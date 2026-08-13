@@ -26,6 +26,7 @@ try:
         QGroupBox,
         QHBoxLayout,
         QLabel,
+        QLineEdit,
         QMenu,
         QMessageBox,
         QPushButton,
@@ -35,7 +36,8 @@ try:
     )
 except ImportError:
     QgsProject = None
-    Qt = QUrl = QDesktopServices = QIcon = QAction = QComboBox = QDockWidget = QDoubleSpinBox = QFileDialog = QFormLayout = QGroupBox = QHBoxLayout = QLabel = QMenu = QMessageBox = QPushButton = QToolBar = QVBoxLayout = QWidget = None
+    Qt = QUrl = QDesktopServices = QIcon = QAction = QComboBox = QDockWidget = QDoubleSpinBox = QFileDialog = QFormLayout = QGroupBox = QHBoxLayout = QLabel = QLineEdit = QMenu = QMessageBox = QPushButton = QToolBar = QVBoxLayout = QWidget = None
+
 
 
 _INTEGRATED_DESIGNERS = set()
@@ -272,20 +274,26 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
     shape_combo.addItem("Square", "square")
     fl_dec.addRow("Legend Shape:", shape_combo)
 
-    btn_add_bivar = QPushButton("Add Bivariate Legend")
+    title_input = QLineEdit()
+    title_input.setPlaceholderText("Bivariate Relationship")
+    fl_dec.addRow("Legend Title:", title_input)
+
+    btn_add_bivar = QPushButton("Add Custom Bivariate Legend")
     def _add_bivar():
         layout = _get_designer_layout(designer)
         if not layout:
             return
         colors = palette_combo.currentData()
         ltype = shape_combo.currentData()
+        ltitle = title_input.text().strip() or "Bivariate Legend"
         try:
             from .legend_decorator import add_bivariate_legend
-            add_bivariate_legend(layout, colors=colors, legend_type=ltype)
+            add_bivariate_legend(layout, colors=colors, legend_type=ltype, title=ltitle)
             if hasattr(iface, "messageBar"):
-                iface.messageBar().pushSuccess("CartoLab", "Custom bivariate legend added.")
+                iface.messageBar().pushSuccess("CartoLab", f"Custom bivariate legend '{ltitle}' added.")
         except Exception as exc:
             QMessageBox.critical(parent_win, "Bivariate Legend", str(exc))
+
 
     btn_add_bivar.clicked.connect(_add_bivar)
     fl_dec.addRow(btn_add_bivar)

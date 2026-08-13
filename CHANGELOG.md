@@ -1,6 +1,14 @@
 # Changelog - PlanX CartoLab
 
+## [1.9.0] - 2026-08-13
+
+### Added
+- Publication Auto-Styler Engine (`publication_styler.py`): Automatic, highly legible publication-ready thematic styling applied out-of-the-box to all algorithm output layers (choropleth, cartogram, hexbin, dot-density, proportional symbols, graticule, and label points).
+- Enhanced Cartogram Engine: Cartogram outputs are now automatically styled with high-contrast Plasma/Magma graduated color ramps and topology-friendly boundaries.
+- Print Layout Bivariate Workbench: Added custom legend title and axis label configurator inside the layout designer embedded dock widget.
+
 ## [1.8.3] - 2026-08-13
+
 
 ### Added
 - Layout Toolbar Resolution Selector: Added direct 150 DPI / 300 DPI / 600 DPI quality dropdown selector on the Print Layout Designer window toolbar.

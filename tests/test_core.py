@@ -722,6 +722,17 @@ check("sepia_atlas theme exists", "sepia_atlas" in pt.PAPER_THEMES)
 check("swiss_modern theme exists", "swiss_modern" in pt.PAPER_THEMES)
 check("apply_paper_theme function exists", callable(pt.apply_paper_theme))
 
+# ===================================================================
+# PUBLICATION AUTO-STYLER ENGINE
+# ===================================================================
+section("Publication Auto-Styler Engine")
+from planx_cartolab.core import publication_styler as ps
+check("auto_style_layer function exists", callable(ps.auto_style_layer))
+check("style_choropleth_layer function exists", callable(ps.style_choropleth_layer))
+check("style_cartogram_layer function exists", callable(ps.style_cartogram_layer))
+check("style_dot_density_layer function exists", callable(ps.style_dot_density_layer))
+
+
 
 
 

@@ -2,7 +2,10 @@
 """Continuous-Area Cartogram — Processing algorithm."""
 from __future__ import annotations
 
+from contextlib import suppress
+
 from qgis.core import (
+
     QgsFeatureSink,
     QgsProcessing,
     QgsProcessingAlgorithm,
@@ -137,8 +140,16 @@ class CartogramAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
             f"residual error: {error_pct:.2f}%"
         )
 
+        out_layer = context.getMapLayer(dest_id)
+        if out_layer:
+            with suppress(Exception):
+                from ..core.publication_styler import auto_style_layer
+                auto_style_layer(out_layer, style_type="cartogram", field_name=field_name, palette_name="Plasma")
+
+
         return {
             self.OUTPUT: dest_id,
             self.ITERATIONS: iterations,
             self.RESIDUAL_ERROR: error_pct,
         }
+
