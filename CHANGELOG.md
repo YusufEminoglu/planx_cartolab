@@ -1,6 +1,13 @@
 # Changelog - PlanX CartoLab
 
+## [1.8.2] - 2026-08-13
+
+### Added
+- Paper Canvas Themes (`paper_themes.py`): Added Architectural Blueprint, Vintage Sepia Atlas, and Modern Swiss Minimalist artistic paper themes.
+- Canvas Theme Controls: Embedded paper theme switcher in CartoLab Layout Studio Dock to apply background, label, and grid styling with one click.
+
 ## [1.8.1] - 2026-08-13
+
 
 ### Added
 - Embedded Print Layout Dock Panel (`CartoLab Layout Studio Dock`): Added an interactive dock panel embedded directly inside the QGIS Print Layout Designer window.

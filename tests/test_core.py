@@ -711,6 +711,18 @@ check("designer_integration setup function exists", callable(di.setup_designer_i
 check("designer_integration attach function exists", callable(di.attach_cartolab_to_designer))
 check("designer_integration dock creator exists", callable(di.create_cartolab_layout_dock))
 
+# ===================================================================
+# PAPER CANVASS THEMES
+# ===================================================================
+section("Paper Canvas Themes")
+from planx_cartolab.layout import paper_themes as pt
+check("paper themes dict exists", len(pt.PAPER_THEMES) >= 3)
+check("blueprint theme exists", "blueprint" in pt.PAPER_THEMES)
+check("sepia_atlas theme exists", "sepia_atlas" in pt.PAPER_THEMES)
+check("swiss_modern theme exists", "swiss_modern" in pt.PAPER_THEMES)
+check("apply_paper_theme function exists", callable(pt.apply_paper_theme))
+
+
 
 
 # ===================================================================

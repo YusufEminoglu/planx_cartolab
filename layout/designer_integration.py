@@ -219,9 +219,35 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
     lyt.setContentsMargins(8, 8, 8, 8)
     lyt.setSpacing(10)
 
+    # Section 0: Paper Canvas Theme
+    gb_theme = QGroupBox("Paper Canvas Theme")
+    fl_theme = QFormLayout(gb_theme)
+    theme_combo = QComboBox()
+    theme_combo.addItem("Architectural Blueprint", "blueprint")
+    theme_combo.addItem("Vintage Sepia Atlas", "sepia_atlas")
+    theme_combo.addItem("Modern Swiss Minimalist", "swiss_modern")
+    fl_theme.addRow("Theme:", theme_combo)
+    btn_apply_theme = QPushButton("Apply Canvas Theme")
+    def _apply_theme():
+        layout = _get_designer_layout(designer)
+        if not layout:
+            return
+        try:
+            from .paper_themes import apply_paper_theme
+            tkey = theme_combo.currentData()
+            if apply_paper_theme(layout, tkey):
+                if hasattr(iface, "messageBar"):
+                    iface.messageBar().pushSuccess("CartoLab", f"Applied '{theme_combo.currentText()}' paper theme.")
+        except Exception as exc:
+            QMessageBox.critical(parent_win, "Paper Theme Error", str(exc))
+    btn_apply_theme.clicked.connect(_apply_theme)
+    fl_theme.addRow(btn_apply_theme)
+    lyt.addWidget(gb_theme)
+
     # Section 1: Quick Decorators
     gb_dec = QGroupBox("Quick Decorators")
     fl_dec = QFormLayout(gb_dec)
+
     
     palette_combo = QComboBox()
     palette_combo.addItem("Teal-Brown", ("#e8e8e8", "#5ab4ac", "#d8b365", "#8c510a"))
