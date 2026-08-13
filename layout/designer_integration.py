@@ -30,13 +30,16 @@ try:
         QMenu,
         QMessageBox,
         QPushButton,
+        QScrollArea,
+        QTabWidget,
         QToolBar,
         QVBoxLayout,
         QWidget,
     )
 except ImportError:
     QgsProject = None
-    Qt = QUrl = QDesktopServices = QIcon = QAction = QComboBox = QDockWidget = QDoubleSpinBox = QFileDialog = QFormLayout = QGroupBox = QHBoxLayout = QLabel = QLineEdit = QMenu = QMessageBox = QPushButton = QToolBar = QVBoxLayout = QWidget = None
+    Qt = QUrl = QDesktopServices = QIcon = QAction = QComboBox = QDockWidget = QDoubleSpinBox = QFileDialog = QFormLayout = QGroupBox = QHBoxLayout = QLabel = QLineEdit = QMenu = QMessageBox = QPushButton = QScrollArea = QTabWidget = QToolBar = QVBoxLayout = QWidget = None
+
 
 
 
@@ -63,7 +66,7 @@ def setup_designer_integration(iface) -> None:
 
 
 def attach_cartolab_to_designer(iface, designer) -> None:
-    """Attach PlanX CartoLab toolbar, menu, and embedded dock panel inside a QgsLayoutDesignerInterface window."""
+    """Attach PlanX CartoLab embedded studio dock panel inside a QgsLayoutDesignerInterface window."""
     if designer is None or id(designer) in _INTEGRATED_DESIGNERS:
         return
     _INTEGRATED_DESIGNERS.add(id(designer))
@@ -84,31 +87,23 @@ def attach_cartolab_to_designer(iface, designer) -> None:
 
     # 1. Create 1 Embedded Dock Panel inside Print Layout Window
     dock = create_cartolab_layout_dock(iface, designer, main_win)
+    dock.setWindowIcon(icon)
     with suppress(Exception):
         if hasattr(designer, "addDockWidget"):
             designer.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock)
         elif hasattr(main_win, "addDockWidget"):
             main_win.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock)
 
-    # 2. Create SINGLE Toolbar Button to toggle the CartoLab Studio Dock Panel
-    toolbar = QToolBar("PlanX CartoLab", main_win)
-    toolbar.setObjectName("PlanXCartoLabLayoutToolbar")
-
-    act_toggle = QAction(icon, "PlanX CartoLab Studio", main_win)
-    act_toggle.setToolTip("Show / Hide PlanX CartoLab Layout Studio Dock Panel")
-    act_toggle.triggered.connect(lambda: dock.setVisible(not dock.isVisible()))
-
-    toolbar.addAction(act_toggle)
-    main_win.addToolBar(toolbar)
-
-    # 3. Add single PlanX CartoLab Menu item to Designer MenuBar
+    # 2. Add single PlanX CartoLab Menu item to Designer MenuBar (No extra top toolbar)
     with suppress(Exception):
         menubar = main_win.menuBar()
         if menubar:
             menu = QMenu("&PlanX CartoLab", menubar)
+            act_toggle = dock.toggleViewAction()
+            act_toggle.setText("Show/Hide CartoLab Studio Panel")
+            act_toggle.setIcon(icon)
             menu.addAction(act_toggle)
             menubar.addMenu(menu)
-
 
 
 def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
@@ -117,12 +112,53 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
     dock.setObjectName("CartoLabLayoutStudioDock")
     dock.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
 
-    w = QWidget()
-    lyt = QVBoxLayout(w)
-    lyt.setContentsMargins(8, 8, 8, 8)
-    lyt.setSpacing(10)
+    container = QWidget()
+    main_lyt = QVBoxLayout(container)
+    main_lyt.setContentsMargins(4, 4, 4, 4)
+    main_lyt.setSpacing(6)
 
-    # Section 0: Paper Canvas Theme
+    tabs = QTabWidget()
+    tabs.setStyleSheet("""
+        QTabWidget::pane {
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            background: #ffffff;
+        }
+        QTabBar::tab {
+            background: #f1f5f9;
+            color: #334155;
+            padding: 6px 10px;
+            font-weight: 600;
+            font-size: 11px;
+            border-top-left-radius: 4px;
+            border-top-right-radius: 4px;
+            margin-right: 2px;
+        }
+        QTabBar::tab:selected {
+            background: #ffffff;
+            color: #2563eb;
+            border-bottom: 2px solid #2563eb;
+        }
+        QPushButton {
+            background-color: #2563eb;
+            color: white;
+            border-radius: 4px;
+            padding: 6px 12px;
+            font-weight: 600;
+        }
+        QPushButton:hover {
+            background-color: #1d4ed8;
+        }
+    """)
+
+    # -----------------------------------------------------------------
+    # TAB 1: Canvas & Grid
+    # -----------------------------------------------------------------
+    tab_canvas = QWidget()
+    lyt_canvas = QVBoxLayout(tab_canvas)
+    lyt_canvas.setContentsMargins(8, 8, 8, 8)
+    lyt_canvas.setSpacing(10)
+
     gb_theme = QGroupBox("Paper Canvas Theme")
     fl_theme = QFormLayout(gb_theme)
     theme_combo = QComboBox()
@@ -131,6 +167,7 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
     theme_combo.addItem("Modern Swiss Minimalist", "swiss_modern")
     fl_theme.addRow("Theme:", theme_combo)
     btn_apply_theme = QPushButton("Apply Canvas Theme")
+
     def _apply_theme():
         layout = _get_designer_layout(designer)
         if not layout:
@@ -143,32 +180,63 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
                     iface.messageBar().pushSuccess("CartoLab", f"Applied '{theme_combo.currentText()}' paper theme.")
         except Exception as exc:
             QMessageBox.critical(parent_win, "Paper Theme Error", str(exc))
+
     btn_apply_theme.clicked.connect(_apply_theme)
     fl_theme.addRow(btn_apply_theme)
-    lyt.addWidget(gb_theme)
+    lyt_canvas.addWidget(gb_theme)
 
-    # Section 1: Quick Decorators
-    gb_dec = QGroupBox("Quick Decorators")
-    fl_dec = QFormLayout(gb_dec)
+    gb_typo = QGroupBox("Swiss Typography & Grid")
+    fl_typo = QFormLayout(gb_typo)
+    btn_dock_typo = QPushButton("📏 Apply Swiss Typography & Grid")
 
-    
+    def _dock_typo():
+        layout = _get_designer_layout(designer)
+        if not layout:
+            return
+        try:
+            from .typography_engine import apply_swiss_typography
+            apply_swiss_typography(layout)
+            if hasattr(iface, "messageBar"):
+                iface.messageBar().pushSuccess("CartoLab", "Swiss typography hierarchy applied.")
+        except Exception as exc:
+            QMessageBox.critical(parent_win, "Swiss Typography", str(exc))
+
+    btn_dock_typo.clicked.connect(_dock_typo)
+    fl_typo.addRow(btn_dock_typo)
+    lyt_canvas.addWidget(gb_typo)
+    lyt_canvas.addStretch()
+
+    tabs.addTab(tab_canvas, "🎨 Canvas & Grid")
+
+    # -----------------------------------------------------------------
+    # TAB 2: Decorators (Bivariate, Scale Bar, North Arrow)
+    # -----------------------------------------------------------------
+    tab_dec = QWidget()
+    lyt_dec = QVBoxLayout(tab_dec)
+    lyt_dec.setContentsMargins(8, 8, 8, 8)
+    lyt_dec.setSpacing(10)
+
+    gb_bivar = QGroupBox("Bivariate Legend")
+    fl_bivar = QFormLayout(gb_bivar)
+
     palette_combo = QComboBox()
     palette_combo.addItem("Teal-Brown", ("#e8e8e8", "#5ab4ac", "#d8b365", "#8c510a"))
     palette_combo.addItem("Purple-Green", ("#e8e8e8", "#7fbf7b", "#af8dc3", "#762a83"))
     palette_combo.addItem("Blue-Orange", ("#e8e8e8", "#fdae61", "#abd9e9", "#2c7bb6"))
     palette_combo.addItem("Pink-Green", ("#e8e8e8", "#a1d76a", "#e9a3c9", "#c51b7d"))
-    fl_dec.addRow("Bivar Palette:", palette_combo)
+    fl_bivar.addRow("Palette:", palette_combo)
 
     shape_combo = QComboBox()
     shape_combo.addItem("Diamond", "diamond")
     shape_combo.addItem("Square", "square")
-    fl_dec.addRow("Legend Shape:", shape_combo)
+    fl_bivar.addRow("Shape:", shape_combo)
 
     title_input = QLineEdit()
     title_input.setPlaceholderText("Bivariate Relationship")
-    fl_dec.addRow("Legend Title:", title_input)
+    fl_bivar.addRow("Title:", title_input)
 
-    btn_add_bivar = QPushButton("Add Custom Bivariate Legend")
+    btn_add_bivar = QPushButton("Add Bivariate Legend")
+
     def _add_bivar():
         layout = _get_designer_layout(designer)
         if not layout:
@@ -184,27 +252,15 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
         except Exception as exc:
             QMessageBox.critical(parent_win, "Bivariate Legend", str(exc))
 
-
     btn_add_bivar.clicked.connect(_add_bivar)
-    fl_dec.addRow(btn_add_bivar)
+    fl_bivar.addRow(btn_add_bivar)
+    lyt_dec.addWidget(gb_bivar)
 
-    btn_dock_typo = QPushButton("📏 Apply Swiss Typography & Grid")
-    def _dock_typo():
-        layout = _get_designer_layout(designer)
-        if not layout:
-            return
-        try:
-            from .typography_engine import apply_swiss_typography
-            apply_swiss_typography(layout)
-            if hasattr(iface, "messageBar"):
-                iface.messageBar().pushSuccess("CartoLab", "Swiss typography hierarchy applied.")
-        except Exception as exc:
-            QMessageBox.critical(parent_win, "Swiss Typography", str(exc))
-
-    btn_dock_typo.clicked.connect(_dock_typo)
-    fl_dec.addRow(btn_dock_typo)
+    gb_map_elem = QGroupBox("Map Elements")
+    fl_elem = QFormLayout(gb_map_elem)
 
     btn_dock_scalebar = QPushButton("📏 Add Scale Bar")
+
     def _dock_scalebar():
         layout = _get_designer_layout(designer)
         if not layout:
@@ -218,9 +274,10 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
             QMessageBox.critical(parent_win, "Scale Bar Error", str(exc))
 
     btn_dock_scalebar.clicked.connect(_dock_scalebar)
-    fl_dec.addRow(btn_dock_scalebar)
+    fl_elem.addRow(btn_dock_scalebar)
 
     btn_dock_north = QPushButton("🧭 Add North Arrow")
+
     def _dock_north():
         layout = _get_designer_layout(designer)
         if not layout:
@@ -234,16 +291,23 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
             QMessageBox.critical(parent_win, "North Arrow Error", str(exc))
 
     btn_dock_north.clicked.connect(_dock_north)
-    fl_dec.addRow(btn_dock_north)
+    fl_elem.addRow(btn_dock_north)
+    lyt_dec.addWidget(gb_map_elem)
+    lyt_dec.addStretch()
 
-    lyt.addWidget(gb_dec)
+    tabs.addTab(tab_dec, "💎 Decorators")
 
+    # -----------------------------------------------------------------
+    # TAB 3: 3D Perspective & Quick Export
+    # -----------------------------------------------------------------
+    tab_exp = QWidget()
+    lyt_exp = QVBoxLayout(tab_exp)
+    lyt_exp.setContentsMargins(8, 8, 8, 8)
+    lyt_exp.setSpacing(10)
 
-
-    # Section 2: Isometric Stacking Controls
-    gb_iso = QGroupBox("Isometric Perspective")
+    gb_iso = QGroupBox("2.5D Isometric Stack")
     fl_iso = QFormLayout(gb_iso)
-    
+
     tilt_spin = QDoubleSpinBox()
     tilt_spin.setRange(0, 89)
     tilt_spin.setValue(30.0)
@@ -257,6 +321,7 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
     fl_iso.addRow("Heading Angle:", heading_spin)
 
     btn_apply_iso = QPushButton("Apply Isometric Perspective")
+
     def _apply_iso():
         layout = _get_designer_layout(designer)
         if not layout or not QgsProject or not QgsProject.instance():
@@ -275,9 +340,8 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
 
     btn_apply_iso.clicked.connect(_apply_iso)
     fl_iso.addRow(btn_apply_iso)
-    lyt.addWidget(gb_iso)
+    lyt_exp.addWidget(gb_iso)
 
-    # Section 3: Quick Export & Open
     gb_exp = QGroupBox("Quick Export")
     fl_exp = QFormLayout(gb_exp)
 
@@ -289,6 +353,7 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
     fl_exp.addRow("Quality:", dpi_combo)
 
     btn_dock_export = QPushButton("⚡ Export & Open ↗")
+
     def _dock_export():
         layout = _get_designer_layout(designer)
         if not layout:
@@ -310,11 +375,15 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
 
     btn_dock_export.clicked.connect(_dock_export)
     fl_exp.addRow(btn_dock_export)
-    lyt.addWidget(gb_exp)
+    lyt_exp.addWidget(gb_exp)
+    lyt_exp.addStretch()
 
-    lyt.addStretch()
-    dock.setWidget(w)
+    tabs.addTab(tab_exp, "⚡ 3D & Export")
+
+    main_lyt.addWidget(tabs)
+    dock.setWidget(container)
     return dock
+
 
 
 def _get_designer_layout(designer):

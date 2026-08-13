@@ -1,6 +1,13 @@
 # Changelog - PlanX CartoLab
 
+## [2.1.2] - 2026-08-13
+
+### Changed
+- Zero Top Ribbon Clutter: Removed custom toolbar creation on the QGIS Print Layout Designer top ribbon completely. Access is handled via native MenuBar integration (`Show/Hide CartoLab Studio Panel`).
+- Tabbed Docked Panel Architecture: Replaced long single-column vertical forms in the right docked panel with a clean 3-tab layout (`🎨 Canvas & Grid`, `💎 Decorators`, `⚡ 3D & Export`).
+
 ## [2.1.1] - 2026-08-13
+
 
 ### Changed
 - Print Layout Toolbar Simplification: Consolidated 8 individual toolbar items into 1 single clean CartoLab Studio toolbar button (`PlanX CartoLab Studio`) that toggles the embedded `CartoLab Layout Studio` Docked Panel.
