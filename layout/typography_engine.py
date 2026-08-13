@@ -44,3 +44,9 @@ def apply_typography_hierarchy(layout: QgsLayout) -> None:
         item.setFont(font)
         item.adjustSizeToText()
     layout.refresh()
+
+
+def apply_swiss_typography(layout: QgsLayout) -> None:
+    """Alias for apply_typography_hierarchy."""
+    return apply_typography_hierarchy(layout)
+

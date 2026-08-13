@@ -59,7 +59,8 @@ def create_isometric_stack_layout(
 
     Returns
     -------
-    QgsLayout — the created layout (also added to the project).
+    QgsPrintLayout
+        The configured print layout with isometric map items.
     """
     if not layers:
         raise ValueError("Isometric stack needs at least one layer.")
@@ -162,3 +163,19 @@ def create_isometric_stack_layout(
 
     project.layoutManager().addLayout(layout)
     return layout
+
+
+def stack_layers_isometrically(
+    layout: QgsPrintLayout,
+    layers: List[QgsMapLayer],
+    tilt_angle: float = 30.0,
+    heading: float = 100.0,
+    **kwargs,
+) -> QgsPrintLayout:
+    """Alias for create_isometric_stack_layout."""
+    return create_isometric_stack_layout(
+        layers=layers,
+        angle_deg=tilt_angle,
+        **kwargs,
+    )
+

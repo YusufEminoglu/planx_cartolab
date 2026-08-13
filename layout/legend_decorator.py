@@ -53,7 +53,32 @@ def add_bivariate_legend_to_layout(
         items = _build_square(layout, matrix, position, size_mm, x_label, y_label)
     else:
         items = _build_diamond(layout, matrix, position, size_mm, x_label, y_label)
-    return layout.groupItems(items)
+def add_bivariate_legend(
+    layout: QgsLayout,
+    colors: tuple = None,
+    legend_type: str = "diamond",
+    title: str = "Bivariate Legend",
+    x_label: str = "Variable X",
+    y_label: str = "Variable Y",
+    **kwargs,
+) -> QgsLayoutItemGroup:
+    """Convenience wrapper for add_bivariate_legend_to_layout."""
+    if colors and len(colors) >= 4:
+        cll, clh, chl, chh = colors[0], colors[1], colors[2], colors[3]
+    else:
+        cll, clh, chl, chh = "#e8e8e8", "#5ab4ac", "#d8b365", "#8c510a"
+    return add_bivariate_legend_to_layout(
+        layout,
+        x_label=x_label,
+        y_label=y_label,
+        color_ll=cll,
+        color_lh=clh,
+        color_hl=chl,
+        color_hh=chh,
+        legend_type=legend_type,
+        **kwargs,
+    )
+
 
 
 def _fill(color: QColor) -> QgsFillSymbol:

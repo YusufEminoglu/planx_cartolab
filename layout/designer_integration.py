@@ -297,7 +297,24 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
 
     btn_add_bivar.clicked.connect(_add_bivar)
     fl_dec.addRow(btn_add_bivar)
+
+    btn_dock_typo = QPushButton("📏 Apply Swiss Typography & Grid")
+    def _dock_typo():
+        layout = _get_designer_layout(designer)
+        if not layout:
+            return
+        try:
+            from .typography_engine import apply_swiss_typography
+            apply_swiss_typography(layout)
+            if hasattr(iface, "messageBar"):
+                iface.messageBar().pushSuccess("CartoLab", "Swiss typography hierarchy applied.")
+        except Exception as exc:
+            QMessageBox.critical(parent_win, "Swiss Typography", str(exc))
+
+    btn_dock_typo.clicked.connect(_dock_typo)
+    fl_dec.addRow(btn_dock_typo)
     lyt.addWidget(gb_dec)
+
 
     # Section 2: Isometric Stacking Controls
     gb_iso = QGroupBox("Isometric Perspective")

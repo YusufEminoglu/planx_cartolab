@@ -1,6 +1,13 @@
 # Changelog - PlanX CartoLab
 
+## [2.0.1] - 2026-08-13
+
+### Fixed
+- Layout Function Aliases: Added backward and forward compatible function aliases (`add_bivariate_legend`, `apply_swiss_typography`, `stack_layers_isometrically`) eliminating `ImportError` exceptions when triggering Print Layout actions.
+- Layout Dock Widget Controls: Added direct Swiss Typography & Grid action button and distinct icons/emojis to each docked panel tool section inside the QGIS Print Layout Designer window.
+
 ## [2.0.0] - 2026-08-13
+
 
 ### Added
 - Vertical Sidebar Navigation (`nav_sidebar` + `stack`): Replaced horizontal tab layout with a vertical sidebar list and right stacked workspace view matching the PlanX 3D City Viewer experience.
