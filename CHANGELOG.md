@@ -1,6 +1,14 @@
 # Changelog - PlanX CartoLab
 
+## [1.7.3] - 2026-08-13
+
+### Added
+- Layout Page Presets: Added A4 Landscape, A3 Landscape, Square 1:1, and A4 Portrait layout presets.
+- Export & Open Button: Added `Export & Open ↗` button to immediately export and launch layouts in system default image/PDF viewer.
+- Enhanced DPI Quality Selector: Preset chips for 150 DPI Draft, 300 DPI Publication Standard, and 600 DPI Ultra Print Quality.
+
 ## [1.7.2] - 2026-08-13
+
 
 ### Added
 - Expanded 2.5D Building Presets: Added Urban Core Gold, Suburban Pastoral, Cyberpunk Night, and Nordic Minimalist visual themes.

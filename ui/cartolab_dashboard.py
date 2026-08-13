@@ -1549,14 +1549,23 @@ class CartoLabDashboard(QDialog):
         self.mapsheet_credits.setPlaceholderText("Data source, author, date…")
         form.addWidget(self.mapsheet_credits, 1, 1, 1, 3)
 
-        form.addWidget(QLabel("Page:"), 2, 0)
+        form.addWidget(QLabel("Page Preset:"), 2, 0)
+        self.mapsheet_preset_combo = QComboBox()
+        self.mapsheet_preset_combo.addItem("A4 Landscape (Publication Standard)", ("A4", "Landscape"))
+        self.mapsheet_preset_combo.addItem("A3 Landscape (Masterplan Scale)", ("A3", "Landscape"))
+        self.mapsheet_preset_combo.addItem("Square 1:1 (Portfolio & Social Media)", ("A4", "Square"))
+        self.mapsheet_preset_combo.addItem("A4 Portrait (Technical Report)", ("A4", "Portrait"))
+        self.mapsheet_preset_combo.currentIndexChanged.connect(self._on_layout_preset_changed)
+        form.addWidget(self.mapsheet_preset_combo, 2, 1, 1, 3)
+
+        form.addWidget(QLabel("Size:"), 3, 0)
         self.mapsheet_page_combo = QComboBox()
         self.mapsheet_page_combo.addItems(["A4", "A3", "A2", "A1", "A0"])
-        form.addWidget(self.mapsheet_page_combo, 2, 1)
-        form.addWidget(QLabel("Orientation:"), 2, 2)
+        form.addWidget(self.mapsheet_page_combo, 3, 1)
+        form.addWidget(QLabel("Orientation:"), 3, 2)
         self.mapsheet_orient_combo = QComboBox()
-        self.mapsheet_orient_combo.addItems(["Landscape", "Portrait"])
-        form.addWidget(self.mapsheet_orient_combo, 2, 3)
+        self.mapsheet_orient_combo.addItems(["Landscape", "Portrait", "Square"])
+        form.addWidget(self.mapsheet_orient_combo, 3, 3)
         gs.addLayout(form)
 
         el_row = QHBoxLayout()
@@ -1609,22 +1618,32 @@ class CartoLabDashboard(QDialog):
         exports = QHBoxLayout()
         exports.addWidget(QLabel("Export:"))
         self.export_format_combo = QComboBox()
-        self.export_format_combo.addItem("PNG (image)", "png")
-        self.export_format_combo.addItem("PDF (vector)", "pdf")
-        self.export_format_combo.addItem("SVG (vector)", "svg")
+        self.export_format_combo.addItem("PNG (Image)", "png")
+        self.export_format_combo.addItem("PDF (Vector Document)", "pdf")
+        self.export_format_combo.addItem("SVG (Scalable Vector)", "svg")
         exports.addWidget(self.export_format_combo, 1)
-        exports.addWidget(QLabel("DPI:"))
+        exports.addWidget(QLabel("Quality / DPI:"))
         self.export_dpi_combo = QComboBox()
-        for lbl, val in (("96 · screen", 96), ("150", 150),
-                         ("300 · print", 300), ("600 · high", 600)):
+        for lbl, val in (("150 DPI · Quick Draft", 150),
+                         ("300 DPI · Publication Standard", 300),
+                         ("600 DPI · Ultra High Print", 600)):
             self.export_dpi_combo.addItem(lbl, val)
-        self.export_dpi_combo.setCurrentIndex(2)
+        self.export_dpi_combo.setCurrentIndex(1)
         exports.addWidget(self.export_dpi_combo)
-        btn_export = QPushButton("Export…")
+
+        btn_export = QPushButton("Export File…")
         btn_export.clicked.connect(self._on_export_layout)
         exports.addWidget(btn_export)
+
+        btn_export_open = QPushButton("Export & Open ↗")
+        btn_export_open.setObjectName("ghost")
+        btn_export_open.setToolTip("Export layout and open immediately in system default viewer")
+        btn_export_open.clicked.connect(self._on_export_and_open_layout)
+        exports.addWidget(btn_export_open)
+
         gm.addLayout(exports)
         lyt.addWidget(gb_mgr)
+
 
         # ── Group 3: Decorators (apply to the selected layout) ───────
         gb_dec = self._make_group("Decorators — enhance the selected layout")
@@ -1794,10 +1813,22 @@ class CartoLabDashboard(QDialog):
         self._refresh_layout_combo()
         self.iface.messageBar().pushSuccess("CartoLab", f"Deleted layout '{name}'.")
 
-    def _on_export_layout(self, _checked: bool = False) -> None:
+    def _on_layout_preset_changed(self) -> None:
+        data = self.mapsheet_preset_combo.currentData()
+        if not data:
+            return
+        page, orient = data
+        idx_p = self.mapsheet_page_combo.findText(page)
+        if idx_p >= 0:
+            self.mapsheet_page_combo.setCurrentIndex(idx_p)
+        idx_o = self.mapsheet_orient_combo.findText(orient)
+        if idx_o >= 0:
+            self.mapsheet_orient_combo.setCurrentIndex(idx_o)
+
+    def _on_export_layout(self, _checked: bool = False) -> str | None:
         layout = self._require_layout("Export Layout")
         if layout is None:
-            return
+            return None
         ext = self.export_format_combo.currentData()
         dpi = self.export_dpi_combo.currentData()
         filt = {
@@ -1810,7 +1841,7 @@ class CartoLabDashboard(QDialog):
         path, _ = QFileDialog.getSaveFileName(
             self, f"Export {ext.upper()}", default, filt)
         if not path:
-            return
+            return None
         if not path.lower().endswith("." + ext):
             path += "." + ext
         try:
@@ -1818,11 +1849,21 @@ class CartoLabDashboard(QDialog):
             success = export_layout(layout, path, dpi=int(dpi))
         except Exception as exc:
             QMessageBox.critical(self, "Export Error", str(exc))
-            return
+            return None
         if success:
             self.iface.messageBar().pushSuccess("CartoLab", f"Exported: {path}")
+            return path
         else:
             QMessageBox.warning(self, "Export", "Export did not complete successfully.")
+            return None
+
+    def _on_export_and_open_layout(self, _checked: bool = False) -> None:
+        path = self._on_export_layout()
+        if path and os.path.exists(path):
+            from qgis.PyQt.QtCore import QUrl
+            from qgis.PyQt.QtGui import QDesktopServices
+            QDesktopServices.openUrl(QUrl.fromLocalFile(path))
+
 
     def _on_isometric_stack(self) -> None:
         selected_items = self.iso_layer_list.selectedItems()
