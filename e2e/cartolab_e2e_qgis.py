@@ -27,12 +27,19 @@ qgs = QgsApplication([], False)
 qgs.initQgis()
 
 import qgis
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(qgis.__file__)), "plugins"))
+system_plugins_dir = os.path.abspath(os.path.join(os.path.dirname(qgis.__file__), "..", "plugins"))
+if system_plugins_dir in sys.path:
+    sys.path.remove(system_plugins_dir)
+sys.path.insert(0, system_plugins_dir)
 sys.path.append(r"C:\Users\YE\PyCharmMiscProject\qgis_plugins")
 
 import processing
 from processing.core.Processing import Processing
 Processing.initialize()
+
+
+
+
 
 from qgis.core import (
     Qgis, QgsCoordinateReferenceSystem, QgsFeature, QgsFields, QgsField,

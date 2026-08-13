@@ -702,12 +702,13 @@ check("edges_to_ranges skips dup class",
 # ===================================================================
 section("RESULTS")
 total = passed + failed
-print(f"  {passed}/{total} passed ({100*passed/total:.0f}%)")
-if failed:
-    print(f"\n  FAILURES:")
-    for e in errors:
-        print(f"    {e}")
-    sys.exit(1)
-else:
-    print("\n  ALL TESTS PASSED")
-    sys.exit(0)
+def test_all_cartolab_core_modules():
+    assert failed == 0, f"{failed} core tests failed"
+
+if __name__ == "__main__":
+    if failed:
+        sys.exit(1)
+    else:
+        sys.exit(0)
+
+
