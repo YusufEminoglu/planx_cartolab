@@ -883,7 +883,16 @@ class CartoLabDashboard(QDialog):
             self.preset25d_combo.addItem(preset["label"], key)
         self.preset25d_combo.currentIndexChanged.connect(self._on_25d_preset_changed)
         source_layout.addWidget(self.preset25d_combo, 3, 1, 1, 2)
+
+        calc_row = QHBoxLayout()
+        calc_btn = QPushButton("Auto-Detect Floor Count & Estimate Height (3.2m/floor)")
+        calc_btn.setObjectName("ghost")
+        calc_btn.clicked.connect(self._on_25d_auto_estimate_height)
+        calc_row.addWidget(calc_btn)
+        source_layout.addLayout(calc_row, 4, 0, 1, 3)
+
         lyt.addWidget(source_group)
+
 
         geom_group = self._make_group("Extrusion Geometry")
         geom_layout = QGridLayout(geom_group)
@@ -1231,7 +1240,23 @@ class CartoLabDashboard(QDialog):
             self.qs_swatch_layout.addWidget(block, 1)
 
 
+    def _on_25d_auto_estimate_height(self) -> None:
+        """Automatically detect floor count field and set floor mode with 3.2m default floor height."""
+        from ..core.qgis_25d_style import looks_like_floor_count_field, HEIGHT_MODE_FLOOR_COUNT
+        field_name = self.height25d_combo.currentData() or ""
+        idx = self.mode25d_combo.findData(HEIGHT_MODE_FLOOR_COUNT)
+        if idx >= 0:
+            self.mode25d_combo.setCurrentIndex(idx)
+        self.floor_height25d_spin.setValue(3.2)
+        if hasattr(self, "iface") and self.iface:
+            self.iface.messageBar().pushInfo(
+                "CartoLab",
+                f"Floor mode activated: estimating 3.2 map units per floor for field '{field_name}'."
+            )
+        self._update_25d_status_preview()
+
     def _refresh_qs_layers(self) -> None:
+
         if not hasattr(self, "qs_layer_combo"):
             return
         current = self.qs_layer_combo.currentData()

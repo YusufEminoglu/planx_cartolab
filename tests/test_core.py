@@ -348,6 +348,11 @@ floor_cfg = s25d.Style25DConfig(
 )
 floor_expr = s25d.build_height_expression(floor_cfg)
 check("25D floor count expression uses floor height", '"Kat_Sayisi"' in floor_expr and "* 3.5" in floor_expr, floor_expr)
+check("25D has urban_gold preset", "urban_gold" in s25d.STYLE_25D_PRESETS)
+check("25D has cyberpunk_night preset", "cyberpunk_night" in s25d.STYLE_25D_PRESETS)
+check("25D has nordic_minimalist preset", "nordic_minimalist" in s25d.STYLE_25D_PRESETS)
+check("estimate_building_height 5 floors", abs(s25d.estimate_building_height(5, 3.2) - 16.0) < 1e-6)
+
 check("25D floor field detected", s25d.looks_like_floor_count_field("Kat_Sayisi"))
 check("25D floor field detected with spaces", s25d.looks_like_floor_count_field("Kat Sayisi"))
 floor_summary = s25d.build_style_summary("Buildings", floor_cfg)

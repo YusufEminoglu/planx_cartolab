@@ -51,7 +51,41 @@ STYLE_25D_PRESETS: Dict[str, dict] = {
         "shadow": "#090d16",
         "shadow_spread": 5.0,
     },
+    "urban_gold": {
+        "label": "Urban Core Gold",
+        "roof": "#d4af37",
+        "wall": "#1a1a24",
+        "shadow": "#0d1b2a",
+        "shadow_spread": 4.5,
+    },
+    "suburban_pastoral": {
+        "label": "Suburban Pastoral",
+        "roof": "#c06c84",
+        "wall": "#f8b195",
+        "shadow": "#355c7d",
+        "shadow_spread": 3.0,
+    },
+    "cyberpunk_night": {
+        "label": "Cyberpunk Night",
+        "roof": "#00f5d4",
+        "wall": "#7b2cbf",
+        "shadow": "#ff007f",
+        "shadow_spread": 6.0,
+    },
+    "nordic_minimalist": {
+        "label": "Nordic Minimalist",
+        "roof": "#f8f9fa",
+        "wall": "#6c757d",
+        "shadow": "#212529",
+        "shadow_spread": 3.5,
+    },
 }
+
+
+def estimate_building_height(floor_count: float, default_floor_height: float = 3.2) -> float:
+    """Calculate building height in map units from floor count."""
+    return max(0.0, float(floor_count)) * max(0.1, float(default_floor_height))
+
 
 FLOOR_BAND_PALETTES: Dict[str, dict] = {
     "civic_spectrum": {

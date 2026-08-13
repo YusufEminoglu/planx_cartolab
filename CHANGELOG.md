@@ -1,6 +1,13 @@
 # Changelog - PlanX CartoLab
 
+## [1.7.2] - 2026-08-13
+
+### Added
+- Expanded 2.5D Building Presets: Added Urban Core Gold, Suburban Pastoral, Cyberpunk Night, and Nordic Minimalist visual themes.
+- Automatic Building Height Estimator: Added one-click tool (`estimate_building_height`) calculating building elevation from floor count fields (3.2m/floor default).
+
 ## [1.7.1] - 2026-08-13
+
 
 ### Added
 - Interactive Palette Swatch Bar: Live discrete color swatch blocks in Quick Style showing exact class color steps.
