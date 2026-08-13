@@ -1,6 +1,14 @@
 # Changelog - PlanX CartoLab
 
+## [2.2.0] - 2026-08-13
+
+### Added
+- Publication Legend Styler (`layout/legend_styler.py`): Added `style_layout_legend` function providing clean typography, column count, symbol sizes, and spacing for layout legends.
+- Architectural Title Block Decorator (`layout/title_block.py`): Added `add_publication_title_block` function inserting a publication title block with project title, subtitle, author metadata, and date stamp into the layout.
+- Docked Panel Extension: Integrated 1-click Title Block and Publication Legend Styler controls into the CartoLab Layout Studio Dock panel tabs inside QGIS Print Layout Designer.
+
 ## [2.1.2] - 2026-08-13
+
 
 ### Changed
 - Zero Top Ribbon Clutter: Removed custom toolbar creation on the QGIS Print Layout Designer top ribbon completely. Access is handled via native MenuBar integration (`Show/Hide CartoLab Studio Panel`).

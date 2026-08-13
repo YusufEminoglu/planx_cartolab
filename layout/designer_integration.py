@@ -203,10 +203,29 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
 
     btn_dock_typo.clicked.connect(_dock_typo)
     fl_typo.addRow(btn_dock_typo)
+
+    btn_dock_title = QPushButton("🏛️ Add Publication Title Block")
+
+    def _dock_title():
+        layout = _get_designer_layout(designer)
+        if not layout:
+            return
+        try:
+            from .title_block import add_publication_title_block
+            add_publication_title_block(layout)
+            if hasattr(iface, "messageBar"):
+                iface.messageBar().pushSuccess("CartoLab", "Publication title block added to layout.")
+        except Exception as exc:
+            QMessageBox.critical(parent_win, "Title Block Error", str(exc))
+
+    btn_dock_title.clicked.connect(_dock_title)
+    fl_typo.addRow(btn_dock_title)
+
     lyt_canvas.addWidget(gb_typo)
     lyt_canvas.addStretch()
 
     tabs.addTab(tab_canvas, "🎨 Canvas & Grid")
+
 
     # -----------------------------------------------------------------
     # TAB 2: Decorators (Bivariate, Scale Bar, North Arrow)
@@ -292,7 +311,26 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
 
     btn_dock_north.clicked.connect(_dock_north)
     fl_elem.addRow(btn_dock_north)
+
+    btn_dock_legend_style = QPushButton("📊 Style Legend (Publication Clean)")
+
+    def _dock_legend_style():
+        layout = _get_designer_layout(designer)
+        if not layout:
+            return
+        try:
+            from .legend_styler import style_layout_legend
+            style_layout_legend(layout)
+            if hasattr(iface, "messageBar"):
+                iface.messageBar().pushSuccess("CartoLab", "Publication legend styling applied.")
+        except Exception as exc:
+            QMessageBox.critical(parent_win, "Legend Style Error", str(exc))
+
+    btn_dock_legend_style.clicked.connect(_dock_legend_style)
+    fl_elem.addRow(btn_dock_legend_style)
+
     lyt_dec.addWidget(gb_map_elem)
+
     lyt_dec.addStretch()
 
     tabs.addTab(tab_dec, "💎 Decorators")

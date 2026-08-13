@@ -743,6 +743,13 @@ from planx_cartolab.layout import legend_decorator as ld
 check("add_scalebar_to_layout function exists", callable(ld.add_scalebar_to_layout))
 check("add_north_arrow_to_layout function exists", callable(ld.add_north_arrow_to_layout))
 
+from planx_cartolab.layout import legend_styler as ls
+check("style_layout_legend function exists", callable(ls.style_layout_legend))
+
+from planx_cartolab.layout import title_block as tb
+check("add_publication_title_block function exists", callable(tb.add_publication_title_block))
+
+
 
 
 
