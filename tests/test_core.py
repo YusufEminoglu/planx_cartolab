@@ -709,6 +709,8 @@ section("Print Layout Designer Integration")
 from planx_cartolab.layout import designer_integration as di
 check("designer_integration setup function exists", callable(di.setup_designer_integration))
 check("designer_integration attach function exists", callable(di.attach_cartolab_to_designer))
+check("designer_integration dock creator exists", callable(di.create_cartolab_layout_dock))
+
 
 
 # ===================================================================

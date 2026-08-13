@@ -1,6 +1,13 @@
 # Changelog - PlanX CartoLab
 
+## [1.8.1] - 2026-08-13
+
+### Added
+- Embedded Print Layout Dock Panel (`CartoLab Layout Studio Dock`): Added an interactive dock panel embedded directly inside the QGIS Print Layout Designer window.
+- Live Decorator Controls: Direct controls for bivariate palette/shape selection, isometric perspective tilt/heading angles, and 150/300/600 DPI quick export inside the print layout designer.
+
 ## [1.8.0] - 2026-08-13
+
 
 ### Added
 - Print Layout Designer Integration: Added automatic attachment to QGIS Print Layout Designer windows (`QgsLayoutDesignerInterface`).
