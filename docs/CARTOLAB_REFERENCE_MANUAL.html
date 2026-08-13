@@ -335,7 +335,9 @@
     }
 
     .no-results.visible { display: block; }
-  </style>
+  .video-embed { position: relative; width: 100%; padding-top: 56.25%; margin: 4px 0 28px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); background: #000; }
+.video-embed iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+</style>
 
   <!-- MathJax 3 -->
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
@@ -398,7 +400,11 @@
     typeset with MathJax 3 (&#x24;$$\dots$$&#x24; for display, &#x24;$\dots$&#x24; for inline).
   </p>
 
-  <!-- ═══════════════ ALGORITHM 1 ═══════════════ -->
+  <div class="video-embed">
+  <iframe src="https://www.youtube-nocookie.com/embed/Y_DgVejcm8A" title="PlanX CartoLab &mdash; video walkthrough" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+</div>
+
+<!-- ═══════════════ ALGORITHM 1 ═══════════════ -->
   <section class="algo-section" id="algo1">
     <span class="algo-id">geometric_interval_classification</span>
     <span class="algo-group">Classification</span>
