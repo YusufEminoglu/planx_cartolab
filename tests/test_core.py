@@ -732,6 +732,14 @@ check("style_choropleth_layer function exists", callable(ps.style_choropleth_lay
 check("style_cartogram_layer function exists", callable(ps.style_cartogram_layer))
 check("style_dot_density_layer function exists", callable(ps.style_dot_density_layer))
 
+# ===================================================================
+# VERTICAL SIDEBAR NAVIGATION WORKSPACE
+# ===================================================================
+section("Vertical Sidebar Navigation Workspace")
+from planx_cartolab.ui import cartolab_dashboard as cd
+check("CartoLabDashboard class exists", hasattr(cd, "CartoLabDashboard"))
+
+
 
 
 

@@ -18,35 +18,41 @@ try:
     import processing
 except ImportError:
     processing = None
-from qgis.PyQt.QtCore import QSettings, Qt
-from qgis.PyQt.QtGui import QColor, QFont
-from qgis.PyQt.QtWidgets import (
-    QApplication,
-    QCheckBox,
-    QColorDialog,
-    QComboBox,
-    QDialog,
-    QDoubleSpinBox,
-    QFileDialog,
-    QFrame,
-    QGridLayout,
-    QGroupBox,
-    QHBoxLayout,
-    QLabel,
-    QLineEdit,
-    QPushButton,
-    QListWidget,
-    QMessageBox,
-    QAbstractItemView,
-    QScrollArea,
-    QSizePolicy,
-    QSpinBox,
-    QTabWidget,
-    QTextBrowser,
-    QVBoxLayout,
-    QWidget,
-)
-from qgis.core import Qgis, QgsApplication, QgsProject, QgsMapLayer
+try:
+    from qgis.PyQt.QtCore import QSettings, Qt
+    from qgis.PyQt.QtGui import QColor, QFont
+    from qgis.PyQt.QtWidgets import (
+        QApplication,
+        QCheckBox,
+        QColorDialog,
+        QComboBox,
+        QDialog,
+        QDoubleSpinBox,
+        QFileDialog,
+        QFrame,
+        QGridLayout,
+        QGroupBox,
+        QHBoxLayout,
+        QLabel,
+        QLineEdit,
+        QPushButton,
+        QListWidget,
+        QMessageBox,
+        QAbstractItemView,
+        QScrollArea,
+        QSizePolicy,
+        QSpinBox,
+        QStackedWidget,
+        QListWidgetItem,
+        QTabWidget,
+        QTextBrowser,
+        QVBoxLayout,
+        QWidget,
+    )
+    from qgis.core import Qgis, QgsApplication, QgsProject, QgsMapLayer
+except ImportError:
+    QSettings = Qt = QColor = QFont = QApplication = QCheckBox = QColorDialog = QComboBox = QDialog = QDoubleSpinBox = QFileDialog = QFrame = QGridLayout = QGroupBox = QHBoxLayout = QLabel = QLineEdit = QPushButton = QListWidget = QMessageBox = QAbstractItemView = QScrollArea = QSizePolicy = QSpinBox = QStackedWidget = QListWidgetItem = QTabWidget = QTextBrowser = QVBoxLayout = QWidget = Qgis = QgsApplication = QgsProject = QgsMapLayer = None
+
 
 from ..core.qgis_25d_style import (
     FLOOR_BAND_PALETTES,
@@ -190,7 +196,10 @@ CATEGORY_GROUPS = {
 }
 
 
-class CartoLabDashboard(QDialog):
+_QDialogBase = QDialog if QDialog is not None else object
+
+class CartoLabDashboard(_QDialogBase):
+
     """Production console for PlanX CartoLab."""
 
     def __init__(self, iface, parent=None):
@@ -234,6 +243,22 @@ class CartoLabDashboard(QDialog):
                 padding: 8px 14px; border-top-left-radius: 8px; border-top-right-radius: 8px; margin-right: 3px;
             }}
             QTabBar::tab:selected {{ background: rgba(255, 255, 255, 0.98); font-weight: 700; border-color: #9bbac4; }}
+            QListWidget#sidebarNav {{
+                background: #0f172a; color: #f8fafc; border: 1px solid #1e293b;
+                border-radius: {r}px; padding: 6px; outline: none;
+            }}
+            QListWidget#sidebarNav::item {{
+                padding: 14px 14px; border-radius: 8px; font-weight: 700;
+                font-size: 13px; color: #cbd5e1; margin-bottom: 6px;
+            }}
+            QListWidget#sidebarNav::item:selected {{
+                background: qlineargradient(x1:0,y1:0,x2:1,y2:0, stop:0 #0284c7, stop:1 #0369a1);
+                color: #ffffff; font-weight: 700;
+            }}
+            QListWidget#sidebarNav::item:hover:!selected {{
+                background: #1e293b; color: #ffffff;
+            }}
+
 
             QTextBrowser {{
                 background: #ffffff; border: 1px solid #d4e1e5; border-radius: {r}px;
@@ -322,9 +347,20 @@ class CartoLabDashboard(QDialog):
         hl.addWidget(self.status_chip, 0, Qt.AlignmentFlag.AlignRight)
         root.addWidget(hero)
 
-        # ── 3 Streamlined Studio Workspaces ──
-        self.tabs = QTabWidget()
-        root.addWidget(self.tabs, 1)
+        # ── Vertical Workspace Navigation (Sidebar List + Stacked Pages) ──
+        workspace_layout = QHBoxLayout()
+        workspace_layout.setSpacing(12)
+
+        self.nav_sidebar = QListWidget()
+        self.nav_sidebar.setObjectName("sidebarNav")
+        self.nav_sidebar.setFixedWidth(230)
+
+        self.nav_sidebar.addItem(QListWidgetItem("🎨  Symbology Studio"))
+        self.nav_sidebar.addItem(QListWidgetItem("📐  Layout Studio"))
+        self.nav_sidebar.addItem(QListWidgetItem("⚡  Processing Hub"))
+
+        self.stack = QStackedWidget()
+        self.tabs = self.stack  # alias for backward compatibility
 
         # Workspace 1: 🎨 Symbology & Thematic Studio
         self._build_symbology_studio_tab()
@@ -335,10 +371,18 @@ class CartoLabDashboard(QDialog):
         # Workspace 3: ⚡ Processing Algorithm Hub
         self._build_modules_tab()
 
+        workspace_layout.addWidget(self.nav_sidebar, 0)
+        workspace_layout.addWidget(self.stack, 1)
+        root.addLayout(workspace_layout, 1)
+
+        self.nav_sidebar.currentRowChanged.connect(self.stack.setCurrentIndex)
+        self.nav_sidebar.setCurrentRow(0)
+
         # Collapsible Bottom Drawer: 📊 Diagnostics & Run Log
         self._build_diagnostics_drawer(root)
 
         self._on_check_deps()
+
 
     def _build_symbology_studio_tab(self) -> None:
         """Workspace 1: Unified Symbology & Thematic Studio (Quick Style, 2.5D, Advanced Suite)."""
@@ -369,7 +413,8 @@ class CartoLabDashboard(QDialog):
         self.symbology_sub_tabs.addTab(thematic_widget, "🗺️ Advanced Thematic Suite")
 
         layout.addWidget(self.symbology_sub_tabs)
-        self.tabs.addTab(studio_widget, "🎨 Symbology & Thematic Studio")
+        self.stack.addWidget(studio_widget)
+
 
     def _build_thematic_suite_subwidget(self) -> QWidget:
         """Interactive quick launcher grid for advanced thematic algorithms."""
@@ -455,7 +500,8 @@ class CartoLabDashboard(QDialog):
         self.cards_grid.setVerticalSpacing(8)
         self.cards_scroll.setWidget(cards_host)
         ml.addWidget(self.cards_scroll, 1)
-        self.tabs.addTab(mod_tab, "⚡ Processing Algorithm Hub")
+        self.stack.addWidget(mod_tab)
+
 
         self._build_cards()
 
@@ -1695,8 +1741,9 @@ class CartoLabDashboard(QDialog):
 
         lyt.addStretch()
         scroll.setWidget(w)
-        self.tabs.addTab(scroll, "Layout")
+        self.stack.addWidget(scroll)
         self._refresh_layout_combo()
+
 
     # ── Layout Manager helpers ───────────────────────────────────────
 

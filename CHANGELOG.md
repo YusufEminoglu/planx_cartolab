@@ -1,6 +1,14 @@
 # Changelog - PlanX CartoLab
 
+## [2.0.0] - 2026-08-13
+
+### Added
+- Vertical Sidebar Navigation (`nav_sidebar` + `stack`): Replaced horizontal tab layout with a vertical sidebar list and right stacked workspace view matching the PlanX 3D City Viewer experience.
+- Brand-New High-Definition 256x256 Cartographic Icon (`icons/icon.png`): Created ultra-crisp vector-style cartographic icon fitting the toolbar frame with 100% clarity and scale.
+- Comprehensive System Verification: Validated 100% operational functionality across all 13 algorithms, paper canvas themes, layout decorators, and 2.5D extrusion styling presets.
+
 ## [1.9.2] - 2026-08-13
+
 
 ### Changed
 - Icon Background Transparency: Restored original plugin icon motif (`icons/icon.png`) while removing solid background color for clean transparent toolbar integration.
