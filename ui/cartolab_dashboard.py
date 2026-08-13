@@ -217,23 +217,24 @@ class CartoLabDashboard(QDialog):
         btn_r = 8 if IS_QGIS4 else 9
         title_sz = 22 if IS_QGIS4 else 24
         self.setStyleSheet(f"""
-            QDialog {{ background: #ecf3f4; font-family: "Segoe UI", "Inter", sans-serif; }}
+            QDialog {{ background: rgba(236, 243, 244, 0.88); font-family: "Segoe UI", "Inter", sans-serif; }}
             QFrame#heroCard {{
-                background: qlineargradient(x1:0,y1:0,x2:1,y2:1, stop:0 #1a1a2e, stop:0.45 #16213e, stop:1 #0f3460);
-                border-radius: {r}px; border: 1px solid #1a3a5c;
+                background: qlineargradient(x1:0,y1:0,x2:1,y2:1, stop:0 rgba(26,26,46,0.95), stop:0.45 rgba(22,33,62,0.95), stop:1 rgba(15,52,96,0.95));
+                border-radius: {r}px; border: 1px solid rgba(26,58,92,0.6);
             }}
             QLabel#heroTitle {{ color: #e94560; font-weight: 700; font-size: {title_sz}px; }}
             QLabel#heroSub {{ color: #a8c8e8; font-size: 12px; }}
             QLabel#statusChip {{
-                color: #0f2d3a; background: #f8d37a; border: 1px solid #e8bf58;
+                color: #0f2d3a; background: rgba(248, 211, 122, 0.9); border: 1px solid #e8bf58;
                 border-radius: 8px; padding: 4px 10px; font-weight: 700;
             }}
-            QTabWidget::pane {{ border: 1px solid #cfdee2; border-radius: {r}px; background: #ffffff; }}
+            QTabWidget::pane {{ border: 1px solid #cfdee2; border-radius: {r}px; background: rgba(255, 255, 255, 0.92); }}
             QTabBar::tab {{
-                background: #dce9ec; color: #183844; border: 1px solid #c4d6dc;
+                background: rgba(220, 233, 236, 0.85); color: #183844; border: 1px solid #c4d6dc;
                 padding: 8px 14px; border-top-left-radius: 8px; border-top-right-radius: 8px; margin-right: 3px;
             }}
-            QTabBar::tab:selected {{ background: #ffffff; font-weight: 700; border-color: #9bbac4; }}
+            QTabBar::tab:selected {{ background: rgba(255, 255, 255, 0.98); font-weight: 700; border-color: #9bbac4; }}
+
             QTextBrowser {{
                 background: #ffffff; border: 1px solid #d4e1e5; border-radius: {r}px;
                 padding: 9px; color: #17313a;

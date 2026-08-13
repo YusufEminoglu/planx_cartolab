@@ -1,6 +1,13 @@
 # Changelog - PlanX CartoLab
 
+## [1.9.1] - 2026-08-13
+
+### Changed
+- Full-Frame Crisp Icon Refresh: Replaced plugin icon with full-bleed high-contrast cartographic 128x128 PNG (`icons/icon.png`) for maximum toolbar legibility.
+- Glassmorphic UI Transparency: Updated Dashboard and dialog container styling to transparent/glassmorphic backgrounds.
+
 ## [1.9.0] - 2026-08-13
+
 
 ### Added
 - Publication Auto-Styler Engine (`publication_styler.py`): Automatic, highly legible publication-ready thematic styling applied out-of-the-box to all algorithm output layers (choropleth, cartogram, hexbin, dot-density, proportional symbols, graticule, and label points).
