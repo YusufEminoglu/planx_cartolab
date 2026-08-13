@@ -1,6 +1,13 @@
 # Changelog - PlanX CartoLab
 
+## [2.1.1] - 2026-08-13
+
+### Changed
+- Print Layout Toolbar Simplification: Consolidated 8 individual toolbar items into 1 single clean CartoLab Studio toolbar button (`PlanX CartoLab Studio`) that toggles the embedded `CartoLab Layout Studio` Docked Panel.
+- Layout Dock Consolidation: All layout tools (Canvas Themes, Bivariate Legend, Typography, Scale Bar, North Arrow, Isometric Perspective, Quick Export) are cleanly organized within the single docked panel.
+
 ## [2.1.0] - 2026-08-13
+
 
 ### Added
 - Scale Bar & North Arrow Decorators: Added `add_scalebar_to_layout` and `add_north_arrow_to_layout` functions in `legend_decorator.py`.

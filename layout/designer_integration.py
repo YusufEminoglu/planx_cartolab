@@ -82,143 +82,33 @@ def attach_cartolab_to_designer(iface, designer) -> None:
     icon_path = os.path.join(icon_dir, "icon.png")
     icon = QIcon(icon_path) if os.path.exists(icon_path) else QIcon()
 
-    # 1. Create Toolbar inside Layout Designer
-    toolbar = QToolBar("PlanX CartoLab", main_win)
-    toolbar.setObjectName("PlanXCartoLabLayoutToolbar")
-
-    # Action 1: Add Bivariate Legend
-    act_bivar = QAction(icon, "💎 Bivariate Legend", main_win)
-    act_bivar.setToolTip("Add a Bivariate Legend overlay (Teal-Brown 3x3) to the layout")
-
-    def _on_bivar():
-        layout = _get_designer_layout(designer)
-        if not layout:
-            return
-        try:
-            from .legend_decorator import add_bivariate_legend
-            add_bivariate_legend(
-                layout=layout,
-                colors=("#e8e8e8", "#5ab4ac", "#d8b365", "#8c510a"),
-                legend_type="diamond",
-            )
-            if hasattr(iface, "messageBar"):
-                iface.messageBar().pushSuccess("CartoLab", "Bivariate legend added to layout.")
-        except Exception as exc:
-            QMessageBox.critical(main_win, "Bivariate Legend", str(exc))
-
-    act_bivar.triggered.connect(_on_bivar)
-    toolbar.addAction(act_bivar)
-
-    # Action 2: Apply Swiss Typography & Grid
-    act_typo = QAction(icon, "📏 Swiss Typography & Grid", main_win)
-    act_typo.setToolTip("Apply clean Swiss typography hierarchy and grid structure to map labels & frames")
-
-    def _on_typo():
-        layout = _get_designer_layout(designer)
-        if not layout:
-            return
-        try:
-            from .typography_engine import apply_swiss_typography
-            apply_swiss_typography(layout)
-            if hasattr(iface, "messageBar"):
-                iface.messageBar().pushSuccess("CartoLab", "Swiss typography applied to layout.")
-        except Exception as exc:
-            QMessageBox.critical(main_win, "Swiss Typography", str(exc))
-
-    act_typo.triggered.connect(_on_typo)
-    toolbar.addAction(act_typo)
-
-    # Action 3: Isometric Layer Stack
-    act_iso = QAction(icon, "📐 Isometric Stack", main_win)
-    act_iso.setToolTip("Stack active vector layers with isometric perspective rendering")
-
-    def _on_iso():
-        layout = _get_designer_layout(designer)
-        if not layout:
-            return
-        if not QgsProject or not QgsProject.instance():
-            return
-        layers = [lyr for lyr in QgsProject.instance().mapLayers().values() if hasattr(lyr, "geometryType")]
-        if len(layers) < 2:
-            QMessageBox.warning(main_win, "Isometric Stack", "At least 2 layers are required in the project.")
-            return
-        try:
-            from .isometric_stacker import stack_layers_isometrically
-            stack_layers_isometrically(
-                layout=layout,
-                layers=layers[:3],
-                tilt_angle=30.0,
-                heading=100.0,
-            )
-            if hasattr(iface, "messageBar"):
-                iface.messageBar().pushSuccess("CartoLab", "Isometric layer stack built in layout.")
-        except Exception as exc:
-            QMessageBox.critical(main_win, "Isometric Stack", str(exc))
-
-    act_iso.triggered.connect(_on_iso)
-    toolbar.addAction(act_iso)
-
-    toolbar.addSeparator()
-
-    # Resolution DPI selector on Toolbar
-    toolbar_dpi_combo = QComboBox()
-    toolbar_dpi_combo.setToolTip("Select Export Quality / DPI Resolution")
-    toolbar_dpi_combo.addItem("150 DPI Draft", 150)
-    toolbar_dpi_combo.addItem("300 DPI Publication", 300)
-    toolbar_dpi_combo.addItem("600 DPI Ultra", 600)
-    toolbar_dpi_combo.setCurrentIndex(1)
-    toolbar.addWidget(toolbar_dpi_combo)
-
-    # Action 4: Quick Export & Open (PNG/PDF/SVG)
-    act_export = QAction(icon, "⚡ Export & Open ↗", main_win)
-    act_export.setToolTip("Export layout to selected DPI image/PDF and open immediately in system viewer")
-
-    def _on_export():
-        layout = _get_designer_layout(designer)
-        if not layout:
-            return
-        dpi = toolbar_dpi_combo.currentData() or 300
-        safe = "".join(c if c.isalnum() else "_" for c in layout.name())
-        default = os.path.join(os.path.expanduser("~"), f"{safe}.png")
-        path, _ = QFileDialog.getSaveFileName(
-            main_win, f"Export Layout ({dpi} DPI)", default, "PNG Image (*.png);;PDF Document (*.pdf);;SVG Vector (*.svg)")
-        if not path:
-            return
-        try:
-            from .layout_utils import export_layout
-            success = export_layout(layout, path, dpi=int(dpi))
-            if success and os.path.exists(path):
-                QDesktopServices.openUrl(QUrl.fromLocalFile(path))
-                if hasattr(iface, "messageBar"):
-                    iface.messageBar().pushSuccess("CartoLab", f"Exported ({dpi} DPI) & Opened: {path}")
-        except Exception as exc:
-            QMessageBox.critical(main_win, "Export Layout", str(exc))
-
-    act_export.triggered.connect(_on_export)
-
-    toolbar.addAction(act_export)
-
-    main_win.addToolBar(toolbar)
-
-    # 2. Add PlanX CartoLab Menu to Designer MenuBar
+    # 1. Create 1 Embedded Dock Panel inside Print Layout Window
+    dock = create_cartolab_layout_dock(iface, designer, main_win)
     with suppress(Exception):
-        menubar = main_win.menuBar()
-        if menubar:
-            menu = QMenu("&PlanX CartoLab", menubar)
-            menu.addAction(act_bivar)
-            menu.addAction(act_typo)
-            menu.addAction(act_iso)
-            menu.addSeparator()
-            menu.addAction(act_export)
-            menubar.addMenu(menu)
-
-    # 3. Add Embedded Dock Panel inside Print Layout Window
-    with suppress(Exception):
-        dock = create_cartolab_layout_dock(iface, designer, main_win)
         if hasattr(designer, "addDockWidget"):
             designer.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock)
         elif hasattr(main_win, "addDockWidget"):
             main_win.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock)
+
+    # 2. Create SINGLE Toolbar Button to toggle the CartoLab Studio Dock Panel
+    toolbar = QToolBar("PlanX CartoLab", main_win)
+    toolbar.setObjectName("PlanXCartoLabLayoutToolbar")
+
+    act_toggle = QAction(icon, "PlanX CartoLab Studio", main_win)
+    act_toggle.setToolTip("Show / Hide PlanX CartoLab Layout Studio Dock Panel")
+    act_toggle.triggered.connect(lambda: dock.setVisible(not dock.isVisible()))
+
+    toolbar.addAction(act_toggle)
+    main_win.addToolBar(toolbar)
+
+    # 3. Add single PlanX CartoLab Menu item to Designer MenuBar
+    with suppress(Exception):
+        menubar = main_win.menuBar()
+        if menubar:
+            menu = QMenu("&PlanX CartoLab", menubar)
+            menu.addAction(act_toggle)
+            menubar.addMenu(menu)
+
 
 
 def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
