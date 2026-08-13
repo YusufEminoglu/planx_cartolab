@@ -1,6 +1,13 @@
 # Changelog - PlanX CartoLab
 
+## [1.8.3] - 2026-08-13
+
+### Added
+- Layout Toolbar Resolution Selector: Added direct 150 DPI / 300 DPI / 600 DPI quality dropdown selector on the Print Layout Designer window toolbar.
+- Documentation Sync: Synced reference manual `docs/CARTOLAB_REFERENCE_MANUAL.html` to v1.8.3 covering Print Layout Designer integration, embedded dock panel, and paper canvas themes.
+
 ## [1.8.2] - 2026-08-13
+
 
 ### Added
 - Paper Canvas Themes (`paper_themes.py`): Added Architectural Blueprint, Vintage Sepia Atlas, and Modern Swiss Minimalist artistic paper themes.

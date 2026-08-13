@@ -158,31 +158,42 @@ def attach_cartolab_to_designer(iface, designer) -> None:
 
     toolbar.addSeparator()
 
+    # Resolution DPI selector on Toolbar
+    toolbar_dpi_combo = QComboBox()
+    toolbar_dpi_combo.setToolTip("Select Export Quality / DPI Resolution")
+    toolbar_dpi_combo.addItem("150 DPI Draft", 150)
+    toolbar_dpi_combo.addItem("300 DPI Publication", 300)
+    toolbar_dpi_combo.addItem("600 DPI Ultra", 600)
+    toolbar_dpi_combo.setCurrentIndex(1)
+    toolbar.addWidget(toolbar_dpi_combo)
+
     # Action 4: Quick Export & Open (PNG/PDF/SVG)
     act_export = QAction(icon, "⚡ Export & Open ↗", main_win)
-    act_export.setToolTip("Export layout to 300 DPI image/PDF and open immediately in system viewer")
+    act_export.setToolTip("Export layout to selected DPI image/PDF and open immediately in system viewer")
 
     def _on_export():
         layout = _get_designer_layout(designer)
         if not layout:
             return
+        dpi = toolbar_dpi_combo.currentData() or 300
         safe = "".join(c if c.isalnum() else "_" for c in layout.name())
         default = os.path.join(os.path.expanduser("~"), f"{safe}.png")
         path, _ = QFileDialog.getSaveFileName(
-            main_win, "Export Layout (300 DPI)", default, "PNG Image (*.png);;PDF Document (*.pdf);;SVG Vector (*.svg)")
+            main_win, f"Export Layout ({dpi} DPI)", default, "PNG Image (*.png);;PDF Document (*.pdf);;SVG Vector (*.svg)")
         if not path:
             return
         try:
             from .layout_utils import export_layout
-            success = export_layout(layout, path, dpi=300)
+            success = export_layout(layout, path, dpi=int(dpi))
             if success and os.path.exists(path):
                 QDesktopServices.openUrl(QUrl.fromLocalFile(path))
                 if hasattr(iface, "messageBar"):
-                    iface.messageBar().pushSuccess("CartoLab", f"Exported & Opened: {path}")
+                    iface.messageBar().pushSuccess("CartoLab", f"Exported ({dpi} DPI) & Opened: {path}")
         except Exception as exc:
             QMessageBox.critical(main_win, "Export Layout", str(exc))
 
     act_export.triggered.connect(_on_export)
+
     toolbar.addAction(act_export)
 
     main_win.addToolBar(toolbar)
