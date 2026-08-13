@@ -739,6 +739,11 @@ section("Vertical Sidebar Navigation Workspace")
 from planx_cartolab.ui import cartolab_dashboard as cd
 check("CartoLabDashboard class exists", hasattr(cd, "CartoLabDashboard"))
 
+from planx_cartolab.layout import legend_decorator as ld
+check("add_scalebar_to_layout function exists", callable(ld.add_scalebar_to_layout))
+check("add_north_arrow_to_layout function exists", callable(ld.add_north_arrow_to_layout))
+
+
 
 
 

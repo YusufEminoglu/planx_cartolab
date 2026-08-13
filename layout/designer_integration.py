@@ -313,7 +313,41 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
 
     btn_dock_typo.clicked.connect(_dock_typo)
     fl_dec.addRow(btn_dock_typo)
+
+    btn_dock_scalebar = QPushButton("📏 Add Scale Bar")
+    def _dock_scalebar():
+        layout = _get_designer_layout(designer)
+        if not layout:
+            return
+        try:
+            from .legend_decorator import add_scalebar_to_layout
+            add_scalebar_to_layout(layout)
+            if hasattr(iface, "messageBar"):
+                iface.messageBar().pushSuccess("CartoLab", "Scale bar added to layout.")
+        except Exception as exc:
+            QMessageBox.critical(parent_win, "Scale Bar Error", str(exc))
+
+    btn_dock_scalebar.clicked.connect(_dock_scalebar)
+    fl_dec.addRow(btn_dock_scalebar)
+
+    btn_dock_north = QPushButton("🧭 Add North Arrow")
+    def _dock_north():
+        layout = _get_designer_layout(designer)
+        if not layout:
+            return
+        try:
+            from .legend_decorator import add_north_arrow_to_layout
+            add_north_arrow_to_layout(layout)
+            if hasattr(iface, "messageBar"):
+                iface.messageBar().pushSuccess("CartoLab", "North arrow added to layout.")
+        except Exception as exc:
+            QMessageBox.critical(parent_win, "North Arrow Error", str(exc))
+
+    btn_dock_north.clicked.connect(_dock_north)
+    fl_dec.addRow(btn_dock_north)
+
     lyt.addWidget(gb_dec)
+
 
 
     # Section 2: Isometric Stacking Controls

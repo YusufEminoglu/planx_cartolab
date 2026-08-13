@@ -10,23 +10,32 @@ from __future__ import annotations
 
 from typing import List
 
-from qgis.PyQt.QtCore import QPointF
-from qgis.PyQt.QtGui import QColor, QFont, QPolygonF
-from qgis.core import (
-    QgsLayout,
-    QgsLayoutItemGroup,
-    QgsLayoutItemLabel,
-    QgsLayoutItemPolygon,
-    QgsLayoutItemShape,
-    QgsLayoutPoint,
-    QgsLayoutSize,
-    QgsUnitTypes,
-    QgsFillSymbol,
-)
+try:
+    from qgis.PyQt.QtCore import QPointF
+    from qgis.PyQt.QtGui import QColor, QFont, QPolygonF
+    from qgis.core import (
+        QgsLayout,
+        QgsLayoutItemGroup,
+        QgsLayoutItemLabel,
+        QgsLayoutItemPolygon,
+        QgsLayoutItemShape,
+        QgsLayoutItemScaleBar,
+        QgsLayoutItemPicture,
+        QgsLayoutItemMap,
+        QgsLayoutPoint,
+        QgsLayoutSize,
+        QgsUnitTypes,
+        QgsFillSymbol,
+    )
+    _MM = QgsUnitTypes.LayoutUnit.LayoutMillimeters
+except ImportError:
+    QPointF = QColor = QFont = QPolygonF = QgsLayout = QgsLayoutItemGroup = QgsLayoutItemLabel = QgsLayoutItemPolygon = QgsLayoutItemShape = QgsLayoutItemScaleBar = QgsLayoutItemPicture = QgsLayoutItemMap = QgsLayoutPoint = QgsLayoutSize = QgsUnitTypes = QgsFillSymbol = None
+    _MM = 0
+
+
 
 from ..core.bivariate_engine import bivariate_colour_matrix
 
-_MM = QgsUnitTypes.LayoutUnit.LayoutMillimeters
 
 
 def add_bivariate_legend_to_layout(
@@ -166,3 +175,49 @@ def _build_diamond(layout, matrix, position, size_mm, x_label, y_label) -> List:
                         offset_y + (n - 1) * half_h, size=8, bold=True,
                         rotation=0.0))
     return items
+
+
+def add_scalebar_to_layout(
+    layout: QgsLayout,
+    map_item: QgsLayoutItemMap = None,
+    position: tuple = (15.0, 15.0),
+    style_name: str = "Single Box",
+) -> QgsLayoutItemScaleBar:
+    """Add a native scalebar item to the layout attached to the primary map frame."""
+    scalebar = QgsLayoutItemScaleBar(layout)
+    if map_item is None:
+        for item in layout.items():
+            if isinstance(item, QgsLayoutItemMap):
+                map_item = item
+                break
+    if map_item is not None:
+        scalebar.setLinkedMap(map_item)
+    scalebar.setStyle(style_name)
+    scalebar.setUnits(QgsUnitTypes.DistanceUnit.DistanceKilometers)
+    scalebar.setNumberOfSegments(2)
+    scalebar.setUnitsPerSegment(1.0)
+    scalebar.attemptMove(QgsLayoutPoint(position[0], position[1], _MM))
+    layout.addLayoutItem(scalebar)
+    return scalebar
+
+
+def add_north_arrow_to_layout(
+    layout: QgsLayout,
+    position: tuple = (15.0, 15.0),
+    size_mm: tuple = (16.0, 16.0),
+) -> QgsLayoutItemPolygon:
+    """Add a clean north arrow motif to the layout."""
+    x0, y0 = position
+    w, h = size_mm
+    cx = x0 + w / 2.0
+    poly = QPolygonF([
+        QPointF(cx, y0),
+        QPointF(x0 + w, y0 + h),
+        QPointF(cx, y0 + h * 0.75),
+        QPointF(x0, y0 + h),
+    ])
+    arrow = QgsLayoutItemPolygon(poly, layout)
+    arrow.setSymbol(_fill(QColor("#0f172a")))
+    layout.addLayoutItem(arrow)
+    return arrow
+

@@ -1,6 +1,13 @@
 # Changelog - PlanX CartoLab
 
+## [2.1.0] - 2026-08-13
+
+### Added
+- Scale Bar & North Arrow Decorators: Added `add_scalebar_to_layout` and `add_north_arrow_to_layout` functions in `legend_decorator.py`.
+- Enhanced Layout Studio Dock: Wired direct 1-click Scale Bar and North Arrow buttons into the CartoLab Layout Studio Dock panel inside the QGIS Print Layout Designer window.
+
 ## [2.0.1] - 2026-08-13
+
 
 ### Fixed
 - Layout Function Aliases: Added backward and forward compatible function aliases (`add_bivariate_legend`, `apply_swiss_typography`, `stack_layers_isometrically`) eliminating `ImportError` exceptions when triggering Print Layout actions.
