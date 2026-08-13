@@ -1,7 +1,8 @@
 [general]
 name=PlanX CartoLab
-version=1.7.0
+version=1.7.1
 hasProcessingProvider=yes
+
 
 category=Vector
 tags=cartography, thematic map, choropleth, quick style, graduated, categorized, bivariate, cartogram, dot-density, proportional-symbols, hexbin, value-by-alpha, ridge-maps, 2.5d, buildings, map layout, print layout, atlas, legend, north arrow, scale bar, graticule, labels, color ramp, colorbrewer, colorblind, viridis, symbology, map design, export, planx

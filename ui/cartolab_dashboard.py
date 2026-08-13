@@ -1097,18 +1097,42 @@ class CartoLabDashboard(QDialog):
                                        "Geometric interval"])
         g.addWidget(self.qs_method_combo, 5, 1)
 
-        g.addWidget(QLabel("Palette:"), 6, 0)
+        g.addWidget(QLabel("Palette type:"), 6, 0)
+        self.qs_kind_combo = QComboBox()
+        self.qs_kind_combo.addItems(["All Palette Types", "Sequential", "Diverging", "Qualitative"])
+        self.qs_kind_combo.currentIndexChanged.connect(self._populate_qs_palettes)
+        g.addWidget(self.qs_kind_combo, 6, 1)
+
+        g.addWidget(QLabel("Palette:"), 7, 0)
         self.qs_palette_combo = QComboBox()
         self.qs_palette_combo.currentIndexChanged.connect(self._update_qs_preview)
-        g.addWidget(self.qs_palette_combo, 6, 1)
+        g.addWidget(self.qs_palette_combo, 7, 1)
+
+        # Discrete Swatch Bar & Metadata Badge
+        preview_container = QWidget()
+        pv_layout = QVBoxLayout(preview_container)
+        pv_layout.setContentsMargins(0, 0, 0, 0)
+        pv_layout.setSpacing(4)
+
+        self.qs_preview_info = QLabel("Palette Info: -")
+        self.qs_preview_info.setStyleSheet("color: #2b4d57; font-size: 11px; font-weight: bold;")
+        pv_layout.addWidget(self.qs_preview_info)
+
+        self.qs_swatch_host = QWidget()
+        self.qs_swatch_layout = QHBoxLayout(self.qs_swatch_host)
+        self.qs_swatch_layout.setContentsMargins(0, 0, 0, 0)
+        self.qs_swatch_layout.setSpacing(2)
 
         self.qs_preview = QFrame()
-        self.qs_preview.setMinimumHeight(20)
+        self.qs_preview.setMinimumHeight(24)
         self.qs_preview.setStyleSheet("border-radius:4px;border:1px solid #cfdee2;")
-        g.addWidget(self.qs_preview, 7, 1)
+        pv_layout.addWidget(self.qs_preview)
+        pv_layout.addWidget(self.qs_swatch_host)
+
+        g.addWidget(preview_container, 8, 1)
 
         opts = QHBoxLayout()
-        self.qs_cbsafe_check = QCheckBox("Colour-blind safe only")
+        self.qs_cbsafe_check = QCheckBox("Colour-blind safe only 🟢")
         self.qs_cbsafe_check.toggled.connect(self._populate_qs_palettes)
         self.qs_reverse_check = QCheckBox("Reverse")
         self.qs_reverse_check.toggled.connect(self._update_qs_preview)
@@ -1118,12 +1142,12 @@ class CartoLabDashboard(QDialog):
         opts.addWidget(self.qs_reverse_check)
         opts.addWidget(self.qs_outline_check)
         opts.addStretch()
-        g.addLayout(opts, 8, 0, 1, 2)
+        g.addLayout(opts, 9, 0, 1, 2)
 
         btn = QPushButton("Apply Quick Style")
         btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         btn.clicked.connect(self._on_apply_quick_style)
-        g.addWidget(btn, 9, 0, 1, 2)
+        g.addWidget(btn, 10, 0, 1, 2)
 
         outer.addWidget(gb)
         outer.addStretch()
@@ -1138,14 +1162,27 @@ class CartoLabDashboard(QDialog):
             return
         current = self.qs_palette_combo.currentText()
         cb_only = self.qs_cbsafe_check.isChecked()
-        names = [n for n in _pal.ordered_names()
-                 if (not cb_only or _pal.is_colorblind_safe(n))]
+        kind_filter = (self.qs_kind_combo.currentText() or "").lower()
+
+        names = []
+        for n in _pal.ordered_names():
+            meta = _pal.PALETTES.get(n, {})
+            p_kind = meta.get("kind", "").lower()
+            p_cb = meta.get("cb_safe", False)
+            if cb_only and not p_cb:
+                continue
+            if kind_filter in ("sequential", "diverging", "qualitative") and p_kind != kind_filter:
+                continue
+            names.append(n)
+
         self.qs_palette_combo.blockSignals(True)
         self.qs_palette_combo.clear()
         for n in names:
-            suffix = "  ·  safe" if _pal.is_colorblind_safe(n) else ""
-            self.qs_palette_combo.addItem(n + suffix, n)
-        # restore selection if still present
+            meta = _pal.PALETTES.get(n, {})
+            badge = "🟢 Safe" if meta.get("cb_safe") else "⚠️ Normal"
+            kind_txt = meta.get("kind", "sequential").capitalize()
+            self.qs_palette_combo.addItem(f"{n}  ({kind_txt} · {badge})", n)
+
         for i in range(self.qs_palette_combo.count()):
             if self.qs_palette_combo.itemData(i) == current:
                 self.qs_palette_combo.setCurrentIndex(i)
@@ -1160,15 +1197,39 @@ class CartoLabDashboard(QDialog):
         name = self.qs_palette_combo.currentData()
         if not name:
             return
+        meta = _pal.PALETTES.get(name, {})
         n = max(2, self.qs_classes_spin.value())
         cols = _pal.get_palette(name, n)
         if self.qs_reverse_check.isChecked():
             cols = list(reversed(cols))
+
         stops = ", ".join(
             f"stop:{i / (len(cols) - 1):.3f} {c}" for i, c in enumerate(cols))
         self.qs_preview.setStyleSheet(
             "border-radius:4px;border:1px solid #cfdee2;"
             f"background:qlineargradient(x1:0,y1:0,x2:1,y2:0,{stops});")
+
+        # Update metadata badge info
+        cb_badge = "🟢 Colorblind Safe" if meta.get("cb_safe") else "⚠️ General Use"
+        kind_str = meta.get("kind", "Sequential").capitalize()
+        self.qs_preview_info.setText(
+            f"Palette: <b>{name}</b> ({kind_str})  ·  {cb_badge}  ·  <b>{len(cols)} classes</b>"
+        )
+
+        # Populate discrete swatch blocks
+        while self.qs_swatch_layout.count():
+            item = self.qs_swatch_layout.takeAt(0)
+            w = item.widget()
+            if w:
+                w.deleteLater()
+
+        for c in cols:
+            block = QFrame()
+            block.setFixedHeight(12)
+            block.setToolTip(c)
+            block.setStyleSheet(f"background: {c}; border-radius: 2px; border: 1px solid #778899;")
+            self.qs_swatch_layout.addWidget(block, 1)
+
 
     def _refresh_qs_layers(self) -> None:
         if not hasattr(self, "qs_layer_combo"):

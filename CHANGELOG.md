@@ -1,6 +1,14 @@
 # Changelog - PlanX CartoLab
 
+## [1.7.1] - 2026-08-13
+
+### Added
+- Interactive Palette Swatch Bar: Live discrete color swatch blocks in Quick Style showing exact class color steps.
+- Palette Type Filter: Filter palettes by type (Sequential, Diverging, Qualitative) alongside colorblind-safe toggle.
+- Metadata Badge: Live chip displaying palette classification, colorblind safety status (`🟢 Colorblind Safe`), and class count.
+
 ## [1.7.0] - 2026-08-13
+
 
 ### Changed
 - Major GUI Consolidation: Restructured 9 scattered tabs into 3 streamlined Studio Workspaces: `🎨 Symbology & Thematic Studio`, `📐 Layout Automation Studio`, and `⚡ Processing Algorithm Hub`.
