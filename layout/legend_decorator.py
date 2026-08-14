@@ -210,14 +210,22 @@ def add_scalebar_to_layout(
     if map_item is not None:
         scalebar.setLinkedMap(map_item)
 
-    # Style mapping: "Single Box", "Double Box", "Line Ticks", "Stepped Box"
+    # Style mapping: "Single Box", "Double Box", "Line Ticks", "Stepped Box", "Line Ticks Up", "Line Ticks Down"
     STYLE_MAP = {
         "Single Box": "Single Box",
+        "Single Box (Modern)": "Single Box",
         "Double Box": "Double Box",
+        "Double Box (Classic)": "Double Box",
         "Line Ticks": "Line Ticks Middle",
         "Line Ticks Middle": "Line Ticks Middle",
+        "Line Ticks Up": "Line Ticks Up",
+        "Clean Line (Ticks Up)": "Line Ticks Up",
+        "Line Ticks Down": "Line Ticks Down",
+        "Clean Line (Ticks Down)": "Line Ticks Down",
         "Stepped Box": "Stepped Line",
         "Stepped Line": "Stepped Line",
+        "Stepped Line (Academic)": "Stepped Line",
+        "Hollow": "Hollow",
     }
     target_style = STYLE_MAP.get(style_name, "Single Box")
     scalebar.setStyle(target_style)
@@ -231,10 +239,63 @@ def add_scalebar_to_layout(
     scalebar.setUnitsPerSegment(units_per_segment)
     scalebar.setUnitLabel(unit_label)
 
+    # Clean styling
+    if hasattr(scalebar, "setLineSymbol") and QgsFillSymbol is not None:
+        pass
+
     scalebar.attemptMove(QgsLayoutPoint(position[0], position[1], _MM))
     layout.addLayoutItem(scalebar)
     layout.refresh()
     return scalebar
+
+
+def add_scale_combo_to_layout(
+    layout: QgsLayout,
+    map_item: QgsLayoutItemMap = None,
+    position: tuple = (15.0, 15.0),
+    style_name: str = "Clean Line (Ticks Up)",
+) -> QgsLayoutItemGroup:
+    """
+    Insert a combined scale indicator: dynamic ratio text (e.g. 1:25,000) + graphical bar.
+    """
+    if layout is None or QgsLayoutItemScaleBar is None:
+        return None
+
+    if map_item is None:
+        for item in layout.items():
+            if isinstance(item, QgsLayoutItemMap):
+                map_item = item
+                break
+
+    sb = add_scalebar_to_layout(
+        layout,
+        map_item=map_item,
+        position=(position[0], position[1] + 6.0),
+        style_name=style_name,
+    )
+
+    scale_val = int(round(map_item.scale())) if map_item else 25000
+    map_name = map_item.id() if (map_item and map_item.id()) else "Map 1"
+
+    lbl = QgsLayoutItemLabel(layout)
+    lbl.setText(f"Scale 1:{scale_val:,}")
+    if QFont is not None:
+        lbl.setFont(QFont("Inter, Segoe UI", 8, QFont.Weight.Bold))
+    if QColor is not None:
+        lbl.setFontColor(QColor("#0f172a"))
+    lbl.attemptMove(QgsLayoutPoint(position[0], position[1], _MM))
+    lbl.attemptResize(QgsLayoutSize(60.0, 5.0, _MM))
+    layout.addLayoutItem(lbl)
+
+    items = [lbl]
+    if sb is not None:
+        items.append(sb)
+
+    if hasattr(layout, "groupItems") and items:
+        grp = layout.groupItems(items)
+        if grp:
+            return grp
+    return items
 
 
 def add_north_arrow_to_layout(

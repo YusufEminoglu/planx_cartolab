@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.6.1] - 2026-08-14
+
+- Scale bar style presets (Clean Line Ticks Up/Down, Academic Stepped Line) and dynamic Scale Ratio + Graphical Bar Combo indicator
+
 ## [2.6.0] - 2026-08-14
 
 - Full Cartographic Typography Hierarchy Presets (Swiss Modernism, Academic Journal, Technical Blueprint, Warm Editorial)

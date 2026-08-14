@@ -433,10 +433,12 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
     fl_elem = QFormLayout(gb_map_elem)
 
     scalebar_combo = QComboBox()
-    scalebar_combo.addItem("Single Box", "Single Box")
-    scalebar_combo.addItem("Double Box", "Double Box")
-    scalebar_combo.addItem("Line Ticks", "Line Ticks")
-    scalebar_combo.addItem("Stepped Box", "Stepped Box")
+    scalebar_combo.addItem("Clean Line (Ticks Up)", "Clean Line (Ticks Up)")
+    scalebar_combo.addItem("Clean Line (Ticks Down)", "Clean Line (Ticks Down)")
+    scalebar_combo.addItem("Line Ticks Middle", "Line Ticks Middle")
+    scalebar_combo.addItem("Single Box (Modern)", "Single Box (Modern)")
+    scalebar_combo.addItem("Double Box (Classic)", "Double Box (Classic)")
+    scalebar_combo.addItem("Stepped Line (Academic)", "Stepped Line (Academic)")
     fl_elem.addRow("Scalebar Style:", scalebar_combo)
 
     btn_dock_scalebar = QPushButton("Add Executive Scale Bar")
@@ -448,15 +450,35 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
             return
         try:
             from .legend_decorator import add_scalebar_to_layout
-            sname = scalebar_combo.currentData() or "Single Box"
+            sname = scalebar_combo.currentData() or "Clean Line (Ticks Up)"
             add_scalebar_to_layout(layout, style_name=sname)
             if hasattr(iface, "messageBar"):
-                iface.messageBar().pushSuccess("CartoLab", f"Executive scale bar '{sname}' added to layout.")
+                iface.messageBar().pushSuccess("CartoLab", f"Executive scale bar '{sname}' added.")
         except Exception as exc:
             QMessageBox.critical(parent_win, "Scale Bar Error", str(exc))
 
     btn_dock_scalebar.clicked.connect(_dock_scalebar)
     fl_elem.addRow(btn_dock_scalebar)
+
+    btn_dock_scale_combo = QPushButton("Add Scale Bar + Ratio Combo (1:N)")
+    btn_dock_scale_combo.setObjectName("ghost")
+    btn_dock_scale_combo.setIcon(_get_cartolab_icon("compass.png"))
+
+    def _dock_scale_combo():
+        layout = _get_designer_layout(designer)
+        if not layout:
+            return
+        try:
+            from .legend_decorator import add_scale_combo_to_layout
+            sname = scalebar_combo.currentData() or "Clean Line (Ticks Up)"
+            add_scale_combo_to_layout(layout, style_name=sname)
+            if hasattr(iface, "messageBar"):
+                iface.messageBar().pushSuccess("CartoLab", "Combined scale ratio & bar added.")
+        except Exception as exc:
+            QMessageBox.critical(parent_win, "Scale Combo Error", str(exc))
+
+    btn_dock_scale_combo.clicked.connect(_dock_scale_combo)
+    fl_elem.addRow(btn_dock_scale_combo)
 
     north_combo = QComboBox()
     north_combo.addItem("Architectural Compass Rose", "compass_rose")
