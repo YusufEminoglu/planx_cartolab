@@ -1242,6 +1242,8 @@ class CartoLabDashboard(_QDialogBase):
             "Natural Breaks (Fisher-Jenks)",
             "Head/Tail Breaks (power-law)",
             "Standard Deviation",
+            "Maximum Breaks (largest gaps)",
+            "Pretty Breaks (nice round numbers)",
         ])
         g.addWidget(self.qs_method_combo, 5, 1)
 

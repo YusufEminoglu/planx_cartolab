@@ -54,6 +54,8 @@ class QuickStyleAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         ("Natural Breaks (Fisher-Jenks)", qs.JENKS),
         ("Head/Tail Breaks (power-law)", qs.HEAD_TAIL),
         ("Standard Deviation", qs.STD_DEV),
+        ("Maximum Breaks (largest gaps)", qs.MAXIMUM),
+        ("Pretty Breaks (nice round numbers)", qs.PRETTY),
     ]
 
     def name(self) -> str:

@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.6.8] - 2026-08-14
+
+- Added Maximum Breaks and Pretty Breaks (nice round numbers) to Quick Style and Processing algorithms
+
 ## [2.6.7] - 2026-08-14
 
 - Integrated Typography Presets, Coordinate Grid, and Clean Line Ticks into Auto Map Sheet Generator

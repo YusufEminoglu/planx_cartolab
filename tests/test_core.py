@@ -710,8 +710,18 @@ check("head_tail breaks returns edges", len(htb) >= 2)
 sdb = qs.std_dev_breaks(vals, 5)
 check("std_dev breaks returns edges", len(sdb) >= 2)
 
+mb = qs.maximum_breaks([1, 2, 3, 10, 11, 12, 100, 101, 102], 3)
+check("maximum_breaks splits at largest gaps", len(mb) >= 3 and mb[0] == 1 and mb[-1] == 102)
+
+pb = qs.pretty_breaks([12, 45, 78, 120, 340, 500], 5)
+check("pretty_breaks produces monotonic breaks", len(pb) >= 3 and pb[0] <= 12 and pb[-1] >= 500)
+
 cb_j = qs.compute_breaks(vals, qs.JENKS, 4)
 check("compute_breaks with jenks works", len(cb_j) >= 4)
+cb_max = qs.compute_breaks(vals, qs.MAXIMUM, 3)
+check("compute_breaks with maximum breaks works", len(cb_max) >= 3)
+cb_pretty = qs.compute_breaks(vals, qs.PRETTY, 4)
+check("compute_breaks with pretty breaks works", len(cb_pretty) >= 3)
 
 check("dedupe drops zero-width", qs.dedupe_edges([1, 1, 2, 3, 3]) == [1, 2, 3])
 check("edges_to_ranges pairs", qs.edges_to_ranges([0, 1, 2, 3]) ==

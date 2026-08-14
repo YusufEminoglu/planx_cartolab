@@ -19,6 +19,8 @@ GEOMETRIC = "geometric"
 JENKS = "jenks"
 HEAD_TAIL = "head_tail"
 STD_DEV = "std_dev"
+MAXIMUM = "maximum"
+PRETTY = "pretty"
 
 
 def _clean(values) -> List[float]:
@@ -99,6 +101,53 @@ def std_dev_breaks(values, n: int = 5) -> List[float]:
     return sorted(list(set(breaks)))
 
 
+def maximum_breaks(values, n: int = 5) -> List[float]:
+    """Maximum Breaks classifier: splits at the largest gaps between adjacent sorted values."""
+    xs = _clean(values)
+    if not xs or n < 1:
+        return []
+    if len(xs) <= n or xs[0] == xs[-1]:
+        return equal_interval_breaks(xs, n)
+
+    gaps = [(xs[i + 1] - xs[i], i) for i in range(len(xs) - 1)]
+    gaps.sort(key=lambda item: item[0], reverse=True)
+    split_indices = sorted([idx for _, idx in gaps[:n - 1]])
+
+    breaks = [xs[0]]
+    for idx in split_indices:
+        breaks.append((xs[idx] + xs[idx + 1]) / 2.0)
+    breaks.append(xs[-1])
+    return breaks
+
+
+def pretty_breaks(values, n: int = 5) -> List[float]:
+    """Pretty / Nice Round Number breaks using Heckbert nice-number algorithm."""
+    xs = _clean(values)
+    if not xs or n < 1:
+        return []
+    vmin, vmax = xs[0], xs[-1]
+    if vmin == vmax:
+        return [vmin, vmax]
+
+    from .layout_math import nice_interval
+    step = nice_interval(vmax - vmin, target_divisions=max(2, n))
+    if step <= 0:
+        return equal_interval_breaks(xs, n)
+
+    first_break = math.floor(vmin / step) * step
+    last_break = math.ceil(vmax / step) * step
+
+    breaks = []
+    curr = first_break
+    while curr <= last_break + step * 0.5:
+        breaks.append(round(curr, 6))
+        curr += step
+
+    if len(breaks) < 2:
+        return equal_interval_breaks(xs, n)
+    return breaks
+
+
 def compute_breaks(values, method: str = QUANTILE, n: int = 5) -> List[float]:
     """Unified entry point to compute classification break edges."""
     m = (method or "").lower()
@@ -107,12 +156,16 @@ def compute_breaks(values, method: str = QUANTILE, n: int = 5) -> List[float]:
     elif m == GEOMETRIC:
         from .bivariate_engine import geometric_interval_breaks
         return geometric_interval_breaks(values, n_classes=n)
-    elif m == JENKS:
+    elif m in (JENKS, "fisher_jenks"):
         return jenks_breaks(values, n)
     elif m == HEAD_TAIL:
         return head_tail_breaks_method(values)
     elif m == STD_DEV:
         return std_dev_breaks(values, n)
+    elif m == MAXIMUM:
+        return maximum_breaks(values, n)
+    elif m == PRETTY:
+        return pretty_breaks(values, n)
     return quantile_breaks(values, n)
 
 
