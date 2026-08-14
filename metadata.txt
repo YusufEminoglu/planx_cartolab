@@ -1,6 +1,6 @@
 [general]
 name=PlanX CartoLab
-version=2.6.8
+version=2.6.9
 hasProcessingProvider=yes
 
 

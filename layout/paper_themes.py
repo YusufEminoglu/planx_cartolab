@@ -33,12 +33,26 @@ except ImportError:
 
 
 PAPER_THEMES: Dict[str, Dict[str, Any]] = {
+    "swiss_modern": {
+        "name": "Modern Swiss Minimalist",
+        "bg_color": "#ffffff",
+        "text_color": "#18181b",
+        "grid_color": "#e4e4e7",
+        "frame_color": "#27272a",
+    },
     "blueprint": {
         "name": "Architectural Blueprint",
         "bg_color": "#0b2545",
         "text_color": "#e0f2fe",
         "grid_color": "#134074",
         "frame_color": "#38bdf8",
+    },
+    "dark_matter": {
+        "name": "Dark Matter / Obsidian Urban",
+        "bg_color": "#0f172a",
+        "text_color": "#f8fafc",
+        "grid_color": "#1e293b",
+        "frame_color": "#475569",
     },
     "sepia_atlas": {
         "name": "Vintage Sepia Atlas",
@@ -47,12 +61,19 @@ PAPER_THEMES: Dict[str, Dict[str, Any]] = {
         "grid_color": "#d4c5b9",
         "frame_color": "#6e473b",
     },
-    "swiss_modern": {
-        "name": "Modern Swiss Minimalist",
-        "bg_color": "#ffffff",
-        "text_color": "#18181b",
-        "grid_color": "#e4e4e7",
-        "frame_color": "#27272a",
+    "warm_editorial": {
+        "name": "Warm Editorial Newsprint",
+        "bg_color": "#fdfbf7",
+        "text_color": "#292524",
+        "grid_color": "#e7e5e4",
+        "frame_color": "#78716c",
+    },
+    "japanese_washi": {
+        "name": "Japanese Washi Minimal",
+        "bg_color": "#f7f6f2",
+        "text_color": "#1c1917",
+        "grid_color": "#e2e0d8",
+        "frame_color": "#a8a29e",
     },
 }
 

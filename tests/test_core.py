@@ -743,10 +743,13 @@ check("designer_integration dock creator exists", callable(di.create_cartolab_la
 # ===================================================================
 section("Paper Canvas Themes")
 from planx_cartolab.layout import paper_themes as pt
-check("paper themes dict exists", len(pt.PAPER_THEMES) >= 3)
+check("paper themes dict exists", len(pt.PAPER_THEMES) >= 6)
 check("blueprint theme exists", "blueprint" in pt.PAPER_THEMES)
 check("sepia_atlas theme exists", "sepia_atlas" in pt.PAPER_THEMES)
 check("swiss_modern theme exists", "swiss_modern" in pt.PAPER_THEMES)
+check("dark_matter theme exists", "dark_matter" in pt.PAPER_THEMES)
+check("warm_editorial theme exists", "warm_editorial" in pt.PAPER_THEMES)
+check("japanese_washi theme exists", "japanese_washi" in pt.PAPER_THEMES)
 check("apply_paper_theme function exists", callable(pt.apply_paper_theme))
 
 # ===================================================================

@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.6.9] - 2026-08-14
+
+- Expanded Paper Canvas Themes (Dark Matter Obsidian, Warm Editorial Newsprint, Japanese Washi Minimal)
+
 ## [2.6.8] - 2026-08-14
 
 - Added Maximum Breaks and Pretty Breaks (nice round numbers) to Quick Style and Processing algorithms
