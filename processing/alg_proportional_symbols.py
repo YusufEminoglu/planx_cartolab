@@ -6,14 +6,17 @@ from contextlib import suppress
 
 import math
 
+from qgis.PyQt.QtCore import QVariant
+from qgis.PyQt.QtGui import QColor
 from qgis.core import (
     QgsFeature, QgsFeatureSink, QgsField, QgsFields, QgsProcessing,
     QgsProcessingAlgorithm, QgsProcessingException,
-    QgsProcessingParameterBoolean, QgsProcessingParameterFeatureSink,
+    QgsProcessingParameterBoolean, QgsProcessingParameterColor,
+    QgsProcessingParameterEnum, QgsProcessingParameterFeatureSink,
     QgsProcessingParameterFeatureSource, QgsProcessingParameterField,
-    QgsProcessingParameterNumber, QgsWkbTypes,
+    QgsProcessingParameterNumber, QgsWkbTypes, QgsMarkerSymbol,
+    QgsSingleSymbolRenderer, QgsProperty,
 )
-from qgis.PyQt.QtCore import QVariant
 
 from ..core.utils import safe_float
 from ..core import proportional_symbols as ps
@@ -26,8 +29,14 @@ class ProportionalSymbolsAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
     FIELD = "FIELD"
     MAX_SIZE = "MAX_SIZE"
     MIN_SIZE = "MIN_SIZE"
+    SHAPE = "SHAPE"
+    FILL_COLOR = "FILL_COLOR"
+    OUTLINE_COLOR = "OUTLINE_COLOR"
     FLANNERY = "FLANNERY"
     OUTPUT = "OUTPUT"
+
+    SHAPES = ["Circle", "Square", "Diamond", "Triangle", "Star"]
+    SHAPE_MAP = ["circle", "square", "diamond", "triangle", "star"]
 
     def name(self) -> str:
         return "proportional_symbols"
@@ -51,8 +60,10 @@ class ProportionalSymbolsAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
             "Readers systematically under-estimate circle area; Flannery scaling "
             "(exponent ~0.57) compensates so visual perception matches true data "
             "ratios.\n\n"
+            "• Shapes: Circle, Square, Diamond, Triangle, Star.\n"
+            "• Colors: Configurable fill and outline colors with RGBA transparency.\n"
             "Outputs point geometries at centroids with 'psym_value' and 'psym_size' "
-            "(symbol size in mm) fields, styled automatically with a nested legend."
+            "(symbol size in mm) fields, styled automatically with a data-defined renderer."
         )
 
     def initAlgorithm(self, config=None):
@@ -67,6 +78,12 @@ class ProportionalSymbolsAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterNumber(
             self.MIN_SIZE, "Minimum symbol size (mm)",
             type=QgsProcessingParameterNumber.Type.Double, defaultValue=2.0, minValue=0.0))
+        self.addParameter(QgsProcessingParameterEnum(
+            self.SHAPE, "Symbol shape", options=self.SHAPES, defaultValue=0))
+        self.addParameter(QgsProcessingParameterColor(
+            self.FILL_COLOR, "Symbol fill color", defaultValue=QColor(227, 142, 79, 180)))
+        self.addParameter(QgsProcessingParameterColor(
+            self.OUTLINE_COLOR, "Symbol outline color", defaultValue=QColor(120, 66, 20, 220)))
         self.addParameter(QgsProcessingParameterBoolean(
             self.FLANNERY, "Apply Flannery perceptual compensation", defaultValue=True))
         self.addParameter(QgsProcessingParameterFeatureSink(
@@ -79,6 +96,10 @@ class ProportionalSymbolsAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         field_name = self.parameterAsString(parameters, self.FIELD, context)
         max_size = self.parameterAsDouble(parameters, self.MAX_SIZE, context)
         min_size = self.parameterAsDouble(parameters, self.MIN_SIZE, context)
+        shape_idx = self.parameterAsEnum(parameters, self.SHAPE, context) if self.SHAPE in parameters else 0
+        shape_name = self.SHAPE_MAP[shape_idx] if 0 <= shape_idx < len(self.SHAPE_MAP) else "circle"
+        fill_color = self.parameterAsColor(parameters, self.FILL_COLOR, context) if self.FILL_COLOR in parameters else QColor(227, 142, 79, 180)
+        outline_color = self.parameterAsColor(parameters, self.OUTLINE_COLOR, context) if self.OUTLINE_COLOR in parameters else QColor(120, 66, 20, 220)
         flannery = self.parameterAsBool(parameters, self.FLANNERY, context)
 
         values = []
@@ -133,10 +154,11 @@ class ProportionalSymbolsAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         with suppress(Exception):
             out_layer = context.getMapLayer(dest_id)
             if out_layer:
-                from qgis.core import QgsMarkerSymbol, QgsSingleSymbolRenderer, QgsProperty
+                fc_str = f"{fill_color.red()},{fill_color.green()},{fill_color.blue()},{fill_color.alpha()}"
+                oc_str = f"{outline_color.red()},{outline_color.green()},{outline_color.blue()},{outline_color.alpha()}"
                 symbol = QgsMarkerSymbol.createSimple({
-                    "name": "circle", "color": "227,142,79,180",
-                    "outline_color": "120,66,20,220", "outline_width": "0.3",
+                    "name": shape_name, "color": fc_str,
+                    "outline_color": oc_str, "outline_width": "0.3",
                 })
                 symbol.setDataDefinedSize(QgsProperty.fromField("psym_size"))
                 out_layer.setRenderer(QgsSingleSymbolRenderer(symbol))

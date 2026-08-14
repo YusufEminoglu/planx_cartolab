@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.7.8] - 2026-08-14
+
+- Added SHAPE, FILL_COLOR, and OUTLINE_COLOR configuration to Proportional Symbols
+
 ## [2.7.7] - 2026-08-14
 
 - Added DOT_SIZE and DOT_COLOR configuration to Dot Density Processing Algorithm
