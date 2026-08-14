@@ -48,6 +48,7 @@ def _largest_part_rings(geom):
 
 
 class LabelPointsAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
+    _ICON_NAME = "compass.png"
     INPUT = "INPUT"
     PRECISION = "PRECISION"
     OUTPUT = "OUTPUT"

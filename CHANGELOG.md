@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.5.3] - 2026-08-14
+
+- Elite 0-margin squircle icon suite (14 sub-tool icons), rich GUI toolbar and Print Layout integration
+
 ## [2.5.2] - 2026-08-14
 
 - Fix 12+ bugs: scoped enum compat (QGIS 3/4), removeLayoutItem, setFrameStrokeColor, addGrid/addOverview TypeErrors, coordinate grid enums, scalebar units fallback, bivariate axis labels, html metric ValueError

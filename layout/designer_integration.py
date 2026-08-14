@@ -129,10 +129,20 @@ def attach_cartolab_to_designer(iface, designer) -> None:
             target_tb.addAction(act_toggle)
 
 
+def _get_cartolab_icon(name: str = "icon.png") -> QIcon:
+    base = os.path.dirname(os.path.dirname(__file__))
+    path = os.path.join(base, "icons", name)
+    if os.path.exists(path):
+        return QIcon(path)
+    fallback = os.path.join(base, "icons", "icon.png")
+    return QIcon(fallback) if os.path.exists(fallback) else QIcon()
+
+
 def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
     """Create embedded CartoLab Layout Studio Dock Widget for the layout designer."""
     dock = QDockWidget("CartoLab Layout Studio", parent_win)
     dock.setObjectName("CartoLabLayoutStudioDock")
+    dock.setWindowIcon(_get_cartolab_icon("icon.png"))
     _LeftDock = getattr(getattr(Qt, "DockWidgetArea", Qt), "LeftDockWidgetArea", getattr(Qt, "LeftDockWidgetArea", 1))
     _RightDock = getattr(getattr(Qt, "DockWidgetArea", Qt), "RightDockWidgetArea", getattr(Qt, "RightDockWidgetArea", 2))
     dock.setAllowedAreas(_LeftDock | _RightDock)
@@ -152,27 +162,51 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
         QTabBar::tab {
             background: #f1f5f9;
             color: #334155;
-            padding: 6px 10px;
-            font-weight: 600;
+            padding: 7px 12px;
+            font-weight: 700;
             font-size: 11px;
-            border-top-left-radius: 4px;
-            border-top-right-radius: 4px;
+            border-top-left-radius: 6px;
+            border-top-right-radius: 6px;
             margin-right: 2px;
         }
         QTabBar::tab:selected {
             background: #ffffff;
-            color: #2563eb;
-            border-bottom: 2px solid #2563eb;
+            color: #0284c7;
+            border-bottom: 2px solid #0284c7;
+        }
+        QGroupBox {
+            font-weight: 700;
+            font-size: 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            margin-top: 8px;
+            padding: 10px 8px 8px 8px;
+        }
+        QGroupBox::title {
+            subcontrol-origin: margin;
+            left: 10px;
+            padding: 0 4px;
+            color: #0f172a;
         }
         QPushButton {
-            background-color: #2563eb;
-            color: white;
-            border-radius: 4px;
-            padding: 6px 12px;
-            font-weight: 600;
+            background-color: #0f172a;
+            color: #f8fafc;
+            border-radius: 6px;
+            padding: 7px 12px;
+            font-weight: 700;
+            border: 1px solid #1e293b;
         }
         QPushButton:hover {
-            background-color: #1d4ed8;
+            background-color: #0284c7;
+            border-color: #0369a1;
+            color: #ffffff;
+        }
+        QLineEdit, QComboBox, QDoubleSpinBox {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            padding: 5px;
+            color: #0f172a;
         }
     """)
 
@@ -192,6 +226,7 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
     theme_combo.addItem("Modern Swiss Minimalist", "swiss_modern")
     fl_theme.addRow("Theme:", theme_combo)
     btn_apply_theme = QPushButton("Apply Canvas Theme")
+    btn_apply_theme.setIcon(_get_cartolab_icon("style.png"))
 
     def _apply_theme():
         layout = _get_designer_layout(designer)
@@ -212,7 +247,8 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
 
     gb_typo = QGroupBox("Swiss Typography & Grid")
     fl_typo = QFormLayout(gb_typo)
-    btn_dock_typo = QPushButton("📏 Apply Swiss Typography & Grid")
+    btn_dock_typo = QPushButton("Apply Swiss Typography")
+    btn_dock_typo.setIcon(_get_cartolab_icon("layout.png"))
 
     def _dock_typo():
         layout = _get_designer_layout(designer)
@@ -229,7 +265,8 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
     btn_dock_typo.clicked.connect(_dock_typo)
     fl_typo.addRow(btn_dock_typo)
 
-    btn_dock_title = QPushButton("🏛️ Add Publication Title Block")
+    btn_dock_title = QPushButton("Add Publication Title Block")
+    btn_dock_title.setIcon(_get_cartolab_icon("layout.png"))
 
     def _dock_title():
         layout = _get_designer_layout(designer)
@@ -249,7 +286,7 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
     lyt_canvas.addWidget(gb_typo)
     lyt_canvas.addStretch()
 
-    tabs.addTab(tab_canvas, "🎨 Canvas & Grid")
+    tabs.addTab(tab_canvas, _get_cartolab_icon("layout.png"), "Canvas & Grid")
 
 
     # -----------------------------------------------------------------
@@ -281,7 +318,8 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
     shape_combo.addItem("Square", "square")
     fl_bivar.addRow("Shape:", shape_combo)
 
-    btn_add_bivar = QPushButton("➕ Add Bivariate Legend")
+    btn_add_bivar = QPushButton("Add Bivariate Legend")
+    btn_add_bivar.setIcon(_get_cartolab_icon("bivariate.png"))
 
     def _add_bivar():
         layout = _get_designer_layout(designer)
@@ -302,7 +340,8 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
     btn_add_bivar.clicked.connect(_add_bivar)
     fl_bivar.addRow(btn_add_bivar)
 
-    btn_update_bivar = QPushButton("🔄 Update Selected Legend in Layout")
+    btn_update_bivar = QPushButton("Update Selected Legend in Layout")
+    btn_update_bivar.setIcon(_get_cartolab_icon("bivariate.png"))
 
     def _update_bivar():
         layout = _get_designer_layout(designer)
@@ -357,7 +396,8 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
     scalebar_combo.addItem("Stepped Box", "Stepped Box")
     fl_elem.addRow("Scalebar Style:", scalebar_combo)
 
-    btn_dock_scalebar = QPushButton("📏 Add Executive Scale Bar")
+    btn_dock_scalebar = QPushButton("Add Executive Scale Bar")
+    btn_dock_scalebar.setIcon(_get_cartolab_icon("layout.png"))
 
     def _dock_scalebar():
         layout = _get_designer_layout(designer)
@@ -381,7 +421,8 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
     north_combo.addItem("Nautical Star 4-Point", "nautical_star")
     fl_elem.addRow("North Arrow Motif:", north_combo)
 
-    btn_dock_north = QPushButton("🧭 Add Publication North Arrow")
+    btn_dock_north = QPushButton("Add Publication North Arrow")
+    btn_dock_north.setIcon(_get_cartolab_icon("compass.png"))
 
     def _dock_north():
         layout = _get_designer_layout(designer)
@@ -399,7 +440,8 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
     btn_dock_north.clicked.connect(_dock_north)
     fl_elem.addRow(btn_dock_north)
 
-    btn_dock_legend_style = QPushButton("📊 Style Legend (Publication Clean)")
+    btn_dock_legend_style = QPushButton("Style Legend (Clean Publication)")
+    btn_dock_legend_style.setIcon(_get_cartolab_icon("style.png"))
 
     def _dock_legend_style():
         layout = _get_designer_layout(designer)
@@ -416,7 +458,8 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
     btn_dock_legend_style.clicked.connect(_dock_legend_style)
     fl_elem.addRow(btn_dock_legend_style)
 
-    btn_dock_locator = QPushButton("📍 Add Locator / Inset Map")
+    btn_dock_locator = QPushButton("Add Locator / Inset Map")
+    btn_dock_locator.setIcon(_get_cartolab_icon("grid.png"))
 
     def _dock_locator():
         layout = _get_designer_layout(designer)
@@ -433,7 +476,8 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
     btn_dock_locator.clicked.connect(_dock_locator)
     fl_elem.addRow(btn_dock_locator)
 
-    btn_dock_grid = QPushButton("🌐 Apply Coordinate Grid")
+    btn_dock_grid = QPushButton("Apply Coordinate Grid")
+    btn_dock_grid.setIcon(_get_cartolab_icon("grid.png"))
 
     def _dock_grid():
         layout = _get_designer_layout(designer)
@@ -455,7 +499,7 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
 
     lyt_dec.addStretch()
 
-    tabs.addTab(tab_dec, "💎 Decorators")
+    tabs.addTab(tab_dec, _get_cartolab_icon("bivariate.png"), "Decorators")
 
     # -----------------------------------------------------------------
     # TAB 3: 3D Perspective & Quick Export
@@ -481,6 +525,7 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
     fl_iso.addRow("Heading Angle:", heading_spin)
 
     btn_apply_iso = QPushButton("Apply Isometric Perspective")
+    btn_apply_iso.setIcon(_get_cartolab_icon("isometric.png"))
 
     def _apply_iso():
         layout = _get_designer_layout(designer)
@@ -512,7 +557,8 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
     dpi_combo.setCurrentIndex(1)
     fl_exp.addRow("Quality:", dpi_combo)
 
-    btn_dock_export = QPushButton("⚡ Export & Open ↗")
+    btn_dock_export = QPushButton("Export & Open ↗")
+    btn_dock_export.setIcon(_get_cartolab_icon("layout.png"))
 
     def _dock_export():
         layout = _get_designer_layout(designer)
@@ -538,7 +584,7 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
     lyt_exp.addWidget(gb_exp)
     lyt_exp.addStretch()
 
-    tabs.addTab(tab_exp, "⚡ 3D & Export")
+    tabs.addTab(tab_exp, _get_cartolab_icon("isometric.png"), "3D & Export")
 
     main_lyt.addWidget(tabs)
     dock.setWidget(container)

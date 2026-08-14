@@ -20,6 +20,7 @@ from ._help_mixin import CartoLabHelpMixin
 
 
 class HexbinAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
+    _ICON_NAME = "hexbin.png"
     INPUT = "INPUT"
     CELL_SIZE = "CELL_SIZE"
     WEIGHT = "WEIGHT"

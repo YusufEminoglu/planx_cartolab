@@ -33,6 +33,7 @@ _MAX_CATS = 100
 
 
 class QuickStyleAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
+    _ICON_NAME = "style.png"
     INPUT = "INPUT"
     FIELD = "FIELD"
     MODE = "MODE"

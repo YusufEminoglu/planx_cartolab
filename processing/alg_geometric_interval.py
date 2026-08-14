@@ -23,6 +23,7 @@ from ._help_mixin import CartoLabHelpMixin
 
 
 class GeometricIntervalAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
+    _ICON_NAME = "bivariate.png"
     INPUT = "INPUT"
     FIELD = "FIELD"
     CLASSES = "CLASSES"
@@ -156,7 +157,7 @@ class GeometricIntervalAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
                     sym.setOpacity(0.85)
                     label = f"{breaks[i]:.2f} – {breaks[i+1]:.2f}"
                     ranges.append(QgsRendererRange(breaks[i], breaks[i+1], sym, label))
-                renderer = QgsGraduatedSymbolRenderer("gic_class", ranges)
+                renderer = QgsGraduatedSymbolRenderer(field_name, ranges)
                 renderer.setClassificationMethod(QgsClassificationCustom())
                 out_layer.setRenderer(renderer)
                 out_layer.triggerRepaint()

@@ -35,6 +35,7 @@ def _rings_from_geometry(geom):
 
 
 class DotDensityAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
+    _ICON_NAME = "dot_density.png"
     INPUT = "INPUT"
     FIELD = "FIELD"
     VALUE_PER_DOT = "VALUE_PER_DOT"

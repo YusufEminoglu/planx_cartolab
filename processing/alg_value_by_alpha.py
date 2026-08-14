@@ -18,6 +18,7 @@ from ._help_mixin import CartoLabHelpMixin
 
 
 class ValueByAlphaAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
+    _ICON_NAME = "vba.png"
     INPUT = "INPUT"
     FIELD_COLOUR = "FIELD_COLOUR"
     FIELD_ALPHA = "FIELD_ALPHA"

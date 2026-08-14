@@ -15,6 +15,7 @@ from ._help_mixin import CartoLabHelpMixin
 
 
 class GraticuleAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
+    _ICON_NAME = "grid.png"
     EXTENT = "EXTENT"
     X_INTERVAL = "X_INTERVAL"
     Y_INTERVAL = "Y_INTERVAL"

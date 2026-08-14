@@ -21,6 +21,7 @@ from ._help_mixin import CartoLabHelpMixin
 
 
 class ProportionalSymbolsAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
+    _ICON_NAME = "proportional.png"
     INPUT = "INPUT"
     FIELD = "FIELD"
     MAX_SIZE = "MAX_SIZE"

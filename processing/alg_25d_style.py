@@ -29,6 +29,7 @@ from ._help_mixin import CartoLabHelpMixin
 
 
 class Building25DStyleAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
+    _ICON_NAME = "isometric.png"
     INPUT = "INPUT"
     HEIGHT_FIELD = "HEIGHT_FIELD"
     HEIGHT_MODE = "HEIGHT_MODE"

@@ -21,6 +21,7 @@ from ._help_mixin import CartoLabHelpMixin
 
 
 class RidgeMapAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
+    _ICON_NAME = "ridge.png"
     RASTER = "RASTER"
     N_LINES = "N_LINES"
     VERTICAL_SCALE = "VERTICAL_SCALE"

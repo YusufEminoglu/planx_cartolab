@@ -81,6 +81,7 @@ class BivariateSymbologyPostProcessor(QgsProcessingLayerPostProcessorInterface):
 
 
 class BivariateChoroplethAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
+    _ICON_NAME = "bivariate.png"
     INPUT = "INPUT"
     FIELD_X = "FIELD_X"
     FIELD_Y = "FIELD_Y"

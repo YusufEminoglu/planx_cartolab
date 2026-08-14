@@ -17,6 +17,7 @@ from ._help_mixin import CartoLabHelpMixin
 
 
 class NormalizeFieldAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
+    _ICON_NAME = "style.png"
     INPUT = "INPUT"
     FIELD = "FIELD"
     METHOD = "METHOD"

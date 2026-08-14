@@ -26,6 +26,7 @@ from ._help_mixin import CartoLabHelpMixin
 
 
 class CartogramAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
+    _ICON_NAME = "cartogram.png"
     INPUT = "INPUT"
     FIELD = "FIELD"
     MAX_ITERATIONS = "MAX_ITERATIONS"
@@ -96,7 +97,7 @@ class CartogramAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         if source is None:
             raise QgsProcessingException(self.invalidSourceError(parameters, self.INPUT))
 
-        field_name = self.parameterAsStrings(parameters, self.FIELD, context)[0]
+        field_name = self.parameterAsString(parameters, self.FIELD, context)
         max_iter = self.parameterAsInt(parameters, self.MAX_ITERATIONS, context)
         max_error = self.parameterAsDouble(parameters, self.MAX_ERROR, context)
 

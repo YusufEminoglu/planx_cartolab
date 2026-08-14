@@ -20,7 +20,7 @@ except ImportError:
     processing = None
 try:
     from qgis.PyQt.QtCore import QSettings, Qt
-    from qgis.PyQt.QtGui import QColor, QFont
+    from qgis.PyQt.QtGui import QColor, QFont, QIcon
     from qgis.PyQt.QtWidgets import (
         QApplication,
         QCheckBox,
@@ -194,6 +194,15 @@ CATEGORY_GROUPS = {
         "planx_cartolab:normalize_field",
     ],
 }
+
+
+def _cartolab_icon(name: str = "icon.png") -> QIcon:
+    base = os.path.dirname(os.path.dirname(__file__))
+    path = os.path.join(base, "icons", name)
+    if os.path.exists(path):
+        return QIcon(path)
+    fallback = os.path.join(base, "icons", "icon.png")
+    return QIcon(fallback) if os.path.exists(fallback) else QIcon()
 
 
 _QDialogBase = QDialog if QDialog is not None else object
@@ -374,20 +383,23 @@ class CartoLabDashboard(_QDialogBase):
         self.nav_sidebar.setObjectName("sidebarNav")
         self.nav_sidebar.setFixedWidth(230)
 
-        self.nav_sidebar.addItem(QListWidgetItem("🎨  Symbology Studio"))
-        self.nav_sidebar.addItem(QListWidgetItem("📐  Layout Studio"))
-        self.nav_sidebar.addItem(QListWidgetItem("⚡  Processing Hub"))
+        item_symb = QListWidgetItem(_cartolab_icon("style.png"), " Symbology Studio")
+        item_layout = QListWidgetItem(_cartolab_icon("layout.png"), " Layout Studio")
+        item_hub = QListWidgetItem(_cartolab_icon("icon.png"), " Processing Hub")
+        self.nav_sidebar.addItem(item_symb)
+        self.nav_sidebar.addItem(item_layout)
+        self.nav_sidebar.addItem(item_hub)
 
         self.stack = QStackedWidget()
         self.tabs = self.stack  # alias for backward compatibility
 
-        # Workspace 1: 🎨 Symbology & Thematic Studio
+        # Workspace 1: Symbology & Thematic Studio
         self._build_symbology_studio_tab()
 
-        # Workspace 2: 📐 Layout Automation Studio
+        # Workspace 2: Layout Automation Studio
         self._build_layout_tab()
 
-        # Workspace 3: ⚡ Processing Algorithm Hub
+        # Workspace 3: Processing Algorithm Hub
         self._build_modules_tab()
 
         workspace_layout.addWidget(self.nav_sidebar, 0)
@@ -397,7 +409,7 @@ class CartoLabDashboard(_QDialogBase):
         self.nav_sidebar.currentRowChanged.connect(self.stack.setCurrentIndex)
         self.nav_sidebar.setCurrentRow(0)
 
-        # Collapsible Bottom Drawer: 📊 Diagnostics & Run Log
+        # Collapsible Bottom Drawer: Diagnostics & Run Log
         self._build_diagnostics_drawer(root)
 
         self._on_check_deps()
@@ -416,7 +428,7 @@ class CartoLabDashboard(_QDialogBase):
         qs_layout = QVBoxLayout(qs_widget)
         qs_layout.setContentsMargins(8, 8, 8, 8)
         self._build_quick_style_contents(qs_layout)
-        self.symbology_sub_tabs.addTab(qs_widget, "🎨 Quick Style (Choropleth & Categories)")
+        self.symbology_sub_tabs.addTab(qs_widget, _cartolab_icon("style.png"), "Quick Style (Choropleth)")
 
         # Sub-tab 2: 2.5D Building Extrusion
         self.tab_25d = QScrollArea()
@@ -425,11 +437,11 @@ class CartoLabDashboard(_QDialogBase):
         tab_body = QWidget()
         self.tab_25d.setWidget(tab_body)
         self._build_25d_contents(tab_body)
-        self.symbology_sub_tabs.addTab(self.tab_25d, "🏢 2.5D Building Extrusion")
+        self.symbology_sub_tabs.addTab(self.tab_25d, _cartolab_icon("isometric.png"), "2.5D Building Extrusion")
 
         # Sub-tab 3: Advanced Thematic Suite
         thematic_widget = self._build_thematic_suite_subwidget()
-        self.symbology_sub_tabs.addTab(thematic_widget, "🗺️ Advanced Thematic Suite")
+        self.symbology_sub_tabs.addTab(thematic_widget, _cartolab_icon("bivariate.png"), "Advanced Thematic Suite")
 
         layout.addWidget(self.symbology_sub_tabs)
         self.stack.addWidget(studio_widget)
@@ -452,13 +464,43 @@ class CartoLabDashboard(_QDialogBase):
         grid.addWidget(intro, 0, 0, 1, 2)
 
         algos = [
-            ("Bivariate Choropleth", "planx_cartolab:bivariate_choropleth", "NxN colour matrix from two numeric fields with bilinear interpolation."),
-            ("Value-by-Alpha (VbA)", "planx_cartolab:value_by_alpha", "Encode data reliability/uncertainty as opacity."),
-            ("Ridge Map (Joyplot)", "planx_cartolab:ridge_map", "Raster-to-vector scanline deformation - Joy Division style wave profiles."),
-            ("Dot-Density Map", "planx_cartolab:dot_density", "Seeded, hole-aware dots inside polygons - one dot per N units."),
-            ("Proportional Symbols (Flannery)", "planx_cartolab:proportional_symbols", "Perceptually compensated graduated point symbols."),
-            ("Hexbin Aggregation", "planx_cartolab:hexbin_aggregate", "Bin point layers into pointy-top hex grids with summary metrics."),
+            ("Bivariate Choropleth", "planx_cartolab:bivariate_choropleth", "NxN colour matrix from two numeric fields with bilinear interpolation.", "bivariate.png"),
+            ("Value-by-Alpha (VbA)", "planx_cartolab:value_by_alpha", "Encode data reliability/uncertainty as opacity.", "vba.png"),
+            ("Ridge Map (Joyplot)", "planx_cartolab:ridge_map", "Raster-to-vector scanline deformation - Joy Division style wave profiles.", "ridge.png"),
+            ("Dot-Density Map", "planx_cartolab:dot_density", "Seeded, hole-aware dots inside polygons - one dot per N units.", "dot_density.png"),
+            ("Proportional Symbols (Flannery)", "planx_cartolab:proportional_symbols", "Perceptually compensated graduated point symbols.", "proportional.png"),
+            ("Hexbin Aggregation", "planx_cartolab:hexbin_aggregate", "Bin point layers into pointy-top hex grids with summary metrics.", "hexbin.png"),
         ]
+
+        for i, (name, aid, desc, ic_name) in enumerate(algos):
+            card = QFrame()
+            card.setProperty("classCard", "true")
+            cv = QVBoxLayout(card)
+            cv.setContentsMargins(10, 10, 10, 10)
+            
+            thdr = QHBoxLayout()
+            ic_lbl = QLabel()
+            ic_lbl.setPixmap(_cartolab_icon(ic_name).pixmap(24, 24))
+            thdr.addWidget(ic_lbl)
+            title = QLabel(f"<b>{name}</b>")
+            title.setStyleSheet("color:#173741; font-size:13px;")
+            thdr.addWidget(title, 1)
+            cv.addLayout(thdr)
+
+            d_lbl = QLabel(desc)
+            d_lbl.setWordWrap(True)
+            d_lbl.setStyleSheet("color:#4a6871; font-size:11px;")
+            btn = QPushButton("Run Algorithm")
+            btn.setIcon(_cartolab_icon(ic_name))
+            btn.clicked.connect(lambda _, x=aid, n=name: self._run_algorithm(x, n))
+            cv.addWidget(d_lbl, 1)
+            cv.addWidget(btn, 0, Qt.AlignmentFlag.AlignRight)
+            r, c = divmod(i, 2)
+            grid.addWidget(card, r + 1, c)
+
+        lyt.addWidget(gb)
+        lyt.addStretch()
+        return w
 
         for i, (name, aid, desc) in enumerate(algos):
             card = QFrame()
@@ -601,8 +643,25 @@ class CartoLabDashboard(_QDialogBase):
         columns = self._cards_column_count()
         self._current_card_columns = columns
         idx = 0
+        ICON_MAP = {
+            "planx_cartolab:bivariate_choropleth": "bivariate.png",
+            "planx_cartolab:compute_cartogram": "cartogram.png",
+            "planx_cartolab:ridge_map": "ridge.png",
+            "planx_cartolab:value_by_alpha": "vba.png",
+            "planx_cartolab:building_25d_style": "isometric.png",
+            "planx_cartolab:quick_style": "style.png",
+            "planx_cartolab:dot_density": "dot_density.png",
+            "planx_cartolab:proportional_symbols": "proportional.png",
+            "planx_cartolab:hexbin_aggregate": "hexbin.png",
+            "planx_cartolab:geometric_interval_classification": "bivariate.png",
+            "planx_cartolab:graticule_grid": "grid.png",
+            "planx_cartolab:label_points": "compass.png",
+            "planx_cartolab:normalize_field": "style.png",
+        }
+
         for group, accent, items in ALGO_GROUPS:
             for title_txt, aid, desc in items:
+                ic_name = ICON_MAP.get(aid, "icon.png")
                 card = QFrame()
                 card.setProperty("classCard", "true")
                 card.setStyleSheet(f"border-left: 3px solid {accent};")
@@ -610,6 +669,9 @@ class CartoLabDashboard(_QDialogBase):
                 v.setContentsMargins(10, 10, 10, 10)
 
                 hdr = QHBoxLayout()
+                ic_lbl = QLabel()
+                ic_lbl.setPixmap(_cartolab_icon(ic_name).pixmap(22, 22))
+                hdr.addWidget(ic_lbl)
                 t = QLabel(title_txt)
                 t.setProperty("classTitle", "true")
                 hdr.addWidget(t, 1)
@@ -633,6 +695,7 @@ class CartoLabDashboard(_QDialogBase):
                 fav.clicked.connect(lambda checked, x=aid: self._toggle_favorite(x, checked))
 
                 run = QPushButton("Run")
+                run.setIcon(_cartolab_icon(ic_name))
                 run.clicked.connect(lambda _, x=aid, n=title_txt: self._run_algorithm(x, n))
 
                 br = QHBoxLayout()
@@ -1685,6 +1748,7 @@ class CartoLabDashboard(_QDialogBase):
         gs.addLayout(el_row)
 
         btn_sheet = QPushButton("Create Map Sheet from Current View")
+        btn_sheet.setIcon(_cartolab_icon("layout.png"))
         btn_sheet.setToolTip("Assemble a complete print layout and open it in the designer")
         btn_sheet.clicked.connect(self._on_create_map_sheet)
         gs.addWidget(btn_sheet)
@@ -1707,6 +1771,7 @@ class CartoLabDashboard(_QDialogBase):
 
         actions = QHBoxLayout()
         btn_open = QPushButton("Open in Designer")
+        btn_open.setIcon(_cartolab_icon("layout.png"))
         btn_open.clicked.connect(self._on_open_designer)
         btn_dup = QPushButton("Duplicate")
         btn_dup.clicked.connect(self._on_duplicate_layout)
@@ -1733,10 +1798,12 @@ class CartoLabDashboard(_QDialogBase):
         exports.addWidget(self.export_dpi_combo)
 
         btn_export = QPushButton("Export File…")
+        btn_export.setIcon(_cartolab_icon("layout.png"))
         btn_export.clicked.connect(self._on_export_layout)
         exports.addWidget(btn_export)
 
         btn_export_open = QPushButton("Export & Open ↗")
+        btn_export_open.setIcon(_cartolab_icon("layout.png"))
         btn_export_open.setObjectName("ghost")
         btn_export_open.setToolTip("Export layout and open immediately in system default viewer")
         btn_export_open.clicked.connect(self._on_export_and_open_layout)
@@ -1759,6 +1826,7 @@ class CartoLabDashboard(_QDialogBase):
         self.iso_layer_list.setMaximumHeight(150)
         gd.addWidget(self.iso_layer_list)
         btn_iso = QPushButton("Create Isometric Layer Stack")
+        btn_iso.setIcon(_cartolab_icon("isometric.png"))
         btn_iso.clicked.connect(self._on_isometric_stack)
         gd.addWidget(btn_iso)
 
@@ -1776,13 +1844,16 @@ class CartoLabDashboard(_QDialogBase):
         bivar_row.addWidget(self.bivar_legend_type_combo, 1)
         gd.addLayout(bivar_row)
         btn_legend = QPushButton("Add Bivariate Legend to Selected Layout")
+        btn_legend.setIcon(_cartolab_icon("bivariate.png"))
         btn_legend.clicked.connect(self._on_bivariate_legend)
         gd.addWidget(btn_legend)
 
         deco_row = QHBoxLayout()
         btn_typo = QPushButton("Apply Swiss Typography")
+        btn_typo.setIcon(_cartolab_icon("layout.png"))
         btn_typo.clicked.connect(self._on_typography)
         btn_grid = QPushButton("Add / Refresh Minimalist Grid")
+        btn_grid.setIcon(_cartolab_icon("grid.png"))
         btn_grid.clicked.connect(self._on_grid_style)
         deco_row.addWidget(btn_typo)
         deco_row.addWidget(btn_grid)
