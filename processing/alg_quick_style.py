@@ -47,9 +47,14 @@ class QuickStyleAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
     MODES = [("Auto (detect field type)", "auto"),
              ("Graduated (numeric)", "graduated"),
              ("Categorized (unique values)", "categorized")]
-    METHODS = [("Quantile (equal count)", qs.QUANTILE),
-               ("Equal interval", qs.EQUAL),
-               ("Geometric interval", qs.GEOMETRIC)]
+    METHODS = [
+        ("Quantile (equal count)", qs.QUANTILE),
+        ("Equal interval", qs.EQUAL),
+        ("Geometric interval", qs.GEOMETRIC),
+        ("Natural Breaks (Fisher-Jenks)", qs.JENKS),
+        ("Head/Tail Breaks (power-law)", qs.HEAD_TAIL),
+        ("Standard Deviation", qs.STD_DEV),
+    ]
 
     def name(self) -> str:
         return "quick_style"
@@ -162,12 +167,7 @@ class QuickStyleAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         values = [safe_float(f[field]) for f in layer.getFeatures() if safe_float(f[field]) is not None]
         if not values:
             raise QgsProcessingException(f"Field '{field}' has no numeric values.")
-        if method == qs.QUANTILE:
-            edges = qs.quantile_breaks(values, classes)
-        elif method == qs.EQUAL:
-            edges = qs.equal_interval_breaks(values, classes)
-        else:
-            edges = geometric_interval_breaks(values, classes)
+        edges = qs.compute_breaks(values, method=method, n=classes)
         ranges_lh = qs.edges_to_ranges(edges)
         if not ranges_lh:
             # Degenerate field (a single distinct value): one class is still

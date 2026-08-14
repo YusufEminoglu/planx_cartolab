@@ -696,6 +696,18 @@ check("equal degenerate (all equal)", qs.equal_interval_breaks([5, 5, 5], 4) == 
 check("breaks ignore None", len(qs.quantile_breaks([1, None, 2, None, 3], 2)) == 3)
 check("empty values -> empty", qs.quantile_breaks([], 5) == [])
 
+jb = qs.jenks_breaks(vals, 3)
+check("jenks breaks returns edges", len(jb) >= 3 and jb[0] == 1 and jb[-1] >= 10)
+
+htb = qs.head_tail_breaks_method([1, 2, 3, 5, 8, 20, 50, 100, 500])
+check("head_tail breaks returns edges", len(htb) >= 2)
+
+sdb = qs.std_dev_breaks(vals, 5)
+check("std_dev breaks returns edges", len(sdb) >= 2)
+
+cb_j = qs.compute_breaks(vals, qs.JENKS, 4)
+check("compute_breaks with jenks works", len(cb_j) >= 4)
+
 check("dedupe drops zero-width", qs.dedupe_edges([1, 1, 2, 3, 3]) == [1, 2, 3])
 check("edges_to_ranges pairs", qs.edges_to_ranges([0, 1, 2, 3]) ==
       [(0, 1), (1, 2), (2, 3)])

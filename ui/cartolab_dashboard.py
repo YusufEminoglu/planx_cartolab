@@ -1257,8 +1257,14 @@ class CartoLabDashboard(_QDialogBase):
 
         g.addWidget(QLabel("Break method:"), 5, 0)
         self.qs_method_combo = QComboBox()
-        self.qs_method_combo.addItems(["Quantile (equal count)", "Equal interval",
-                                       "Geometric interval"])
+        self.qs_method_combo.addItems([
+            "Quantile (equal count)",
+            "Equal interval",
+            "Geometric interval",
+            "Natural Breaks (Fisher-Jenks)",
+            "Head/Tail Breaks (power-law)",
+            "Standard Deviation",
+        ])
         g.addWidget(self.qs_method_combo, 5, 1)
 
         g.addWidget(QLabel("Palette type:"), 6, 0)

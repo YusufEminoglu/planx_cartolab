@@ -4,8 +4,7 @@ Classification helpers for Quick Style.
 
 Pure logic (no ``qgis`` import): compute class-break edges for graduated
 rendering. Returns ``n + 1`` monotonic edges ``[min, ..., max]`` so callers can
-pair them into ``n`` ranges. The geometric-interval method lives in
-``bivariate_engine``; this module adds quantile and equal-interval.
+pair them into ``n`` ranges.
 """
 from __future__ import annotations
 
@@ -17,6 +16,9 @@ from .utils import safe_float
 QUANTILE = "quantile"
 EQUAL = "equal"
 GEOMETRIC = "geometric"
+JENKS = "jenks"
+HEAD_TAIL = "head_tail"
+STD_DEV = "std_dev"
 
 
 def _clean(values) -> List[float]:
@@ -56,6 +58,62 @@ def equal_interval_breaks(values, n: int) -> List[float]:
     if lo == hi:
         return [lo, hi]
     return [lo + (hi - lo) * i / n for i in range(n + 1)]
+
+
+def jenks_breaks(values, n: int = 5) -> List[float]:
+    """Fisher-Jenks natural breaks minimizing within-class variance."""
+    from .bivariate_engine import fisher_jenks_breaks
+    xs = _clean(values)
+    if not xs or n < 1:
+        return []
+    return fisher_jenks_breaks(xs, n_classes=n)
+
+
+def head_tail_breaks_method(values) -> List[float]:
+    """Jiang's Head/Tail Breaks classification for heavy-tailed data."""
+    from .bivariate_engine import head_tail_breaks
+    xs = _clean(values)
+    if not xs:
+        return []
+    return head_tail_breaks(xs)
+
+
+def std_dev_breaks(values, n: int = 5) -> List[float]:
+    """Standard deviation interval breaks centered at the sample mean."""
+    xs = _clean(values)
+    if not xs:
+        return []
+    mean = sum(xs) / len(xs)
+    variance = sum((x - mean) ** 2 for x in xs) / len(xs)
+    std = math.sqrt(variance)
+    if std < 1e-9:
+        return [xs[0], xs[-1]]
+
+    k_steps = [-2.0, -1.0, 0.0, 1.0, 2.0] if n >= 5 else [-1.0, 0.0, 1.0]
+    breaks = [xs[0]]
+    for k in k_steps:
+        val = mean + k * std
+        if xs[0] < val < xs[-1]:
+            breaks.append(val)
+    breaks.append(xs[-1])
+    return sorted(list(set(breaks)))
+
+
+def compute_breaks(values, method: str = QUANTILE, n: int = 5) -> List[float]:
+    """Unified entry point to compute classification break edges."""
+    m = (method or "").lower()
+    if m == EQUAL:
+        return equal_interval_breaks(values, n)
+    elif m == GEOMETRIC:
+        from .bivariate_engine import geometric_interval_breaks
+        return geometric_interval_breaks(values, n_classes=n)
+    elif m == JENKS:
+        return jenks_breaks(values, n)
+    elif m == HEAD_TAIL:
+        return head_tail_breaks_method(values)
+    elif m == STD_DEV:
+        return std_dev_breaks(values, n)
+    return quantile_breaks(values, n)
 
 
 def dedupe_edges(edges: List[float]) -> List[float]:

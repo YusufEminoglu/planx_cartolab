@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.5.9] - 2026-08-14
+
+- Advanced statistical classifiers (Fisher-Jenks natural breaks, Jiang head/tail breaks, standard deviation) for thematic choropleth maps
+
 ## [2.5.8] - 2026-08-14
 
 - Astronomical Solar Lighting calculator for 2.5D extrusions, and 1-click Map Book Atlas automation engine
