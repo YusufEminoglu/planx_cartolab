@@ -375,14 +375,19 @@
     <li><a href="#algo8">8. Quick Style</a></li>
     <li><a href="#algo9">9. Proportional Symbols (Flannery)</a></li>
     <li><a href="#algo10">10. Ridge Map (Joy Division Style)</a></li>
-    <li><a href="#algo11">11. Building 2.5D Style</a></li>
-    <li><a href="#algo12">12. Visual-Center Label Points</a></li>
-    <li><a href="#algo13">13. Choropleth Normalization &amp; Rates</a></li>
+    <li><a href="#algo11">11. Building 2.5D Style &amp; Lighting</a></li>
+    <li><a href="#algo12">12. Visual-Center Label Points &amp; Angle</a></li>
+    <li><a href="#algo13">13. Normalization, LQ &amp; Deciles</a></li>
+    <li><a href="#algo14">14. Interactive Bivariate Studio</a></li>
+    <li><a href="#algo15">15. Print Layout Studio Suite</a></li>
+    <li><a href="#algo16">16. Color Accessibility &amp; CVD Engine</a></li>
+    <li><a href="#algo17">17. Solar Position &amp; Sun Lighting</a></li>
+    <li><a href="#algo18">18. Scientific Color Ramps Library</a></li>
   </ul>
 
   <div class="sidebar-footer">
     <p>PlanX CartoLab by Yusuf Emino&#x11F;lu<br>
-    v1.8.3 &middot; QGIS 3.x / 4.x<br>
+    v2.8.6 &middot; QGIS 3.x / 4.x<br>
     Cartography &amp; Thematic Mapping</p>
   </div>
 </aside>
@@ -391,15 +396,13 @@
 <main class="main" id="main-content">
 
   <h1>CartoLab <em>Academic Reference Manual</em></h1>
-  <p class="subtitle">Mathematical formulations, theoretical foundations, and verified literature for all 13 QGIS processing algorithms. Version 1.8.3.</p>
-
-
+  <p class="subtitle">Mathematical formulations, theoretical foundations, and verified literature for all 13 Processing algorithms and 5 advanced Layout Studio systems. Version 2.8.6.</p>
 
   <p style="color:var(--muted); max-width:760px;">
-    This manual provides the complete theoretical apparatus behind every algorithm in the
-    PlanX CartoLab provider. Each entry supplies the mathematical derivation, parameter
+    This manual provides the complete theoretical apparatus behind every algorithm and layout engine in
+    PlanX CartoLab. Each entry supplies the mathematical derivation, parameter
     semantics, interpretative guidance, and peer-reviewed references. All equations are
-    typeset with MathJax 3 (&#x24;$$\dots$$&#x24; for display, &#x24;$\dots$&#x24; for inline).
+    typeset with MathJax 3.
   </p>
 
   <div class="video-embed">
@@ -497,6 +500,21 @@
       \tag{5}
     </div>
 
+    <div class="eq-block">
+      <strong>Maximum Distribution Breaks (Largest Gap Partition).</strong>
+      $$ \Delta_i = x_{(i+1)} - x_{(i)}, \qquad \text{for sorted } x_{(1)} \le x_{(2)} \le \dots \le x_{(n)} $$
+      Partitions the data at the $K-1$ largest spacing differentials $\Delta_i$, isolating natural clusters.
+      \tag{6}
+    </div>
+
+    <div class="eq-block">
+      <strong>Pretty Nice-Round Breaks (Heckbert Algorithm).</strong>
+      $$ \Delta = \frac{x_{\max} - x_{\min}}{K}, \qquad d = 10^{\lfloor \log_{10} \Delta \rfloor} $$
+      $$ \text{Step } s \in \{1, 2, 5, 10\} \times d \quad \text{such that } s \approx \Delta $$
+      Yields aesthetically intuitive, human-readable integer class limits ($10, 20, 50, 100, 250\dots$).
+      \tag{7}
+    </div>
+
     <h3>Parameters</h3>
     <table>
       <thead>
@@ -506,17 +524,18 @@
         <tr><td>Input layer</td><td>Vector (any geometry)</td><td>&mdash;</td><td>Layer containing the field to classify</td></tr>
         <tr><td>Field to classify</td><td>Numeric field</td><td>&mdash;</td><td>Must be integer or real; NULL values are excluded</td></tr>
         <tr><td>Number of classes</td><td>Integer</td><td>5</td><td>Range 2&#x2013;20; Head/Tail Breaks ignores this and auto-determines</td></tr>
-        <tr><td>Classification method</td><td>Enum</td><td>GIC</td><td>0 = Geometric Interval, 1 = Head/Tail Breaks, 2 = Fisher-Jenks</td></tr>
+        <tr><td>Classification method</td><td>Enum</td><td>GIC</td><td>0 = Geometric Interval, 1 = Head/Tail Breaks, 2 = Fisher-Jenks, 3 = Maximum Breaks, 4 = Pretty Breaks</td></tr>
+        <tr><td>Color ramp</td><td>Enum</td><td>Viridis</td><td>Viridis, Plasma, Inferno, Magma, Cividis, Turbo, Mako, Rocket, Blues, Oranges, YlOrRd, Purples, Greens</td></tr>
       </tbody>
     </table>
 
     <h3>Output Description</h3>
     <p>
       The output layer is a copy of the input with two appended fields:
-      <code>gic_class</code> (integer, 1-indexed class assignment) and
+      <code>gic_class</code> (integer, 0-indexed class assignment) and
       <code>gic_label</code> (string, formatted range label such as
-      &ldquo;123.4 &ndash; 567.8&rdquo;). The layer is automatically styled with a
-      graduated renderer using the Viridis colour ramp and clean class-boundary
+      &ldquo;123.40 &ndash; 567.80&rdquo;). The layer is automatically styled with a
+      graduated renderer using the chosen colour ramp and clean class-boundary
       legend entries.
     </p>
 
@@ -525,23 +544,20 @@
       <strong>Interpretation</strong>
       Choose GIC for continuous skewed data (population, density, value), Head/Tail
       Breaks when the histogram shows a heavy right tail (city sizes, traffic counts,
-      income), and Fisher-Jenks for general-purpose choropleth mapping where visual
-      homogeneity within classes is the priority. Examine the GVF value reported in the
-      log: values above 0.8 indicate a strong class structure. If the GVF plateaus
-      when increasing $K$, the additional classes add visual complexity without
-      meaningful discrimination.
+      income), Fisher-Jenks for general-purpose choropleth mapping where visual
+      homogeneity within classes is the priority, Maximum Breaks when highlighting distinct multimodal clusters,
+      and Pretty Breaks for public-facing maps requiring intuitive, rounded interval boundaries. Examine the GVF value reported in the
+      log: values above 0.8 indicate a strong class structure.
     </div>
 
     <h3>References</h3>
     <ol class="ref-list">
       <li>ESRI. <em>Geometric Interval Classification</em>. ArcGIS Desktop Help: Classification methods. ESRI Technical Paper, 2005.</li>
-      <li>Jenks, G. F. <em>The Data Model Concept in Statistical Mapping</em>. International Yearbook of Cartography, 7: 186&#x2013;190, 1967. <span class="doi">DOI: not assigned (yearbook)</span></li>
+      <li>Jenks, G. F. <em>The Data Model Concept in Statistical Mapping</em>. International Yearbook of Cartography, 7: 186&#x2013;190, 1967.</li>
       <li>Fisher, W. D. <em>On Grouping for Maximum Homogeneity</em>. Journal of the American Statistical Association, 53(284): 789&#x2013;798, 1958. <a href="https://doi.org/10.1080/01621459.1958.10501479" target="_blank" rel="noopener">doi:10.1080/01621459.1958.10501479</a></li>
       <li>Jiang, B. <em>Head/Tail Breaks: A New Classification Scheme for Data with a Heavy-Tailed Distribution</em>. The Professional Geographer, 65(3): 482&#x2013;494, 2013. <a href="https://doi.org/10.1080/00330124.2012.700499" target="_blank" rel="noopener">doi:10.1080/00330124.2012.700499</a></li>
-      <li>Jiang, B. <em>Head/Tail Breaks for Visualization of City Data</em>. International Journal of Geographical Information Science, 27(2): 273&#x2013;291, 2013. <a href="https://doi.org/10.1080/13658816.2012.719623" target="_blank" rel="noopener">doi:10.1080/13658816.2012.719623</a></li>
+      <li>Heckbert, P. S. <em>Nice Numbers for Graph Labels</em>. Graphics Gems, Academic Press, pp. 61&#x2013;63, 1990.</li>
       <li>Slocum, T. A., McMaster, R. B., Kessler, F. C., &amp; Howard, H. H. <em>Thematic Cartography and Geovisualization</em> (3rd ed.). Pearson, 2009. ISBN 978-0132298346.</li>
-      <li>Evans, I. S. <em>The Selection of Class Intervals</em>. Transactions of the Institute of British Geographers, 2(1): 98&#x2013;124, 1977.</li>
-      <li>Smith, R. M. <em>Comparing Traditional Methods for Selecting Class Intervals on Choropleth Maps</em>. The Professional Geographer, 38(1): 62&#x2013;67, 1986.</li>
     </ol>
   </section>
 
@@ -1644,8 +1660,9 @@
       systematic colour coding to reveal floor patterns across an urban landscape.
     </p>
     <p>
-      The visual presets (Modern, Stone, Glass, Industrial, High-Contrast,
-      Monochrome, Terracotta, Midnight) apply pre-tuned combinations of roof colour,
+      The visual presets (Warm Civic, Cool Slate, Limestone &amp; Teal, Night Copper,
+      Urban Core Gold, Suburban Pastoral, Cyberpunk Night, Nordic Minimalist, Emerald Metropolis,
+      and Terracotta Mediterranean) apply pre-tuned combinations of roof colour,
       wall colour, shadow strength, and material style. The height can be supplied in
       metres (direct field value) or in floor count (field value $\times$ floor
       height in metres). An optional height clamp caps extreme outliers, and stepped
@@ -1681,7 +1698,7 @@
       <strong>Floor band height assignment.</strong>
       $$ n_i^{\text{floors}} = \left\lceil \frac{h_i}{h_{\text{floor}}} \right\rceil $$
       Each floor $k \in \{1, \ldots, n_i^{\text{floors}}\}$ receives colour
-      $\text{palette}[k \bmod |\text{palette}|]$ from the repeating palette.
+      $\text{palette}[k \bmod |\text{palette}|]$ from repeating palettes (Civic Spectrum, Planning Bands, Soft Atlas, Turbo Height, or Viridis Height).
       \tag{3}
     </div>
 
@@ -1711,10 +1728,10 @@
         <tr><td>Height mode</td><td>Enum</td><td>Metres</td><td>Metres (direct value) or Floors (count * floor height)</td></tr>
         <tr><td>Floor height</td><td>Float</td><td>3.0</td><td>Metres per floor; used in floors mode and floor-band renderer</td></tr>
         <tr><td>Renderer style</td><td>Enum</td><td>2.5D</td><td>Native 2.5D renderer or Per-floor colour bands</td></tr>
-        <tr><td>Floor palette</td><td>Enum</td><td>Earth</td><td>Repeating colour palette for floor bands</td></tr>
+        <tr><td>Floor palette</td><td>Enum</td><td>Civic Spectrum</td><td>Civic Spectrum, Planning Bands, Soft Atlas, Turbo Height, Viridis Height</td></tr>
         <tr><td>Max floors</td><td>Integer</td><td>30</td><td>Maximum number of symbol layers generated</td></tr>
-        <tr><td>Visual preset</td><td>Enum</td><td>Modern</td><td>Pre-tuned roof/wall/shadow combination</td></tr>
-        <tr><td>Angle</td><td>Float</td><td>45.0</td><td>Viewing azimuth in degrees</td></tr>
+        <tr><td>Visual preset</td><td>Enum</td><td>Warm Civic</td><td>Warm Civic, Cool Slate, Limestone &amp; Teal, Night Copper, Urban Gold, Suburban Pastoral, Cyberpunk, Nordic, Emerald Metropolis, Terracotta Mediterranean</td></tr>
+        <tr><td>Angle</td><td>Float</td><td>110.0</td><td>Viewing azimuth in degrees</td></tr>
         <tr><td>Height scale</td><td>Float</td><td>1.0</td><td>Vertical exaggeration multiplier</td></tr>
         <tr><td>Max height clamp</td><td>Float</td><td>0 (off)</td><td>Cap extreme heights; 0 = no clamp</td></tr>
         <tr><td>Stepped</td><td>Boolean</td><td>False</td><td>Stepped extrusion at floor intervals</td></tr>
@@ -1727,7 +1744,7 @@
     <p>
       The output is an in-place styled layer: the existing layer's renderer is replaced.
       A summary string describes the applied configuration (e.g., &ldquo;2.5D:
-      Modern preset, 45&#x00B0; angle, height_metres, shadow on&rdquo;). For the
+      Warm Civic preset, 110&#x00B0; angle, height_metres, shadow on&rdquo;). For the
       floor-band mode, a separate symbol layer is created for each floor level up to
       Max Floors, each with a data-defined height filter.
     </p>
@@ -1739,9 +1756,7 @@
       measurement. The floor-band mode excels at visualising building-height policy
       zones (e.g., where 2&#x2013;4 floor buildings abut 10+ floor towers) and works
       well in print layouts. Choose a preset that contrasts with the basemap:
-      Terracotta for light-grey basemaps, Midnight for aerial imagery. If buildings
-      appear flat, increase the height scale or check that the height field is in
-      metres (not centimetres or feet).
+      Emerald Metropolis for environmental and eco-district master plans, Terracotta Mediterranean for historic old town quarters, and Cool Slate for general architectural master plans.
     </div>
 
     <h3>References</h3>
@@ -1841,6 +1856,14 @@
       \tag{5}
     </div>
 
+    <div class="eq-block">
+      <strong>Principal Inertia Orientation Angle ($\text{lbl\_angle}$).</strong>
+      $$ M_{xx} = \frac{1}{m}\sum_{i=1}^m (x_i - \bar{x})^2, \quad M_{yy} = \frac{1}{m}\sum_{i=1}^m (y_i - \bar{y})^2, \quad M_{xy} = \frac{1}{m}\sum_{i=1}^m (x_i - \bar{x})(y_i - \bar{y}) $$
+      $$ \theta_{\text{orient}} = \frac{1}{2}\operatorname{atan2}\bigl(2 M_{xy}, \, M_{xx} - M_{yy}\bigr) \times \frac{180^\circ}{\pi} \in [-90^\circ, +90^\circ] $$
+      Determines the dominant longitudinal elongation axis of parcels, river corridors, and elongated polygons for aligned text placement.
+      \tag{6}
+    </div>
+
     <h3>Parameters</h3>
     <table>
       <thead>
@@ -1854,11 +1877,12 @@
 
     <h3>Output Description</h3>
     <p>
-      A point layer with one point per input polygon. Each point carries
-      <code>lbl_dist</code> (float, the inscribed circle radius: the distance from the
-      label point to the nearest polygon edge). This field can be used for
-      data-defined label size (larger text where more space is available) or to filter
-      out polygons too small to label. All source attributes are preserved.
+      A point layer with one point per input polygon. Each point carries:
+      <ul>
+        <li><code>lbl_dist</code> (float, the inscribed circle radius / distance to nearest boundary in map units).</li>
+        <li><code>lbl_angle</code> (float, principal spatial inertia orientation angle in degrees, $[-90^\circ, +90^\circ]$).</li>
+      </ul>
+      These fields enable data-defined label sizing and automatic shape-aligned rotation.
     </p>
 
     <h3>Interpretation Guide</h3>
@@ -1867,9 +1891,7 @@
       The label point's <code>lbl_dist</code> is the key quality metric: a value less
       than approximately 2 mm in map units at the target scale suggests that the
       polygon is too narrow for a readable label and should be labelled with a leader
-      line or left unlabelled. For multi-part polygons, each part receives its own
-      label point. The algorithm is deterministic: identical inputs always produce
-      identical label points, which is important for reproducible map production.
+      line or left unlabelled. The <code>lbl_angle</code> field provides the exact angle to align map labels with elongated parcels, building wings, or river segments.
     </div>
 
     <h3>References</h3>
@@ -1878,9 +1900,6 @@
       <li>Garcia-Castellanos, D. &amp; Lombardo, U. <em>Poles of Inaccessibility: A Calculation Algorithm for the Remotest Places on Earth</em>. Scottish Geographical Journal, 123(3): 227&#x2013;233, 2007. <a href="https://doi.org/10.1080/14702540801897856" target="_blank" rel="noopener">doi:10.1080/14702540801897856</a></li>
       <li>de Berg, M., Cheong, O., van Kreveld, M., &amp; Overmars, M. <em>Computational Geometry: Algorithms and Applications</em> (3rd ed.). Springer, 2008. ISBN 978-3540779735.</li>
       <li>Edmondson, S., Christensen, J., Marks, J., &amp; Shieber, S. <em>A General Cartographic Labelling Algorithm</em>. Cartographica, 33(4): 13&#x2013;23, 1996.</li>
-      <li>van Kreveld, M., Strijk, T., &amp; Wolff, A. <em>Point Labeling with Sliding Labels</em>. Computational Geometry: Theory and Applications, 13(1): 21&#x2013;47, 1999.</li>
-      <li>Yoeli, P. <em>The Logic of Automated Map Lettering</em>. The Cartographic Journal, 9(2): 99&#x2013;108, 1972.</li>
-      <li>Wood, J. D. &amp; Fisher, P. F. <em>Assessing Interpolation Accuracy in Elevation Models</em>. IEEE Computer Graphics and Applications, 13(2): 48&#x2013;56, 1993.</li>
     </ol>
   </section>
 
@@ -1976,6 +1995,28 @@
       \tag{6}
     </div>
 
+    <div class="eq-block">
+      <strong>7. Location Quotient (LQ / Specialisation Index).</strong>
+      $$ LQ_i = \frac{e_i / E_i}{\sum_{k=1}^n e_k / \sum_{k=1}^n E_k} $$
+      where $e_i$ is local subsector activity and $E_i$ is total local employment or population. Values $> 1.0$ indicate regional concentration / competitive specialization.
+      \tag{7}
+    </div>
+
+    <div class="eq-block">
+      <strong>8. Winsorized Min-Max Normalisation (Outlier-Clamped).</strong>
+      $$ x_i^{\text{win}} = \max\bigl(P_5, \min(x_i, P_{95})\bigr), \qquad
+         n_i = \frac{x_i^{\text{win}} - P_5}{P_{95} - P_5} \in [0, 1] $$
+      Clamps extreme $5^{\text{th}}$ and $95^{\text{th}}$ percentiles to prevent statistical blowout of map color gradients.
+      \tag{8}
+    </div>
+
+    <div class="eq-block">
+      <strong>9. Decile Rank Normalisation ($1-10$).</strong>
+      $$ D_i = \min\left(10, \left\lfloor 1 + \frac{10 \times \operatorname{rank}(x_i)}{n} \right\rfloor\right) \in \{1, 2, \dots, 10\} $$
+      Divides observations into 10 equal-frequency classes for socioeconomic ranking and indexing.
+      \tag{9}
+    </div>
+
     <h3>Parameters</h3>
     <table>
       <thead>
@@ -1984,8 +2025,8 @@
       <tbody>
         <tr><td>Input layer</td><td>Vector (any geometry)</td><td>&mdash;</td><td>Layer containing the field to normalise</td></tr>
         <tr><td>Value field</td><td>Numeric field</td><td>&mdash;</td><td>Raw count or magnitude to transform</td></tr>
-        <tr><td>Method</td><td>Enum</td><td>Rate</td><td>0 = Rate, 1 = Z-score, 2 = Robust z, 3 = Min-max, 4 = Percentile rank, 5 = Log10</td></tr>
-        <tr><td>Denominator field</td><td>Numeric field</td><td>&mdash;</td><td>Required for Rate method; ignored for others</td></tr>
+        <tr><td>Method</td><td>Enum</td><td>Rate</td><td>0 = Rate, 1 = Z-score, 2 = Robust z, 3 = Min-max, 4 = Percentile rank, 5 = Log10, 6 = Location Quotient, 7 = Winsorized Min-Max, 8 = Decile Rank</td></tr>
+        <tr><td>Denominator field</td><td>Numeric field</td><td>&mdash;</td><td>Required for Rate and Location Quotient methods; ignored for others</td></tr>
         <tr><td>Rate scale</td><td>Float</td><td>100</td><td>Multiplier applied to the ratio; e.g., 100 = %</td></tr>
       </tbody>
     </table>
@@ -1994,37 +2035,150 @@
     <p>
       The output layer is a copy of the input with two new fields: <code>norm_value</code>
       (float, the transformed value) and <code>norm_method</code> (string, the method
-      name applied, e.g., &ldquo;z-score&rdquo;). The layer is auto-graduated with the
-      Viridis colour ramp. For the Rate method, the denominator field name is recorded
-      in the processing log for provenance.
+      name applied, e.g., &ldquo;location_quotient&rdquo;). The layer is auto-graduated with the
+      Viridis colour ramp. For the Rate and Location Quotient methods, denominator metrics are recorded
+      in the processing log for scientific provenance.
     </p>
 
     <h3>Interpretation Guide</h3>
     <div class="interpret-box">
       <strong>Interpretation</strong>
-      Never map a raw count without a normalisation step. Rate is the default for
-      choropleth mapping: numerator and denominator should be logically related (e.g.,
-      crime incidents / resident population). Z-score is appropriate when the
-      analytical goal is to identify statistical outliers (values with $|z| > 2$ or
-      $|z| > 3$). Use the robust z when the data contain extreme outliers that would
-      dominate the mean and standard deviation. Min-max normalisation preserves the
-      shape of the distribution and is appropriate as input to composite indices.
-      Percentile rank is the safest choice when the distribution is unknown or highly
-      irregular. Log10 transform is the first resort for data spanning >2 orders of
-      magnitude.
+      Never map a raw count without a normalisation step. Rate is the standard default for
+      choropleth mapping. Use Location Quotient ($LQ > 1$) to identify industrial clusters, creative clusters, and regional economic specialisation. Use Winsorized Min-Max when severe outliers compress the visual range of the remaining 90% of features. Use Decile Rank ($1-10$) for public policy and socio-economic deprivation indices.
     </div>
 
     <h3>References</h3>
     <ol class="ref-list">
       <li>Monmonier, M. <em>How to Lie with Maps</em> (3rd ed.). University of Chicago Press, 2018. ISBN 978-0226435923.</li>
       <li>Dent, B. D., Torguson, J. S., &amp; Hodler, T. W. <em>Cartography: Thematic Map Design</em> (6th ed.). McGraw-Hill, 2009. ISBN 978-0072943825.</li>
-      <li>Robinson, A. H., Morrison, J. L., Muehrcke, P. C., Kimerling, A. J., &amp; Guptill, S. C. <em>Elements of Cartography</em> (6th ed.). Wiley, 1995. ISBN 978-0471555797.</li>
-      <li>Krygier, J. &amp; Wood, D. <em>Making Maps: A Visual Guide to Map Design for GIS</em> (3rd ed.). Guilford Press, 2016. ISBN 978-1462509980.</li>
-      <li>Brewer, C. A. <em>Designing Better Maps: A Guide for GIS Users</em> (2nd ed.). ESRI Press, 2015. ISBN 978-1589484405.</li>
+      <li>Isard, W. <em>Methods of Regional Analysis: An Introduction to Regional Science</em>. MIT Press, 1960.</li>
+      <li>Tukey, J. W. <em>Exploratory Data Analysis</em>. Addison-Wesley, 1977.</li>
       <li>Rousseeuw, P. J. &amp; Croux, C. <em>Alternatives to the Median Absolute Deviation</em>. Journal of the American Statistical Association, 88(424): 1273&#x2013;1283, 1993.</li>
-      <li>MacEachren, A. M. <em>How Maps Work: Representation, Visualization, and Design</em>. Guilford Press, 1995 (revised 2004). ISBN 978-1572300408.</li>
-      <li>Slocum, T. A., McMaster, R. B., Kessler, F. C., &amp; Howard, H. H. <em>Thematic Cartography and Geovisualization</em> (3rd ed.). Pearson, 2009. ISBN 978-0132298346.</li>
     </ol>
+  </section>
+
+  <!-- ═══════════════ ALGORITHM 14 ═══════════════ -->
+  <section class="algo-section" id="algo14">
+    <span class="algo-id">bivariate_studio</span>
+    <span class="algo-group">Interactive Studio</span>
+    <h2>14. Interactive Bivariate Studio &amp; Color Matrix Widget</h2>
+
+    <h3>Theoretical Background</h3>
+    <p>
+      The Interactive Bivariate Studio provides real-time exploration of 2D spatial relationships directly inside QGIS. By combining two continuous variables into an $N \times N$ matrix ($3\times3$ or $4\times4$), it reveals spatial correlations, spatial mismatches, and trade-offs (such as Social Vulnerability vs. Flood Hazard, or Public Transit Accessibility vs. Land Value).
+    </p>
+
+    <h3>Color Matrix Interpolation</h3>
+    <div class="eq-block">
+      <strong>Bilinear RGB blending in unit square $(u, v) \in [0, 1]^2$.</strong>
+      $$ C(u, v) = (1-u)(1-v)C_{LL} + u(1-v)C_{HL} + (1-u)vC_{LH} + uvC_{HH} $$
+      where $C_{LL}$ is low-low (neutral grey), $C_{HL}$ is high-variable-1, $C_{LH}$ is high-variable-2, and $C_{HH}$ is high-high (convergent chromatic accent).
+      \tag{1}
+    </div>
+
+    <h3>Curated Palette Themes</h3>
+    <table>
+      <thead>
+        <tr><th>Preset</th><th>$C_{LL}$</th><th>$C_{LH}$</th><th>$C_{HL}$</th><th>$C_{HH}$</th><th>Cartographic Use Case</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Classic Brown-Teal</td><td>#e8e8e8</td><td>#5ab4ac</td><td>#d8b365</td><td>#8c510a</td><td>General socio-economic &amp; environmental mapping</td></tr>
+        <tr><td>Pink-Blue (Robin)</td><td>#e8e8e8</td><td>#64acbe</td><td>#c85a5a</td><td>#574249</td><td>Urban vulnerability &amp; demographic shifts</td></tr>
+        <tr><td>Purple-Green</td><td>#e8e8e8</td><td>#7b3294</td><td>#008837</td><td>#2c103b</td><td>Land use &amp; ecological suitability</td></tr>
+        <tr><td>Warm Orange-Cyan</td><td>#e8e8e8</td><td>#2b83ba</td><td>#fdae61</td><td>#d7191c</td><td>Heat island vs. green canopy coverage</td></tr>
+        <tr><td>Sunset Purple-Gold</td><td>#e8e8e8</td><td>#7b2cbf</td><td>#f4a261</td><td>#e76f51</td><td>Housing affordability vs. employment access</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ═══════════════ ALGORITHM 15 ═══════════════ -->
+  <section class="algo-section" id="algo15">
+    <span class="algo-id">print_layout_suite</span>
+    <span class="algo-group">Layout Studio</span>
+    <h2>15. Print Layout Studio Suite</h2>
+
+    <h3>Theoretical Background</h3>
+    <p>
+      The Print Layout Studio automates high-end cartographic layout production, eliminating tedious manual drafting while enforcing strict ISO page geometry, Swiss typography hierarchies, optical margins, and harmonious spatial balance.
+    </p>
+
+    <h3>Key Capabilities</h3>
+    <ul>
+      <li><strong>Map Sheet Generator:</strong> Automated single and multi-sheet map production with standard ISO paper sizes ($A0-A4$) in portrait or landscape orientations, calculating exact map scales ($1:S$) with dynamic bounding extents.</li>
+      <li><strong>Contextual Overview Locator Inset:</strong> Automatically positions an overview inset map at $4\times$ smaller scale in a user-chosen corner, complete with dynamic red extent indicators.</li>
+      <li><strong>Isometric 3D Layer Stacking:</strong> Generates multi-layer axonometric $30^\circ$ perspective layouts with adjustable layer offsets ($\Delta z$) and vertical dashed alignment lines.</li>
+      <li><strong>Paper Canvas Themes:</strong> Velvet Dark (<code>#0B0F19</code>), Warm Editorial (<code>#FDFBF7</code>), Technical Blueprint (<code>#0C2340</code>), Antique Parchment (<code>#F4ECD8</code>), Japanese Washi (<code>#FAF8F5</code>), and Clean White (<code>#FFFFFF</code>).</li>
+      <li><strong>Publication Typography Hierarchy:</strong> Swiss Modern (Inter/Helvetica), Academic Serif (Merriweather/Times), Technical Blueprint (Roboto Mono), and Editorial Warm (Lora/Georgia).</li>
+      <li><strong>Modern Chevron North Needle (<code>modern_arrow</code>):</strong> Architectural chevron needle with vertical meridian baseline.</li>
+    </ul>
+  </section>
+
+  <!-- ═══════════════ ALGORITHM 16 ═══════════════ -->
+  <section class="algo-section" id="algo16">
+    <span class="algo-id">color_accessibility</span>
+    <span class="algo-group">Accessibility</span>
+    <h2>16. Color Accessibility &amp; CVD Simulation Engine</h2>
+
+    <h3>Theoretical Background</h3>
+    <p>
+      Ensures maps comply with WCAG 2.1 AAA accessibility standards and remain legible for individuals with Color Vision Deficiencies (CVD / Daltonism: Deuteranopia, Protanopia, Tritanopia).
+    </p>
+
+    <div class="eq-block">
+      <strong>Relative Luminance (sRGB).</strong>
+      $$ L = 0.2126 R' + 0.7152 G' + 0.0722 B' $$
+      $$ C' = \begin{cases} \frac{C}{12.92}, & C \leq 0.04045 \\[4pt] \left(\frac{C + 0.055}{1.055}\right)^{2.4}, & C > 0.04045 \end{cases} \quad \text{for } C \in \{R, G, B\} / 255 $$
+      \tag{1}
+    </div>
+
+    <div class="eq-block">
+      <strong>WCAG Contrast Ratio.</strong>
+      $$ CR = \frac{L_1 + 0.05}{L_2 + 0.05} \ge 7.0 \quad (\text{WCAG AAA for normal text}) $$
+      \tag{2}
+    </div>
+  </section>
+
+  <!-- ═══════════════ ALGORITHM 17 ═══════════════ -->
+  <section class="algo-section" id="algo17">
+    <span class="algo-id">sun_lighting</span>
+    <span class="algo-group">Solar Lighting</span>
+    <h2>17. Solar Position &amp; Sun Angle Calculator</h2>
+
+    <h3>Theoretical Background</h3>
+    <p>
+      Computes real astronomical solar altitude and azimuth based on geographic latitude ($\phi$), day of year ($n$), and solar hour ($H$) to generate accurate 2.5D building shadows and daylight analysis.
+    </p>
+
+    <div class="eq-block">
+      <strong>Solar Declination &amp; Altitude Equations.</strong>
+      $$ \delta = 23.45^\circ \sin\left(\frac{360^\circ}{365}(284 + n)\right) $$
+      $$ \sin \alpha = \sin \phi \sin \delta + \cos \phi \cos \delta \cos H $$
+      $$ \cos \gamma = \frac{\sin \alpha \sin \phi - \sin \delta}{\cos \alpha \cos \phi} $$
+      where $\alpha$ is the solar altitude angle above the horizon and $\gamma$ is the solar azimuth angle.
+      \tag{1}
+    </div>
+  </section>
+
+  <!-- ═══════════════ ALGORITHM 18 ═══════════════ -->
+  <section class="algo-section" id="algo18">
+    <span class="algo-id">scientific_palettes</span>
+    <span class="algo-group">Cartographic Palettes</span>
+    <h2>18. Perceptual Scientific &amp; Topographic Color Ramps Library</h2>
+
+    <h3>Curated Scientific Ramps</h3>
+    <table>
+      <thead>
+        <tr><th>Palette</th><th>Type</th><th>Colorblind Safe</th><th>Primary Use Case</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Turbo</strong></td><td>Sequential Multi-Hue</td><td>Partial</td><td>High-contrast continuous density &amp; urban heat islands</td></tr>
+        <tr><td><strong>Mako</strong></td><td>Sequential Monotonic</td><td>Yes</td><td>Water depth, marine morphology &amp; wetlands</td></tr>
+        <tr><td><strong>Rocket</strong></td><td>Sequential Hot</td><td>Yes</td><td>Fire risk, building density &amp; traffic congestion</td></tr>
+        <tr><td><strong>Earth</strong></td><td>Topographic Diverging</td><td>Yes</td><td>Elevation gradients, land-use zoning &amp; soil moisture</td></tr>
+        <tr><td><strong>Bathymetry</strong></td><td>Marine Sequential</td><td>Yes</td><td>Coastal bathymetry &amp; flood inundation levels</td></tr>
+        <tr><td><strong>IceFire</strong></td><td>Cyclic / Diverging</td><td>Yes</td><td>Temperature anomalies, thermal stress &amp; solar radiation</td></tr>
+      </tbody>
+    </table>
   </section>
 
 </main>
