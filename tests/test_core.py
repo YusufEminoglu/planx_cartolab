@@ -521,6 +521,15 @@ check("polylabel degenerate ring", lblp.polylabel([[(0, 0), (1, 1)]])[2] == 0.0)
 check("point_to_polygon_dist outside negative", lblp.point_to_polygon_dist(20, 20, [SQUARE]) < 0)
 check("seg dist sq basic", abs(lblp._seg_dist_sq(0, 0, 3, 0, 3, 4) - 9.0) < 1e-9)
 
+# polygon orientation tests
+RECT_H = [(0, 0), (100, 0), (100, 10), (0, 10)]
+deg_h = lblp.polygon_orientation_angle(RECT_H)
+check("orientation angle horizontal rectangle is near 0", abs(deg_h) < 5.0, str(deg_h))
+
+RECT_V = [(0, 0), (10, 0), (10, 100), (0, 100)]
+deg_v = lblp.polygon_orientation_angle(RECT_V)
+check("orientation angle vertical rectangle is near 90 or -90", abs(abs(deg_v) - 90.0) < 5.0, str(deg_v))
+
 # ===================================================================
 # 11. GRATICULE
 # ===================================================================

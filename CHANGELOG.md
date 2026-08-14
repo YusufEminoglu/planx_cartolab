@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.7.5] - 2026-08-14
+
+- Added Principal Inertia Orientation Angle (lbl_angle) to Visual-Center Label Points
+
 ## [2.7.4] - 2026-08-14
 
 - Optimized Floating Annotation Map Tool with R-tree spatial index filtering

@@ -145,3 +145,64 @@ def _centroid_cell(exterior: Ring, rings: Sequence[Ring]):
     cx /= 3.0 * area
     cy /= 3.0 * area
     return _Cell(cx, cy, 0.0, rings)
+
+
+def polygon_orientation_angle(ring: Ring) -> float:
+    """
+    Calculate the principal orientation angle (degrees in [-90, 90]) of a polygon ring
+    using second central spatial moments for optimal cartographic text alignment.
+    """
+    if not ring or len(ring) < 3:
+        return 0.0
+
+    area2 = 0.0
+    cx = 0.0
+    cy = 0.0
+    n = len(ring)
+    j = n - 1
+    for i in range(n):
+        xi, yi = ring[i]
+        xj, yj = ring[j]
+        cross = xj * yi - xi * yj
+        area2 += cross
+        cx += (xi + xj) * cross
+        cy += (yi + yj) * cross
+        j = i
+
+    if abs(area2) < 1e-12:
+        return 0.0
+
+    cx /= (3.0 * area2)
+    cy /= (3.0 * area2)
+
+    mxx = 0.0
+    myy = 0.0
+    mxy = 0.0
+    j = n - 1
+    for i in range(n):
+        xi, yi = ring[i]
+        xj, yj = ring[j]
+        cross = xj * yi - xi * yj
+
+        x0 = xi - cx
+        y0 = yi - cy
+        x1 = xj - cx
+        y1 = yj - cy
+
+        mxx += cross * (x0 * x0 + x0 * x1 + x1 * x1)
+        myy += cross * (y0 * y0 + y0 * y1 + y1 * y1)
+        mxy += cross * (2.0 * x0 * y0 + x0 * y1 + x1 * y0 + 2.0 * x1 * y1)
+        j = i
+
+    mxx /= 12.0
+    myy /= 12.0
+    mxy /= 24.0
+
+    theta = 0.5 * math.atan2(2.0 * mxy, mxx - myy)
+    deg = math.degrees(theta)
+
+    while deg > 90.0:
+        deg -= 180.0
+    while deg < -90.0:
+        deg += 180.0
+    return round(deg, 2)

@@ -10,7 +10,7 @@ from qgis.core import (
 )
 from qgis.PyQt.QtCore import QVariant
 
-from ..core.label_points import polylabel
+from ..core.label_points import polylabel, polygon_orientation_angle
 from ._help_mixin import CartoLabHelpMixin
 
 
@@ -74,8 +74,9 @@ class LabelPointsAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
             "interior point furthest from any edge. Unlike a centroid, it always "
             "falls inside the polygon, even for C-shaped or doughnut features, so "
             "labels never spill outside the shape.\n\n"
-            "For multipart features the largest part is used. The 'lbl_dist' field "
-            "holds the inscribed-circle radius (how much label room there is).\n\n"
+            "For multipart features the largest part is used.\n"
+            "• 'lbl_dist': Inscribed-circle radius in map units (available label room proxy).\n"
+            "• 'lbl_angle': Principal inertia orientation angle in degrees [-90..+90] for rotating labels along elongated shapes.\n\n"
             "Precision 0 = auto (scaled from each polygon's size)."
         )
 
@@ -98,6 +99,7 @@ class LabelPointsAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         for f in source.fields():
             out_fields.append(QgsField(f.name(), f.type()))
         out_fields.append(QgsField("lbl_dist", QVariant.Double))
+        out_fields.append(QgsField("lbl_angle", QVariant.Double))
 
         (sink, dest_id) = self.parameterAsSink(
             parameters, self.OUTPUT, context,
@@ -117,8 +119,10 @@ class LabelPointsAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
                 bb = feat.geometry().boundingBox()
                 prec = max(min(bb.width(), bb.height()) / 100.0, 1e-9)
             x, y, dist = polylabel(rings, prec)
+            angle = polygon_orientation_angle(rings[0])
             attrs = feat.attributes()[:]
             attrs.append(dist)
+            attrs.append(angle)
             nf = QgsFeature(out_fields)
             nf.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(x, y)))
             nf.setAttributes(attrs)
@@ -126,5 +130,5 @@ class LabelPointsAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
             written += 1
             feedback.setProgress(int(100 * current / total))
 
-        feedback.pushInfo(f"Computed {written} visual-center label points.")
+        feedback.pushInfo(f"Computed {written} visual-center label points with distance and orientation angles.")
         return {self.OUTPUT: dest_id}
