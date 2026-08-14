@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.8.6] - 2026-08-14
+
+- Added modern_arrow architectural north needle to Print Layout Legend Decorator
+
 ## [2.8.5] - 2026-08-14
 
 - Added PALETTE selection parameter to Continuous-Area Cartogram algorithm

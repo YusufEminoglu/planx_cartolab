@@ -345,6 +345,34 @@ def add_north_arrow_to_layout(
         lbl = _label(layout, "N", cx - 2.5, y0, size=9, bold=True)
         items.append(lbl)
 
+    elif preset == "modern_arrow":
+        # Contemporary architectural & urban planning chevron needle
+        tip_y = y0 + 6.0
+        poly_chevron = QPolygonF([
+            QPointF(cx, tip_y),
+            QPointF(cx + w * 0.35, y0 + h * 0.65),
+            QPointF(cx, y0 + h * 0.5),
+            QPointF(cx - w * 0.35, y0 + h * 0.65),
+        ])
+        p_chev = QgsLayoutItemPolygon(poly_chevron, layout)
+        p_chev.setSymbol(_fill(QColor("#0f172a")))
+        layout.addLayoutItem(p_chev)
+        items.append(p_chev)
+
+        poly_tail = QPolygonF([
+            QPointF(cx - 0.4, y0 + h * 0.5),
+            QPointF(cx + 0.4, y0 + h * 0.5),
+            QPointF(cx + 0.4, y0 + h),
+            QPointF(cx - 0.4, y0 + h),
+        ])
+        p_tail = QgsLayoutItemPolygon(poly_tail, layout)
+        p_tail.setSymbol(_fill(QColor("#475569")))
+        layout.addLayoutItem(p_tail)
+        items.append(p_tail)
+
+        lbl = _label(layout, "N", cx - 2.5, y0, size=9, bold=True)
+        items.append(lbl)
+
     else:
         # Classic 8-Point Compass Rose with dual-facet shading
         facet_left = QPolygonF([QPointF(cx, y0 + 6.0), QPointF(x0, y0 + h), QPointF(cx, y0 + h * 0.8)])
