@@ -5,11 +5,11 @@ from __future__ import annotations
 from contextlib import suppress
 
 from qgis.core import (
-
     QgsFeatureSink,
     QgsProcessing,
     QgsProcessingAlgorithm,
     QgsProcessingException,
+    QgsProcessingParameterEnum,
     QgsProcessingParameterFeatureSink,
     QgsProcessingParameterFeatureSource,
     QgsProcessingParameterField,
@@ -31,9 +31,15 @@ class CartogramAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
     FIELD = "FIELD"
     MAX_ITERATIONS = "MAX_ITERATIONS"
     MAX_ERROR = "MAX_ERROR"
+    PALETTE = "PALETTE"
     ITERATIONS = "ITERATIONS"
     RESIDUAL_ERROR = "RESIDUAL_ERROR"
     OUTPUT = "OUTPUT"
+
+    PALETTES_LIST = [
+        "Plasma", "Viridis", "Inferno", "Magma", "Cividis",
+        "Turbo", "Mako", "Rocket", "Blues", "Oranges", "YlOrRd", "Purples", "Greens"
+    ]
 
     def name(self) -> str:
         return "compute_cartogram"
@@ -55,8 +61,9 @@ class CartogramAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
             "Distort polygon areas to be proportional to a numeric field "
             "using the diffusion method (Gastner & Newman).\n\n"
             "The algorithm iteratively displaces polygon boundaries until "
-            "each region's area represents its field value.  A zero-width "
+            "each region's area represents its field value. A zero-width "
             "buffer is applied to fix topology issues on exit.\n\n"
+            "• Color ramp: Automatically styles the resulting distorted polygons.\n"
             "Requires at least 2 valid polygon features."
         )
 
@@ -83,6 +90,10 @@ class CartogramAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
                                           defaultValue=5.0, minValue=0.1, maxValue=100.0)
         )
         self.addParameter(
+            QgsProcessingParameterEnum(self.PALETTE, "Color ramp for cartogram styling",
+                                       options=self.PALETTES_LIST, defaultValue=0)
+        )
+        self.addParameter(
             QgsProcessingParameterFeatureSink(self.OUTPUT, "Cartogram output")
         )
         self.addOutput(
@@ -100,6 +111,8 @@ class CartogramAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         field_name = self.parameterAsString(parameters, self.FIELD, context)
         max_iter = self.parameterAsInt(parameters, self.MAX_ITERATIONS, context)
         max_error = self.parameterAsDouble(parameters, self.MAX_ERROR, context)
+        pal_idx = self.parameterAsEnum(parameters, self.PALETTE, context) if self.PALETTE in parameters else 0
+        pal_name = self.PALETTES_LIST[pal_idx] if 0 <= pal_idx < len(self.PALETTES_LIST) else "Plasma"
 
         feedback.pushInfo(f"Loading input layer with {source.featureCount()} features...")
 
@@ -145,8 +158,7 @@ class CartogramAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         if out_layer:
             with suppress(Exception):
                 from ..core.publication_styler import auto_style_layer
-                auto_style_layer(out_layer, style_type="cartogram", field_name=field_name, palette_name="Plasma")
-
+                auto_style_layer(out_layer, style_type="cartogram", field_name=field_name, palette_name=pal_name)
 
         return {
             self.OUTPUT: dest_id,

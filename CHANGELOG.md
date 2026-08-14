@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.8.5] - 2026-08-14
+
+- Added PALETTE selection parameter to Continuous-Area Cartogram algorithm
+
 ## [2.8.4] - 2026-08-14
 
 - Added Emerald Metropolis and Terracotta Mediterranean 2.5D presets, plus Turbo/Viridis height palettes
