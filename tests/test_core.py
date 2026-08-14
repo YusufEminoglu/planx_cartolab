@@ -846,6 +846,9 @@ check("add_locator_inset_map is callable", callable(lm.add_locator_inset_map))
 from planx_cartolab.layout import isometric_stacker as iso
 check("create_isometric_stack_layout is callable", callable(iso.create_isometric_stack_layout))
 
+from planx_cartolab.ui import floating_annotation as fa
+check("FloatingAnnotationTool class exists", hasattr(fa, "FloatingAnnotationTool"))
+
 # ===================================================================
 # SUMMARY
 # ===================================================================

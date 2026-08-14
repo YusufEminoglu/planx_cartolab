@@ -8,17 +8,22 @@ card via html_graph_factory, and shows it in a bordered popup dialog.
 """
 from __future__ import annotations
 
-from qgis.PyQt.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
-)
-from qgis.PyQt.QtCore import Qt
-from qgis.core import (
-    QgsPointXY, QgsGeometry, QgsMapLayer, QgsProject,
-)
-from qgis.gui import QgsMapTool
+try:
+    from qgis.PyQt.QtWidgets import (
+        QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
+    )
+    from qgis.PyQt.QtCore import Qt
+    from qgis.core import (
+        QgsPointXY, QgsGeometry, QgsMapLayer, QgsProject, QgsRectangle, QgsFeatureRequest,
+    )
+    from qgis.gui import QgsMapTool
+except ImportError:
+    QDialog = QVBoxLayout = QHBoxLayout = QPushButton = QLabel = None
+    Qt = QgsPointXY = QgsGeometry = QgsMapLayer = QgsProject = QgsRectangle = QgsFeatureRequest = None
+    QgsMapTool = object
 
 
-class AnnotationDialog(QDialog):
+class AnnotationDialog(QDialog if QDialog else object):
     """Frameless floating dialog showing an HTML annotation card."""
 
     def __init__(self, iface, html: str, parent=None):
@@ -118,7 +123,12 @@ class FloatingAnnotationTool(QgsMapTool):
         for layer in reversed(layers):
             # small search radius in map units
             radius = self.canvas.mapUnitsPerPixel() * 8
-            for feat in layer.getFeatures():
+            search_rect = QgsRectangle(
+                point.x() - radius, point.y() - radius,
+                point.x() + radius, point.y() + radius
+            )
+            req = QgsFeatureRequest().setFilterRect(search_rect)
+            for feat in layer.getFeatures(req):
                 geom = feat.geometry()
                 if geom.isEmpty() or geom.isNull():
                     continue

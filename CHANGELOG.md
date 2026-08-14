@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.7.4] - 2026-08-14
+
+- Optimized Floating Annotation Map Tool with R-tree spatial index filtering
+
 ## [2.7.3] - 2026-08-14
 
 - Added Turbo, Mako, Rocket, Earth, Bathymetry, and IceFire scientific color ramps
