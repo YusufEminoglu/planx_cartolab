@@ -755,6 +755,21 @@ check("add_locator_inset_map function exists", callable(lm.add_locator_inset_map
 from planx_cartolab.layout import coordinate_grid as cg
 check("apply_coordinate_grid_decorator function exists", callable(cg.apply_coordinate_grid_decorator))
 
+from planx_cartolab.layout import layout_optimizer as lo
+check("optimize_layout_visual_balance function exists", callable(lo.optimize_layout_visual_balance))
+
+section("Color Accessibility & Contrast Engine")
+from planx_cartolab.core import color_accessibility as ca
+check("relative_luminance black is 0.0", abs(ca.relative_luminance("#000000") - 0.0) < 0.001)
+check("relative_luminance white is 1.0", abs(ca.relative_luminance("#ffffff") - 1.0) < 0.001)
+cr = ca.contrast_ratio("#ffffff", "#000000")
+check("contrast_ratio B/W is 21.0", abs(cr - 21.0) < 0.01)
+sim_d = ca.simulate_cvd_hex("#ff0000", "deuteranopia")
+check("CVD simulation returns valid hex", sim_d.startswith("#") and len(sim_d) == 7)
+eval_res = ca.evaluate_palette_accessibility(["#ffffff", "#3b82f6", "#0f172a"])
+check("evaluate_palette_accessibility has rating", "rating" in eval_res and "min_step_contrast" in eval_res)
+
+
 
 
 

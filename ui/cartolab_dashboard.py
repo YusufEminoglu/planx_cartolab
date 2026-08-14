@@ -1391,8 +1391,15 @@ class CartoLabDashboard(_QDialogBase):
         # Update metadata badge info
         cb_badge = "🟢 Colorblind Safe" if meta.get("cb_safe") else "⚠️ General Use"
         kind_str = meta.get("kind", "Sequential").capitalize()
+
+        from ..core.color_accessibility import evaluate_palette_accessibility
+        eval_acc = evaluate_palette_accessibility(cols)
+        rating_str = eval_acc.get("rating", "Standard")
+        end_contrast = eval_acc.get("endpoint_contrast", 1.0)
+
         self.qs_preview_info.setText(
-            f"Palette: <b>{name}</b> ({kind_str})  ·  {cb_badge}  ·  <b>{len(cols)} classes</b>"
+            f"Palette: <b>{name}</b> ({kind_str})  ·  {cb_badge}  ·  "
+            f"WCAG: <b>{rating_str}</b> ({end_contrast}:1)  ·  <b>{len(cols)} classes</b>"
         )
 
         # Populate discrete swatch blocks
@@ -1864,12 +1871,16 @@ class CartoLabDashboard(_QDialogBase):
         btn_grid = QPushButton("Add / Refresh Minimalist Grid")
         btn_grid.setIcon(_cartolab_icon("grid.png"))
         btn_grid.clicked.connect(self._on_grid_style)
+        btn_balance = QPushButton("Auto-Balance Margins")
+        btn_balance.setIcon(_cartolab_icon("layout.png"))
+        btn_balance.clicked.connect(self._on_balance_layout)
         deco_row.addWidget(btn_typo)
         deco_row.addWidget(btn_grid)
+        deco_row.addWidget(btn_balance)
         gd.addLayout(deco_row)
         lyt.addWidget(gb_dec)
 
-        for button in (btn_sheet, btn_iso, btn_legend, btn_typo, btn_grid):
+        for button in (btn_sheet, btn_iso, btn_legend, btn_typo, btn_grid, btn_balance):
             button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
         lyt.addStretch()
@@ -2119,6 +2130,23 @@ class CartoLabDashboard(_QDialogBase):
                 )
         except Exception as exc:
             QMessageBox.critical(self, "Grid Error", str(exc))
+
+    def _on_balance_layout(self) -> None:
+        layout = self._require_layout("Auto-Balance Margins")
+        if layout is None:
+            return
+        try:
+            from ..layout.layout_optimizer import optimize_layout_visual_balance
+            if optimize_layout_visual_balance(layout):
+                self.iface.messageBar().pushSuccess(
+                    "CartoLab", f"Visual balance and margins optimized for '{layout.name()}'."
+                )
+            else:
+                QMessageBox.information(
+                    self, "Auto-Balance", f"Layout '{layout.name()}' has no primary map frame."
+                )
+        except Exception as exc:
+            QMessageBox.critical(self, "Auto-Balance Error", str(exc))
 
     # ── System health / refresh ──────────────────────────────────────
 

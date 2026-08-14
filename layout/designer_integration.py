@@ -297,6 +297,26 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
     btn_dock_title.clicked.connect(_dock_title)
     fl_typo.addRow(btn_dock_title)
 
+    btn_dock_balance = QPushButton("Auto-Balance Margins & Alignment")
+    btn_dock_balance.setIcon(_get_cartolab_icon("layout.png"))
+
+    def _dock_balance():
+        layout = _get_designer_layout(designer)
+        if not layout:
+            return
+        try:
+            from .layout_optimizer import optimize_layout_visual_balance
+            if optimize_layout_visual_balance(layout):
+                if hasattr(iface, "messageBar"):
+                    iface.messageBar().pushSuccess("CartoLab", "Layout visual balance & golden margins applied.")
+            else:
+                QMessageBox.information(parent_win, "Auto-Balance", "No map item found to balance.")
+        except Exception as exc:
+            QMessageBox.critical(parent_win, "Auto-Balance Error", str(exc))
+
+    btn_dock_balance.clicked.connect(_dock_balance)
+    fl_typo.addRow(btn_dock_balance)
+
     lyt_canvas.addWidget(gb_typo)
     lyt_canvas.addStretch()
 

@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.5.7] - 2026-08-14
+
+- WCAG 2.1 Color Accessibility and CVD simulation engine, and Layout Visual Balance and Margin Optimizer
+
 ## [2.5.6] - 2026-08-14
 
 - Calm modern slate GUI styling, publication-standard coordinate grid engine with auto-intervals and smart map tools
