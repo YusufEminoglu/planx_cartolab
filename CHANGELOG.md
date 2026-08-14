@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.7.3] - 2026-08-14
+
+- Added Turbo, Mako, Rocket, Earth, Bathymetry, and IceFire scientific color ramps
+
 ## [2.7.2] - 2026-08-14
 
 - Enhanced Isometric 3D Layer Stacker with pure test safety and clean polyline connectors

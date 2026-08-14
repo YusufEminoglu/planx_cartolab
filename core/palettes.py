@@ -39,6 +39,21 @@ PALETTES: Dict[str, dict] = {
     "Cividis": {"kind": SEQUENTIAL, "cb_safe": True, "colors": [
         "#00204d", "#00336f", "#39486b", "#575d6d", "#707173",
         "#8a8779", "#a69d75", "#c4b56c", "#fee838"]},
+    "Turbo": {"kind": SEQUENTIAL, "cb_safe": False, "colors": [
+        "#30123b", "#4662d8", "#36aaf9", "#1ae4b6", "#72fe5e",
+        "#c8ef34", "#faba39", "#f66b19", "#cb2a04", "#7a0403"]},
+    "Mako": {"kind": SEQUENTIAL, "cb_safe": True, "colors": [
+        "#0b0405", "#241935", "#35365c", "#3b587c", "#3b7d86",
+        "#42a284", "#69c47e", "#a8dc83", "#def5ac"]},
+    "Rocket": {"kind": SEQUENTIAL, "cb_safe": True, "colors": [
+        "#03051a", "#291535", "#5c1846", "#90174c", "#c12844",
+        "#e35338", "#f48648", "#fbb96b", "#faefa6"]},
+    "Earth": {"kind": SEQUENTIAL, "cb_safe": False, "colors": [
+        "#1a4329", "#2d6a4f", "#74c69d", "#d8f3dc", "#e9d8a6",
+        "#ee9b00", "#ca6702", "#9b2226", "#ffffff"]},
+    "Bathymetry": {"kind": SEQUENTIAL, "cb_safe": True, "colors": [
+        "#03045e", "#023e8a", "#0077b6", "#0096c7", "#00b4d8",
+        "#48cae4", "#90e0ef", "#ade8f4", "#caf0f8"]},
     # ---- ColorBrewer sequential (all colour-blind safe) -------------------
     "Blues": {"kind": SEQUENTIAL, "cb_safe": True, "colors": [
         "#f7fbff", "#deebf7", "#c6dbef", "#9ecae1", "#6baed6",
@@ -89,6 +104,9 @@ PALETTES: Dict[str, dict] = {
     "RdYlGn": {"kind": DIVERGING, "cb_safe": False, "colors": [
         "#a50026", "#d73027", "#f46d43", "#fdae61", "#fee08b", "#ffffbf",
         "#d9ef8b", "#a6d96a", "#66bd63", "#1a9850", "#006837"]},
+    "IceFire": {"kind": DIVERGING, "cb_safe": True, "colors": [
+        "#00204d", "#004785", "#0078b4", "#00abcc", "#45ded6", "#000000",
+        "#e6550d", "#fd8d3c", "#fdae6b", "#fdd0a2", "#fff5eb"]},
     # ---- ColorBrewer qualitative -----------------------------------------
     "Set1": {"kind": QUALITATIVE, "cb_safe": False, "colors": [
         "#e41a1c", "#377eb8", "#4daf4a", "#984ea3", "#ff7f00",

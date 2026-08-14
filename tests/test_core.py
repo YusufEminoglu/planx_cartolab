@@ -661,6 +661,11 @@ check("qualitative cycles when n>len",
 
 # colour-blind safety flags
 check("viridis is cb-safe", pal.is_colorblind_safe("Viridis"))
+check("mako is cb-safe", pal.is_colorblind_safe("Mako"))
+check("rocket is cb-safe", pal.is_colorblind_safe("Rocket"))
+check("bathymetry is cb-safe", pal.is_colorblind_safe("Bathymetry"))
+check("icefire is cb-safe", pal.is_colorblind_safe("IceFire"))
+check("turbo is not cb-safe", not pal.is_colorblind_safe("Turbo"))
 check("spectral is not cb-safe", not pal.is_colorblind_safe("Spectral"))
 check("RdYlGn not cb-safe (red-green)", not pal.is_colorblind_safe("RdYlGn"))
 
