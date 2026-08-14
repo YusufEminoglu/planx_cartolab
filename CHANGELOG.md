@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.5.2] - 2026-08-14
+
+- Fix 12+ bugs: scoped enum compat (QGIS 3/4), removeLayoutItem, setFrameStrokeColor, addGrid/addOverview TypeErrors, coordinate grid enums, scalebar units fallback, bivariate axis labels, html metric ValueError
+
 ## [2.5.1] - 2026-08-14
 
 - Fix Coordinate Grid addGrid TypeError, map scalebar style names, draw explicit bivariate axis labels, and add in-place legend updater

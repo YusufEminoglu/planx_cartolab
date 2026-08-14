@@ -60,10 +60,15 @@ def style_layout_legend(
         item_font = QFont(font_family, 8, QFont.Weight.Normal)
 
         if hasattr(target_legend, "setStyleFont"):
-            target_legend.setStyleFont(QgsLegendStyle.Style.Title, title_font)
-            target_legend.setStyleFont(QgsLegendStyle.Style.Group, group_font)
-            target_legend.setStyleFont(QgsLegendStyle.Style.Subgroup, subgroup_font)
-            target_legend.setStyleFont(QgsLegendStyle.Style.SymbolLabel, item_font)
+            _S = getattr(QgsLegendStyle, "Style", QgsLegendStyle)
+            _Title = getattr(_S, "Title", getattr(QgsLegendStyle, "Title", 0))
+            _Group = getattr(_S, "Group", getattr(QgsLegendStyle, "Group", 1))
+            _Subgroup = getattr(_S, "Subgroup", getattr(QgsLegendStyle, "Subgroup", 2))
+            _SymbolLabel = getattr(_S, "SymbolLabel", getattr(QgsLegendStyle, "SymbolLabel", 4))
+            target_legend.setStyleFont(_Title, title_font)
+            target_legend.setStyleFont(_Group, group_font)
+            target_legend.setStyleFont(_Subgroup, subgroup_font)
+            target_legend.setStyleFont(_SymbolLabel, item_font)
 
     target_legend.setSymbolWidth(6.0)
     target_legend.setSymbolHeight(4.0)

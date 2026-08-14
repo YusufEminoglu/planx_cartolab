@@ -164,9 +164,15 @@ def build_floating_card(
     -------
     str — complete HTML fragment ready for QWebEngineView or QWebView.
     """
+    def _fmt_val(v):
+        try:
+            return f"{float(v):.2f}"
+        except (ValueError, TypeError):
+            return str(v)
+
     rows_html = "\n".join(
         f'<div class="metric-row"><span class="metric-label">{k}</span>'
-        f'<span class="metric-value">{v:.2f}</span></div>'
+        f'<span class="metric-value">{_fmt_val(v)}</span></div>'
         for k, v in metrics.items()
     )
 

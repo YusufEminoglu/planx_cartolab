@@ -52,22 +52,21 @@ def apply_coordinate_grid_decorator(
         return False
 
     grid.setEnabled(True)
-    grid.setStyle(QgsLayoutItemMapGrid.GridStyle.Cross)
+    _Cross = getattr(getattr(QgsLayoutItemMapGrid, "GridStyle", QgsLayoutItemMapGrid), "Cross", getattr(QgsLayoutItemMapGrid, "Cross", 1))
+    grid.setStyle(_Cross)
     grid.setIntervalX(interval_m)
     grid.setIntervalY(interval_m)
-    grid.setFrameStyle(QgsLayoutItemMapGrid.FrameStyle.Zebra)
+    _Zebra = getattr(getattr(QgsLayoutItemMapGrid, "FrameStyle", QgsLayoutItemMapGrid), "Zebra", getattr(QgsLayoutItemMapGrid, "Zebra", 1))
+    grid.setFrameStyle(_Zebra)
     grid.setFrameWidth(2.0)
 
     if show_annotations and hasattr(grid, "setAnnotationEnabled"):
         grid.setAnnotationEnabled(True)
-        grid.setAnnotationDisplay(
-            QgsLayoutItemMapGrid.DisplayMode.ShowAll,
-            QgsLayoutItemMapGrid.BorderSide.Left,
-        )
-        grid.setAnnotationDisplay(
-            QgsLayoutItemMapGrid.DisplayMode.ShowAll,
-            QgsLayoutItemMapGrid.BorderSide.Bottom,
-        )
+        _ShowAll = getattr(getattr(QgsLayoutItemMapGrid, "DisplayMode", QgsLayoutItemMapGrid), "ShowAll", getattr(QgsLayoutItemMapGrid, "ShowAll", 0))
+        _Left = getattr(getattr(QgsLayoutItemMapGrid, "BorderSide", QgsLayoutItemMapGrid), "Left", getattr(QgsLayoutItemMapGrid, "Left", 0))
+        _Bottom = getattr(getattr(QgsLayoutItemMapGrid, "BorderSide", QgsLayoutItemMapGrid), "Bottom", getattr(QgsLayoutItemMapGrid, "Bottom", 2))
+        grid.setAnnotationDisplay(_ShowAll, _Left)
+        grid.setAnnotationDisplay(_ShowAll, _Bottom)
 
     main_map.updateBoundingRect()
     layout.refresh()

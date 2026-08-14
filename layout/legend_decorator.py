@@ -221,18 +221,15 @@ def add_scalebar_to_layout(
     }
     target_style = STYLE_MAP.get(style_name, "Single Box")
     scalebar.setStyle(target_style)
-    if hasattr(QgsUnitTypes, "DistanceUnit"):
-        scalebar.setUnits(QgsUnitTypes.DistanceUnit.DistanceKilometers)
+
+    # Units — safe for both QGIS 3.x (unscoped) and 4.x (scoped)
+    _DistKm = getattr(getattr(QgsUnitTypes, "DistanceUnit", QgsUnitTypes), "DistanceKilometers", getattr(QgsUnitTypes, "DistanceKilometers", None))
+    if _DistKm is not None:
+        scalebar.setUnits(_DistKm)
 
     scalebar.setNumberOfSegments(max(1, segments))
     scalebar.setUnitsPerSegment(units_per_segment)
     scalebar.setUnitLabel(unit_label)
-
-    # Apply typography
-    if QFont is not None:
-        f = QFont("Inter", 8, QFont.Weight.Bold)
-        if hasattr(scalebar, "setFont"):
-            scalebar.setFont(f)
 
     scalebar.attemptMove(QgsLayoutPoint(position[0], position[1], _MM))
     layout.addLayoutItem(scalebar)

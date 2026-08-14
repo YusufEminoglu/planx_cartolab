@@ -95,11 +95,12 @@ def attach_cartolab_to_designer(iface, designer) -> None:
     # 1. Create 1 Embedded Dock Panel inside Print Layout Window
     dock = create_cartolab_layout_dock(iface, designer, main_win)
     dock.setWindowIcon(icon)
+    _RightDock = getattr(getattr(Qt, "DockWidgetArea", Qt), "RightDockWidgetArea", getattr(Qt, "RightDockWidgetArea", 2))
     with suppress(Exception):
         if hasattr(designer, "addDockWidget"):
-            designer.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock)
+            designer.addDockWidget(_RightDock, dock)
         elif hasattr(main_win, "addDockWidget"):
-            main_win.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock)
+            main_win.addDockWidget(_RightDock, dock)
 
     # 2. Add single PlanX CartoLab Menu item and QToolBar Action Button
     with suppress(Exception):
@@ -132,7 +133,9 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
     """Create embedded CartoLab Layout Studio Dock Widget for the layout designer."""
     dock = QDockWidget("CartoLab Layout Studio", parent_win)
     dock.setObjectName("CartoLabLayoutStudioDock")
-    dock.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
+    _LeftDock = getattr(getattr(Qt, "DockWidgetArea", Qt), "LeftDockWidgetArea", getattr(Qt, "LeftDockWidgetArea", 1))
+    _RightDock = getattr(getattr(Qt, "DockWidgetArea", Qt), "RightDockWidgetArea", getattr(Qt, "RightDockWidgetArea", 2))
+    dock.setAllowedAreas(_LeftDock | _RightDock)
 
     container = QWidget()
     main_lyt = QVBoxLayout(container)
@@ -310,13 +313,23 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
             QMessageBox.information(parent_win, "Update Legend", "Please select a bivariate legend group in the layout canvas first.")
             return
 
-        # Record position of first selected item
-        pos_x = selected[0].pos().x()
-        pos_y = selected[0].pos().y()
+        # Record position of first selected item in layout mm coordinates
+        first = selected[0]
+        pos_x, pos_y = 12.0, 12.0  # fallback default
+        with suppress(Exception):
+            if hasattr(first, "positionWithUnits"):
+                pt = first.positionWithUnits()
+                pos_x = pt.x()
+                pos_y = pt.y()
+            elif hasattr(first, "pos"):
+                # pos() returns scene points; approximate as mm
+                pos_x = first.pos().x()
+                pos_y = first.pos().y()
 
-        # Remove selected items
-        for item in selected:
-            layout.removeItem(item)
+        # Remove selected items using the correct PyQGIS method
+        for item in list(selected):
+            with suppress(Exception):
+                layout.removeLayoutItem(item)
 
         colors = palette_combo.currentData()
         ltype = shape_combo.currentData()

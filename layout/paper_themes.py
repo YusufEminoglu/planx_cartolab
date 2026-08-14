@@ -66,7 +66,6 @@ def apply_paper_theme(layout: QgsLayout, theme_key: str = "blueprint") -> bool:
         return False
 
     theme = PAPER_THEMES.get(theme_key, PAPER_THEMES["swiss_modern"])
-    bg_qcolor = QColor(theme["bg_color"])
     text_qcolor = QColor(theme["text_color"])
     frame_qcolor = QColor(theme["frame_color"])
 
@@ -91,7 +90,10 @@ def apply_paper_theme(layout: QgsLayout, theme_key: str = "blueprint") -> bool:
                 item.setFontColor(text_qcolor)
             elif isinstance(item, QgsLayoutItemMap):
                 item.setFrameEnabled(True)
-                item.setFrameColor(frame_qcolor)
+                if hasattr(item, "setFrameStrokeColor"):
+                    item.setFrameStrokeColor(frame_qcolor)
+                elif hasattr(item, "setFrameColor"):
+                    item.setFrameColor(frame_qcolor)
 
     with suppress(Exception):
         layout.invalidateCache()

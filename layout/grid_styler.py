@@ -61,12 +61,14 @@ def apply_minimalist_grid(
 
     grid = QgsLayoutItemMapGrid(GRID_ID, map_item)
     grid.setEnabled(True)
-    grid.setUnits(QgsLayoutItemMapGrid.GridUnit.MapUnit)
+    _MapUnit = getattr(getattr(QgsLayoutItemMapGrid, "GridUnit", QgsLayoutItemMapGrid), "MapUnit", getattr(QgsLayoutItemMapGrid, "MapUnit", 0))
+    grid.setUnits(_MapUnit)
     grid.setIntervalX(interval_x)
     grid.setIntervalY(interval_y)
 
     # No frame — a minimal academic look with only interior lines + labels.
-    grid.setFrameStyle(QgsLayoutItemMapGrid.FrameStyle.NoFrame)
+    _NoFrame = getattr(getattr(QgsLayoutItemMapGrid, "FrameStyle", QgsLayoutItemMapGrid), "NoFrame", getattr(QgsLayoutItemMapGrid, "NoFrame", 0))
+    grid.setFrameStyle(_NoFrame)
     grid.setLineSymbol(QgsLineSymbol.createSimple({"color": "#c8c8c8", "width": "0.2"}))
 
     grid.setAnnotationEnabled(True)
