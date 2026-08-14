@@ -23,8 +23,6 @@ class PlanXCartoLab:
         self.iface = iface
         self.provider = None
         self.action_dashboard = None
-        self.action_quick_style = None
-        self.action_layout = None
         self.action_25d = None
         self.action_annotate = None
         self.action_welcome = None
@@ -44,54 +42,34 @@ class PlanXCartoLab:
             return
 
         icon_dir = os.path.join(os.path.dirname(__file__), "icons")
-        def _icon(name):
-            p = os.path.join(icon_dir, name)
-            return QIcon(p) if os.path.exists(p) else QIcon(os.path.join(icon_dir, "icon.png"))
+        icon_path = os.path.join(icon_dir, "icon.png")
+        icon = QIcon(icon_path) if os.path.exists(icon_path) else QIcon()
 
-        # 1. Main Dashboard action
-        self.action_dashboard = QAction(_icon("icon.png"), "PlanX CartoLab Studio", self.iface.mainWindow())
-        self.action_dashboard.setToolTip("Open PlanX CartoLab Production Console")
+        # 1 Single Primary Action on QGIS Toolbar & Menu (Opens Full Canvas Studio GUI)
+        self.action_dashboard = QAction(icon, "PlanX CartoLab", self.iface.mainWindow())
+        self.action_dashboard.setToolTip("PlanX CartoLab — Advanced Cartography Suite")
         self.action_dashboard.triggered.connect(self.open_dashboard)
         self.iface.addToolBarIcon(self.action_dashboard)
         self.iface.addPluginToMenu("&PlanX CartoLab", self.action_dashboard)
 
-        # 2. Symbology & Quick Style action
-        self.action_quick_style = QAction(_icon("style.png"), "Quick Style Symbology Studio", self.iface.mainWindow())
-        self.action_quick_style.setToolTip("Open Quick Style & Bivariate Symbology Studio")
-        self.action_quick_style.triggered.connect(self.open_quick_style)
-        self.iface.addToolBarIcon(self.action_quick_style)
-        self.iface.addPluginToMenu("&PlanX CartoLab", self.action_quick_style)
-
-        # 3. Layout Automation Studio action
-        self.action_layout = QAction(_icon("layout.png"), "Print Layout Automation Studio", self.iface.mainWindow())
-        self.action_layout.setToolTip("Open Print Layout Automation & Auto Map Sheet")
-        self.action_layout.triggered.connect(self.open_layout_studio)
-        self.iface.addToolBarIcon(self.action_layout)
-        self.iface.addPluginToMenu("&PlanX CartoLab", self.action_layout)
-
-        # 4. 2.5D styling panel action
-        self.action_25d = QAction(_icon("isometric.png"), "2.5D Building Extrusion Panel", self.iface.mainWindow())
-        self.action_25d.setToolTip("Apply 2.5D Isometric Building Extrusions & Lighting Presets")
+        # Additional quick entries in Menu only (clean, no toolbar pollution)
+        self.action_25d = QAction("2.5D Building Extrusions", self.iface.mainWindow())
         self.action_25d.triggered.connect(self.open_25d_panel)
         self.iface.addPluginToMenu("&PlanX CartoLab", self.action_25d)
 
-        # 5. Annotation / Inspector tool action
-        self.action_annotate = QAction(_icon("inspector.png"), "Inspect Features (Radar Chart)", self.iface.mainWindow())
-        self.action_annotate.setToolTip("Inspect attributes and radar chart on map click")
+        self.action_annotate = QAction("Inspect Features (Radar Chart)", self.iface.mainWindow())
         self.action_annotate.setCheckable(True)
         self.action_annotate.toggled.connect(self._toggle_annotation_tool)
-        self.iface.addToolBarIcon(self.action_annotate)
         self.iface.addPluginToMenu("&PlanX CartoLab", self.action_annotate)
 
-        # 6. Welcome / sample-map action (onboarding entry)
-        self.action_welcome = QAction(_icon("compass.png"), "Welcome & Sample Datasets", self.iface.mainWindow())
+        self.action_welcome = QAction("Welcome & Sample Datasets", self.iface.mainWindow())
         self.action_welcome.triggered.connect(self.open_welcome)
         self.iface.addPluginToMenu("&PlanX CartoLab", self.action_welcome)
 
         # First run only: greet the user shortly after startup completes.
         QTimer.singleShot(1200, self._maybe_show_welcome)
 
-        # Print Layout Designer window integration (attach dock toolbar & menu to layout windows)
+        # Print Layout Designer window integration (1 single toggle icon & dock in layout windows)
         with suppress(Exception):
             from .layout.designer_integration import setup_designer_integration
             setup_designer_integration(self.iface)
@@ -117,16 +95,6 @@ class PlanXCartoLab:
         self.dialog.raise_()
         self.dialog.activateWindow()
 
-    def open_quick_style(self) -> None:
-        self.open_dashboard()
-        if self.dialog and hasattr(self.dialog, "nav_sidebar"):
-            self.dialog.nav_sidebar.setCurrentRow(0)
-
-    def open_layout_studio(self) -> None:
-        self.open_dashboard()
-        if self.dialog and hasattr(self.dialog, "nav_sidebar"):
-            self.dialog.nav_sidebar.setCurrentRow(1)
-
     def open_25d_panel(self) -> None:
         self.open_dashboard()
         if self.dialog and hasattr(self.dialog, "show_25d_panel"):
@@ -149,17 +117,15 @@ class PlanXCartoLab:
             with suppress(Exception):
                 self.iface.mapCanvas().unsetMapTool(self.annotation_tool)
         if self.iface:
-            for act in (
-                self.action_dashboard,
-                self.action_quick_style,
-                self.action_layout,
-                self.action_25d,
-                self.action_annotate,
-                self.action_welcome,
-            ):
-                if act:
-                    self.iface.removePluginMenu("&PlanX CartoLab", act)
-                    self.iface.removeToolBarIcon(act)
+            if self.action_dashboard:
+                self.iface.removePluginMenu("&PlanX CartoLab", self.action_dashboard)
+                self.iface.removeToolBarIcon(self.action_dashboard)
+            if self.action_25d:
+                self.iface.removePluginMenu("&PlanX CartoLab", self.action_25d)
+            if self.action_annotate:
+                self.iface.removePluginMenu("&PlanX CartoLab", self.action_annotate)
+            if self.action_welcome:
+                self.iface.removePluginMenu("&PlanX CartoLab", self.action_welcome)
         if self.provider:
             QgsApplication.processingRegistry().removeProvider(self.provider)
             self.provider = None

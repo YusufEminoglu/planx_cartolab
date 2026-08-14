@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.5.5] - 2026-08-14
+
+- Clean minimalist vector sub-icons and single toolbar entry points in QGIS canvas and Print Layout
+
 ## [2.5.4] - 2026-08-14
 
 - Ultra-premium 8x supersampled 0-margin squircle icon suite with terraced depth and specular lighting
