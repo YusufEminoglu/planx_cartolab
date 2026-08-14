@@ -2,7 +2,7 @@
 """Hexbin Aggregation — Processing algorithm."""
 from __future__ import annotations
 
-import math
+from contextlib import suppress
 
 from qgis.core import (
     QgsFeature, QgsFeatureSink, QgsField, QgsFields, QgsGeometry, QgsPointXY,
@@ -25,9 +25,17 @@ class HexbinAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
     CELL_SIZE = "CELL_SIZE"
     WEIGHT = "WEIGHT"
     STAT = "STAT"
+    PALETTE = "PALETTE"
+    CLASSIFIER = "CLASSIFIER"
+    CLASSES = "CLASSES"
     OUTPUT = "OUTPUT"
 
     STATS = [("Count", "count"), ("Sum of weight", "sum"), ("Mean of weight", "mean")]
+    PALETTES_LIST = [
+        "Viridis", "Plasma", "Inferno", "Magma", "Cividis",
+        "Turbo", "Mako", "Rocket", "Blues", "Oranges", "YlOrRd", "Purples", "Greens"
+    ]
+    CLASSIFIERS = ["Quantile", "Equal Interval", "Natural Breaks (Jenks)", "Pretty Breaks"]
 
     def name(self) -> str:
         return "hexbin_aggregate"
@@ -49,10 +57,10 @@ class HexbinAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
             "Aggregate a point layer into a pointy-top hexagonal grid. Only hexagons "
             "that actually contain points are emitted, so dense scatter plots become "
             "a clean, overplot-free density surface.\n\n"
-            "Statistic: count of points, sum of a weight field, or mean of a weight "
-            "field. Output carries hex_count, hex_sum and hex_mean and is graduated "
-            "on the chosen statistic.\n\n"
-            "Cell size is the hexagon radius in the layer's map units."
+            "• Statistic: Point count, sum of weight, or mean of weight.\n"
+            "• Cell size: Hexagon radius in layer's map units.\n"
+            "• Color Palette & Classifier: Direct styling with Quantile, Equal Interval, Jenks, or Pretty breaks.\n"
+            "Output carries hex_count, hex_sum, hex_mean and is graduated automatically."
         )
 
     def initAlgorithm(self, config=None):
@@ -66,6 +74,13 @@ class HexbinAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
             type=QgsProcessingParameterField.DataType.Numeric, optional=True))
         self.addParameter(QgsProcessingParameterEnum(
             self.STAT, "Statistic", options=[s[0] for s in self.STATS], defaultValue=0))
+        self.addParameter(QgsProcessingParameterEnum(
+            self.PALETTE, "Color ramp", options=self.PALETTES_LIST, defaultValue=0))
+        self.addParameter(QgsProcessingParameterEnum(
+            self.CLASSIFIER, "Classification method", options=self.CLASSIFIERS, defaultValue=0))
+        self.addParameter(QgsProcessingParameterNumber(
+            self.CLASSES, "Number of classes",
+            type=QgsProcessingParameterNumber.Type.Integer, defaultValue=5, minValue=2, maxValue=10))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUTPUT, "Hexbin output", QgsProcessing.SourceType.TypeVectorPolygon))
 
@@ -76,19 +91,22 @@ class HexbinAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         size = self.parameterAsDouble(parameters, self.CELL_SIZE, context)
         weight_field = self.parameterAsString(parameters, self.WEIGHT, context)
         stat = self.STATS[self.parameterAsEnum(parameters, self.STAT, context)][1]
+        pal_idx = self.parameterAsEnum(parameters, self.PALETTE, context) if self.PALETTE in parameters else 0
+        pal_name = self.PALETTES_LIST[pal_idx] if 0 <= pal_idx < len(self.PALETTES_LIST) else "Viridis"
+        clf_idx = self.parameterAsEnum(parameters, self.CLASSIFIER, context) if self.CLASSIFIER in parameters else 0
+        n_classes = self.parameterAsInt(parameters, self.CLASSES, context) if self.CLASSES in parameters else 5
 
         ext = source.sourceExtent()
         extent_span = max(ext.width(), ext.height()) if ext and not ext.isEmpty() else 1000.0
         if size <= 0:
-            size = extent_span / 40.0  # Default ~800 cells across extent
+            size = extent_span / 40.0
 
-        min_allowed = extent_span / 500.0  # Cap grid to max ~250,000 cells max
+        min_allowed = extent_span / 500.0
         if size < min_allowed:
             size = min_allowed
             feedback.pushInfo(f"Cell size adjusted to safeguard memory -> {size:.2f}")
 
-        # bin points
-        bins = {}  # (q, r) -> [count, sum_weight]
+        bins = {}
         total = source.featureCount() or 1
         for current, feat in enumerate(source.getFeatures()):
             if feedback.isCanceled():
@@ -136,37 +154,43 @@ class HexbinAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
 
         feedback.pushInfo(f"Aggregated {total} points into {len(bins)} hexagons (statistic: {stat}).")
 
-        try:
+        with suppress(Exception):
             out_layer = context.getMapLayer(dest_id)
             if out_layer and stat_values:
-                _apply_graduated(out_layer, stat_field, min(stat_values), max(stat_values))
-        except Exception as exc:
-            feedback.pushInfo(f"Hexbin renderer styling skipped (cosmetic): {exc}")
+                _apply_hex_graduated(out_layer, stat_field, stat_values, pal_name, n_classes, clf_idx)
 
         return {self.OUTPUT: dest_id}
 
 
-def _apply_graduated(layer, field, vmin, vmax):
-    """Apply a 5-class viridis-ish graduated renderer on ``field``."""
+def _apply_hex_graduated(layer, field, values, pal_name, n_classes, clf_idx):
+    """Apply graduated renderer with chosen palette and classifier."""
     from qgis.core import (
-        QgsClassificationCustom, QgsGraduatedSymbolRenderer,
-        QgsRendererRange, QgsSymbol,
+        QgsGraduatedSymbolRenderer, QgsRendererRange, QgsSymbol,
     )
-    colours = [
-        QColor("#440154"), QColor("#3b528b"), QColor("#21918c"),
-        QColor("#5ec962"), QColor("#fde725"),
-    ]
-    n = len(colours)
-    span = (vmax - vmin) or 1.0
+    from ..core.palettes import get_palette
+    from ..core.quick_style import quantile_breaks, equal_interval_breaks, jenks_breaks, pretty_breaks
+
+    colours = get_palette(pal_name, n_classes)
+    if clf_idx == 0:
+        breaks = quantile_breaks(values, n_classes)
+    elif clf_idx == 1:
+        breaks = equal_interval_breaks(values, n_classes)
+    elif clf_idx == 2:
+        breaks = jenks_breaks(values, n_classes)
+    else:
+        breaks = pretty_breaks(values, n_classes)
+
     ranges = []
-    for i in range(n):
-        lo = vmin + span * i / n
-        hi = vmin + span * (i + 1) / n
+    for i in range(len(breaks) - 1):
+        lo = breaks[i]
+        hi = breaks[i + 1]
+        c = colours[min(i, len(colours) - 1)]
         sym = QgsSymbol.defaultSymbol(layer.geometryType())
-        sym.setColor(colours[i])
-        sym.setOpacity(0.9)
-        ranges.append(QgsRendererRange(lo, hi, sym, f"{lo:.2f} – {hi:.2f}"))
-    renderer = QgsGraduatedSymbolRenderer(field, ranges)
-    renderer.setClassificationMethod(QgsClassificationCustom())
-    layer.setRenderer(renderer)
-    layer.triggerRepaint()
+        if sym:
+            sym.setColor(QColor(c))
+            sym.setOpacity(0.92)
+            ranges.append(QgsRendererRange(lo, hi, sym, f"{lo:.2f} – {hi:.2f}"))
+    if ranges:
+        renderer = QgsGraduatedSymbolRenderer(field, ranges)
+        layer.setRenderer(renderer)
+        layer.triggerRepaint()

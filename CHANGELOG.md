@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.8.2] - 2026-08-14
+
+- Added PALETTE, CLASSIFIER, and CLASSES direct styling parameters to Hexbin Aggregation
+
 ## [2.8.1] - 2026-08-14
 
 - Added LINE_COLOR, LINE_WIDTH, and automated SingleSymbolRenderer to Ridge Map (Joyplot)
