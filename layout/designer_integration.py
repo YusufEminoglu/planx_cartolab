@@ -259,9 +259,17 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
     fl_theme.addRow(btn_apply_theme)
     lyt_canvas.addWidget(gb_theme)
 
-    gb_typo = QGroupBox("Swiss Typography & Grid")
+    gb_typo = QGroupBox("Cartographic Typography Hierarchy")
     fl_typo = QFormLayout(gb_typo)
-    btn_dock_typo = QPushButton("Apply Swiss Typography")
+
+    typo_preset_combo = QComboBox()
+    typo_preset_combo.addItem("Swiss Modernism (Inter / Clean Sans)", "swiss_modern")
+    typo_preset_combo.addItem("Academic Journal (Merriweather / Serif)", "academic_serif")
+    typo_preset_combo.addItem("Technical Blueprint (IBM Plex Mono)", "technical_blueprint")
+    typo_preset_combo.addItem("Warm Editorial (Palatino / Georgia)", "warm_editorial")
+    fl_typo.addRow("Font Stack Preset:", typo_preset_combo)
+
+    btn_dock_typo = QPushButton("Apply Typography Hierarchy")
     btn_dock_typo.setIcon(_get_cartolab_icon("layout.png"))
 
     def _dock_typo():
@@ -269,12 +277,13 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
         if not layout:
             return
         try:
-            from .typography_engine import apply_swiss_typography
-            apply_swiss_typography(layout)
+            from .typography_engine import apply_typography_hierarchy
+            preset = typo_preset_combo.currentData() or "swiss_modern"
+            apply_typography_hierarchy(layout, preset=preset)
             if hasattr(iface, "messageBar"):
-                iface.messageBar().pushSuccess("CartoLab", "Swiss typography hierarchy applied.")
+                iface.messageBar().pushSuccess("CartoLab", f"Applied '{typo_preset_combo.currentText()}' typography.")
         except Exception as exc:
-            QMessageBox.critical(parent_win, "Swiss Typography", str(exc))
+            QMessageBox.critical(parent_win, "Typography Error", str(exc))
 
     btn_dock_typo.clicked.connect(_dock_typo)
     fl_typo.addRow(btn_dock_typo)

@@ -792,6 +792,12 @@ check("solar_to_25d_lighting returns shadow multiplier", "shadow_length_mult" in
 from planx_cartolab.layout import atlas_builder as ab
 check("setup_layout_atlas function exists", callable(ab.setup_layout_atlas))
 
+from planx_cartolab.layout import typography_engine as te
+check("apply_typography_hierarchy function exists", callable(te.apply_typography_hierarchy))
+check("TYPOGRAPHY_PRESETS has swiss_modern", "swiss_modern" in te.TYPOGRAPHY_PRESETS)
+check("TYPOGRAPHY_PRESETS has academic_serif", "academic_serif" in te.TYPOGRAPHY_PRESETS)
+
+
 
 
 

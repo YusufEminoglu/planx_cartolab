@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.6.0] - 2026-08-14
+
+- Full Cartographic Typography Hierarchy Presets (Swiss Modernism, Academic Journal, Technical Blueprint, Warm Editorial)
+
 ## [2.5.9] - 2026-08-14
 
 - Advanced statistical classifiers (Fisher-Jenks natural breaks, Jiang head/tail breaks, standard deviation) for thematic choropleth maps
