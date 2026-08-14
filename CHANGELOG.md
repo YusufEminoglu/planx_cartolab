@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.8.7] - 2026-08-14
+
+- Added Left and Right Sidebar composition archetypes to Layout Optimizer
+
 ## [2.8.6] - 2026-08-14
 
 - Added modern_arrow architectural north needle to Print Layout Legend Decorator
