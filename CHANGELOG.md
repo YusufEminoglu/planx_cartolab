@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.7.9] - 2026-08-14
+
+- Added PALETTE, CLASSES, and automated Data-Defined Opacity Renderer to Value-by-Alpha
+
 ## [2.7.8] - 2026-08-14
 
 - Added SHAPE, FILL_COLOR, and OUTLINE_COLOR configuration to Proportional Symbols
