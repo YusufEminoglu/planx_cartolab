@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.7.7] - 2026-08-14
+
+- Added DOT_SIZE and DOT_COLOR configuration to Dot Density Processing Algorithm
+
 ## [2.7.6] - 2026-08-14
 
 - Added Location Quotient (LQ), Winsorized Outlier-Trim, and Decile Rank Normalization

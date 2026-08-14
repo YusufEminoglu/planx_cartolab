@@ -4,11 +4,13 @@ from __future__ import annotations
 
 from contextlib import suppress
 
+from qgis.PyQt.QtGui import QColor
 from qgis.core import (
     QgsFeature, QgsFeatureSink, QgsField, QgsFields, QgsGeometry, QgsPointXY,
     QgsProcessing, QgsProcessingAlgorithm, QgsProcessingException,
-    QgsProcessingParameterFeatureSink, QgsProcessingParameterFeatureSource,
-    QgsProcessingParameterField, QgsProcessingParameterNumber, QgsWkbTypes,
+    QgsProcessingParameterColor, QgsProcessingParameterFeatureSink,
+    QgsProcessingParameterFeatureSource, QgsProcessingParameterField,
+    QgsProcessingParameterNumber, QgsWkbTypes, QgsMarkerSymbol, QgsSingleSymbolRenderer,
 )
 
 from ..core.dot_density import dots_for_value, generate_dots
@@ -39,6 +41,8 @@ class DotDensityAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
     INPUT = "INPUT"
     FIELD = "FIELD"
     VALUE_PER_DOT = "VALUE_PER_DOT"
+    DOT_SIZE = "DOT_SIZE"
+    DOT_COLOR = "DOT_COLOR"
     SEED = "SEED"
     OUTPUT = "OUTPUT"
 
@@ -64,8 +68,8 @@ class DotDensityAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
             "Placement is seeded (re-runs are identical) and hole-aware. Each dot "
             "inherits the source polygon's attributes, so you can colour dots by "
             "category for a multi-group dot map.\n\n"
-            "Tip: choose 'value per dot' so the busiest polygon shows a few "
-            "hundred dots at most."
+            "• Value per dot: Choose so the busiest polygon shows a few hundred dots.\n"
+            "• Marker size & color: Configured directly in millimeters and RGBA."
         )
 
     def initAlgorithm(self, config=None):
@@ -78,6 +82,11 @@ class DotDensityAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
             self.VALUE_PER_DOT, "Value represented by one dot",
             type=QgsProcessingParameterNumber.Type.Double, defaultValue=100.0, minValue=1e-9))
         self.addParameter(QgsProcessingParameterNumber(
+            self.DOT_SIZE, "Dot marker size (mm)",
+            type=QgsProcessingParameterNumber.Type.Double, defaultValue=1.0, minValue=0.1, maxValue=20.0))
+        self.addParameter(QgsProcessingParameterColor(
+            self.DOT_COLOR, "Dot marker color", defaultValue=QColor(33, 102, 131, 200)))
+        self.addParameter(QgsProcessingParameterNumber(
             self.SEED, "Random seed", type=QgsProcessingParameterNumber.Type.Integer,
             defaultValue=42, minValue=0))
         self.addParameter(QgsProcessingParameterFeatureSink(
@@ -89,6 +98,8 @@ class DotDensityAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
             raise QgsProcessingException(self.invalidSourceError(parameters, self.INPUT))
         field_name = self.parameterAsString(parameters, self.FIELD, context)
         per_dot = self.parameterAsDouble(parameters, self.VALUE_PER_DOT, context)
+        dot_size = self.parameterAsDouble(parameters, self.DOT_SIZE, context) if self.DOT_SIZE in parameters else 1.0
+        dot_color = self.parameterAsColor(parameters, self.DOT_COLOR, context) if self.DOT_COLOR in parameters else QColor(33, 102, 131, 200)
         seed = self.parameterAsInt(parameters, self.SEED, context)
 
         out_fields = QgsFields()
@@ -130,10 +141,10 @@ class DotDensityAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         with suppress(Exception):
             out_layer = context.getMapLayer(dest_id)
             if out_layer:
-                from qgis.core import QgsMarkerSymbol, QgsSingleSymbolRenderer
+                c_str = f"{dot_color.red()},{dot_color.green()},{dot_color.blue()},{dot_color.alpha()}"
                 symbol = QgsMarkerSymbol.createSimple({
-                    "name": "circle", "size": "1.0",
-                    "color": "33,102,131,200", "outline_style": "no",
+                    "name": "circle", "size": str(dot_size),
+                    "color": c_str, "outline_style": "no",
                 })
                 out_layer.setRenderer(QgsSingleSymbolRenderer(symbol))
                 out_layer.triggerRepaint()
