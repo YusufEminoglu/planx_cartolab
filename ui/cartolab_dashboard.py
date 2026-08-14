@@ -457,28 +457,94 @@ class CartoLabDashboard(_QDialogBase):
 
 
     def _build_thematic_suite_subwidget(self) -> QWidget:
-        """Interactive quick launcher grid for advanced thematic algorithms."""
+        """Interactive studio for Bivariate mapping with live matrix preview and quick launcher for thematic suite."""
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
         w = QWidget()
+        scroll.setWidget(w)
         lyt = QVBoxLayout(w)
         lyt.setContentsMargins(12, 12, 12, 12)
+        lyt.setSpacing(14)
 
-        gb = self._make_group("Advanced Thematic Mapping Algorithms")
-        grid = QGridLayout(gb)
+        # ── 1. Interactive Bivariate Choropleth Studio ──
+        gb_bivar = self._make_group("Interactive Bivariate Choropleth Studio (2-Variable Relationship)")
+        fl_bivar = QGridLayout(gb_bivar)
+        fl_bivar.setContentsMargins(12, 12, 12, 12)
+        fl_bivar.setSpacing(8)
+
+        fl_bivar.addWidget(QLabel("Polygon layer:"), 0, 0)
+        self.bivar_layer_combo = QComboBox()
+        self.bivar_layer_combo.currentIndexChanged.connect(self._refresh_bivar_fields)
+        fl_bivar.addWidget(self.bivar_layer_combo, 0, 1)
+
+        btn_refresh_bivar_layers = QPushButton("Refresh Layers")
+        btn_refresh_bivar_layers.setObjectName("ghost")
+        btn_refresh_bivar_layers.clicked.connect(self._refresh_bivar_layers)
+        fl_bivar.addWidget(btn_refresh_bivar_layers, 0, 2)
+
+        fl_bivar.addWidget(QLabel("Variable X (Field 1):"), 1, 0)
+        self.bivar_field_x_combo = QComboBox()
+        fl_bivar.addWidget(self.bivar_field_x_combo, 1, 1, 1, 2)
+
+        fl_bivar.addWidget(QLabel("Variable Y (Field 2):"), 2, 0)
+        self.bivar_field_y_combo = QComboBox()
+        fl_bivar.addWidget(self.bivar_field_y_combo, 2, 1, 1, 2)
+
+        fl_bivar.addWidget(QLabel("Palette Preset:"), 3, 0)
+        self.bivar_preset_combo = QComboBox()
+        self.bivar_preset_combo.addItem("Teal - Brown (Resilience & Hazard)", "teal_brown")
+        self.bivar_preset_combo.addItem("Stevens Pink - Cyan (Demography & Health)", "stevens_pink_cyan")
+        self.bivar_preset_combo.addItem("Blue - Orange (Density & Income)", "blue_orange")
+        self.bivar_preset_combo.addItem("Purple - Green (Land Use & Vegetation)", "purple_green")
+        self.bivar_preset_combo.addItem("Night Neon (Dark Theme & Massing)", "night_neon")
+        self.bivar_preset_combo.currentIndexChanged.connect(self._update_bivar_preview_matrix)
+        fl_bivar.addWidget(self.bivar_preset_combo, 3, 1, 1, 2)
+
+        fl_bivar.addWidget(QLabel("Classification method:"), 4, 0)
+        self.bivar_method_combo = QComboBox()
+        self.bivar_method_combo.addItems([
+            "Quantile (Equal Count - Recommended)",
+            "Geometric Interval (Power/Skewed)",
+            "Natural Breaks (Fisher-Jenks)",
+            "Equal Interval",
+        ])
+        fl_bivar.addWidget(self.bivar_method_combo, 4, 1, 1, 2)
+
+        fl_bivar.addWidget(QLabel("Matrix Resolution:"), 5, 0)
+        self.bivar_classes_spin = QSpinBox()
+        self.bivar_classes_spin.setRange(2, 4)
+        self.bivar_classes_spin.setValue(3)
+        self.bivar_classes_spin.valueChanged.connect(self._update_bivar_preview_matrix)
+        fl_bivar.addWidget(self.bivar_classes_spin, 5, 1, 1, 2)
+
+        # Live visual matrix preview container
+        fl_bivar.addWidget(QLabel("Live Color Matrix:"), 6, 0)
+        self.bivar_matrix_host = QWidget()
+        self.bivar_matrix_layout = QGridLayout(self.bivar_matrix_host)
+        self.bivar_matrix_layout.setContentsMargins(0, 0, 0, 0)
+        self.bivar_matrix_layout.setSpacing(3)
+        fl_bivar.addWidget(self.bivar_matrix_host, 6, 1, 1, 2)
+
+        btn_apply_bivar = QPushButton("Apply Bivariate Symbology ⚡")
+        btn_apply_bivar.setIcon(_cartolab_icon("bivariate.png"))
+        btn_apply_bivar.clicked.connect(self._on_apply_bivariate_studio)
+        fl_bivar.addWidget(btn_apply_bivar, 7, 0, 1, 3)
+
+        lyt.addWidget(gb_bivar)
+
+        # ── 2. Other Thematic Mapping Algorithms Quick Launcher ──
+        gb_others = self._make_group("Other Cartographic Thematic Algorithms")
+        grid = QGridLayout(gb_others)
         grid.setSpacing(10)
 
-        intro = QLabel(
-            "Launch publication-ready thematic algorithms directly with automatic styling and geometry generation:"
-        )
-        intro.setStyleSheet("color: #2b4d57; font-size: 12px;")
-        grid.addWidget(intro, 0, 0, 1, 2)
-
         algos = [
-            ("Bivariate Choropleth", "planx_cartolab:bivariate_choropleth", "NxN colour matrix from two numeric fields with bilinear interpolation.", "bivariate.png"),
-            ("Value-by-Alpha (VbA)", "planx_cartolab:value_by_alpha", "Encode data reliability/uncertainty as opacity.", "vba.png"),
-            ("Ridge Map (Joyplot)", "planx_cartolab:ridge_map", "Raster-to-vector scanline deformation - Joy Division style wave profiles.", "ridge.png"),
-            ("Dot-Density Map", "planx_cartolab:dot_density", "Seeded, hole-aware dots inside polygons - one dot per N units.", "dot_density.png"),
+            ("Value-by-Alpha (VbA)", "planx_cartolab:value_by_alpha", "Encode data reliability or uncertainty directly into polygon opacity.", "vba.png"),
+            ("Ridge Map (Joyplot)", "planx_cartolab:ridge_map", "Raster-to-vector scanline elevation profiles (Joy Division style).", "ridge.png"),
+            ("Dot-Density Map", "planx_cartolab:dot_density", "Seeded, hole-aware discrete dots inside polygons — one dot per N units.", "dot_density.png"),
             ("Proportional Symbols (Flannery)", "planx_cartolab:proportional_symbols", "Perceptually compensated graduated point symbols.", "proportional.png"),
-            ("Hexbin Aggregation", "planx_cartolab:hexbin_aggregate", "Bin point layers into pointy-top hex grids with summary metrics.", "hexbin.png"),
+            ("Hexbin Aggregation", "planx_cartolab:hexbin_aggregate", "Bin point layers into regular pointy-top hexagonal cells with metrics.", "hexbin.png"),
+            ("Cartogram Transform", "planx_cartolab:compute_cartogram", "Continuous area cartogram polygon deformation by attribute weight.", "cartogram.png"),
         ]
 
         for i, (name, aid, desc, ic_name) in enumerate(algos):
@@ -489,27 +555,127 @@ class CartoLabDashboard(_QDialogBase):
             
             thdr = QHBoxLayout()
             ic_lbl = QLabel()
-            ic_lbl.setPixmap(_cartolab_icon(ic_name).pixmap(24, 24))
+            ic_lbl.setPixmap(_cartolab_icon(ic_name).pixmap(22, 22))
             thdr.addWidget(ic_lbl)
             title = QLabel(f"<b>{name}</b>")
-            title.setStyleSheet("color:#173741; font-size:13px;")
+            title.setStyleSheet("color:#0f172a; font-size:12px;")
             thdr.addWidget(title, 1)
             cv.addLayout(thdr)
 
             d_lbl = QLabel(desc)
             d_lbl.setWordWrap(True)
-            d_lbl.setStyleSheet("color:#4a6871; font-size:11px;")
-            btn = QPushButton("Run Algorithm")
+            d_lbl.setStyleSheet("color:#475569; font-size:11px;")
+            btn = QPushButton("Launch Tool")
+            btn.setObjectName("ghost")
             btn.setIcon(_cartolab_icon(ic_name))
             btn.clicked.connect(lambda _, x=aid, n=name: self._run_algorithm(x, n))
             cv.addWidget(d_lbl, 1)
             cv.addWidget(btn, 0, Qt.AlignmentFlag.AlignRight)
             r, c = divmod(i, 2)
-            grid.addWidget(card, r + 1, c)
+            grid.addWidget(card, r, c)
 
-        lyt.addWidget(gb)
+        lyt.addWidget(gb_others)
         lyt.addStretch()
-        return w
+
+        self._refresh_bivar_layers()
+        self._update_bivar_preview_matrix()
+        return scroll
+
+    def _refresh_bivar_layers(self) -> None:
+        if not hasattr(self, "bivar_layer_combo"):
+            return
+        current = self.bivar_layer_combo.currentData()
+        self.bivar_layer_combo.blockSignals(True)
+        self.bivar_layer_combo.clear()
+        for layer in self._polygon_layers():
+            self.bivar_layer_combo.addItem(layer.name(), layer.id())
+        if current is not None:
+            idx = self.bivar_layer_combo.findData(current)
+            if idx >= 0:
+                self.bivar_layer_combo.setCurrentIndex(idx)
+        self.bivar_layer_combo.blockSignals(False)
+        self._refresh_bivar_fields()
+
+    def _refresh_bivar_fields(self) -> None:
+        if not hasattr(self, "bivar_field_x_combo"):
+            return
+        self.bivar_field_x_combo.clear()
+        self.bivar_field_y_combo.clear()
+        layer = self._layer_by_id(self.bivar_layer_combo.currentData())
+        if layer is None:
+            return
+        fields = [f.name() for f in layer.fields()]
+        for f in fields:
+            self.bivar_field_x_combo.addItem(f)
+            self.bivar_field_y_combo.addItem(f)
+        if len(fields) >= 2:
+            self.bivar_field_y_combo.setCurrentIndex(1)
+
+    def _update_bivar_preview_matrix(self) -> None:
+        if not hasattr(self, "bivar_matrix_layout"):
+            return
+        from ..core.bivariate_engine import bivariate_colour_matrix_hex
+        preset_key = self.bivar_preset_combo.currentData() or "teal_brown"
+        n = self.bivar_classes_spin.value()
+        matrix = bivariate_colour_matrix_hex(preset_key, n_classes=n)
+
+        # Clear old items
+        while self.bivar_matrix_layout.count():
+            item = self.bivar_matrix_layout.takeAt(0)
+            w = item.widget()
+            if w:
+                w.deleteLater()
+
+        # Render rows from top (High Y) to bottom (Low Y)
+        for r in range(n):
+            row_idx = n - 1 - r  # display highest Y at top
+            for c in range(n):
+                color_hex = matrix[row_idx][c]
+                box = QFrame()
+                box.setFixedSize(28, 28)
+                box.setToolTip(f"X: {c+1}/{n}, Y: {row_idx+1}/{n} ({color_hex})")
+                box.setStyleSheet(f"background: {color_hex}; border: 1px solid #94a3b8; border-radius: 3px;")
+                self.bivar_matrix_layout.addWidget(box, r, c)
+
+    def _on_apply_bivariate_studio(self) -> None:
+        if processing is None:
+            QMessageBox.warning(self, "Bivariate Studio", "Processing framework is not available.")
+            return
+        layer = self._layer_by_id(self.bivar_layer_combo.currentData())
+        if layer is None:
+            QMessageBox.information(self, "Bivariate Studio", "Please select a vector polygon layer.")
+            return
+        fx = self.bivar_field_x_combo.currentText()
+        fy = self.bivar_field_y_combo.currentText()
+        if not fx or not fy or fx == fy:
+            QMessageBox.information(self, "Bivariate Studio", "Select two distinct numerical fields for Variable X and Variable Y.")
+            return
+
+        preset_idx = self.bivar_preset_combo.currentIndex()
+        method_idx = self.bivar_method_combo.currentIndex()
+        classes = self.bivar_classes_spin.value()
+
+        params = {
+            "INPUT": layer,
+            "FIELD_X": fx,
+            "FIELD_Y": fy,
+            "CLASSES": classes,
+            "PALETTE_PRESET": preset_idx,
+            "METHOD": method_idx,
+            "OUTPUT": "TEMPORARY_OUTPUT",
+        }
+        try:
+            res = processing.run("planx_cartolab:bivariate_choropleth", params)
+            out_layer = res.get("OUTPUT")
+            if out_layer:
+                QgsProject.instance().addMapLayer(out_layer)
+            if hasattr(self, "iface") and self.iface:
+                self.iface.messageBar().pushSuccess(
+                    "CartoLab",
+                    f"Bivariate Choropleth layer '{out_layer.name() if out_layer else layer.name()}' created successfully."
+                )
+        except Exception as exc:
+            QMessageBox.critical(self, "Bivariate Error", f"Failed to execute bivariate analysis:\n{exc}")
 
     def _build_modules_tab(self) -> None:
         """Workspace 3: Searchable Card Catalog for Processing Algorithms."""

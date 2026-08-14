@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.7.0] - 2026-08-14
+
+- Added Interactive Bivariate Studio with Live Matrix Preview and 1-Click Execution to CartoLab Dashboard
+
 ## [2.6.9] - 2026-08-14
 
 - Expanded Paper Canvas Themes (Dark Matter Obsidian, Warm Editorial Newsprint, Japanese Washi Minimal)
