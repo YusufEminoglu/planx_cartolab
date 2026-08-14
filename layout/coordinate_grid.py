@@ -45,7 +45,8 @@ def apply_coordinate_grid_decorator(
     if main_map.grids().size() > 0:
         grid = main_map.grids().grid(0)
     else:
-        grid = main_map.grids().addGrid("PlanXCoordGrid")
+        grid = QgsLayoutItemMapGrid("PlanXCoordGrid", main_map)
+        main_map.grids().addGrid(grid)
 
     if grid is None:
         return False

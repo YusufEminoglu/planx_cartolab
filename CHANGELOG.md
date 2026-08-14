@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.5.1] - 2026-08-14
+
+- Fix Coordinate Grid addGrid TypeError, map scalebar style names, draw explicit bivariate axis labels, and add in-place legend updater
+
 ## [2.5.0] - 2026-08-14
 
 - Next-gen Print Layout Studio: QToolBar toggle action, executive North Arrow motifs, scalebar presets, and grouped bivariate legend settings

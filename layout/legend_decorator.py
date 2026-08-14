@@ -105,15 +105,17 @@ def _fill(color: QColor) -> QgsFillSymbol:
 
 
 def _label(layout, text: str, x: float, y: float, size: int = 8,
-           bold: bool = False, rotation: float = 0.0) -> QgsLayoutItemLabel:
+           bold: bool = False, rotation: float = 0.0, color: str = "#0f172a") -> QgsLayoutItemLabel:
     lbl = QgsLayoutItemLabel(layout)
     lbl.setText(text)
+    lbl.setBackgroundEnabled(False)
+    lbl.setFrameEnabled(False)
     f = QFont()
     f.setFamilies(["Inter", "Segoe UI", "Arial", "sans-serif"])
     f.setPointSize(size)
     f.setBold(bold)
     lbl.setFont(f)
-    lbl.setFontColor(QColor("#333333"))
+    lbl.setFontColor(QColor(color))
     lbl.adjustSizeToText()
     if rotation:
         lbl.setItemRotation(rotation)
@@ -127,20 +129,27 @@ def _build_square(layout, matrix, position, size_mm, x_label, y_label) -> List:
     x0, y0 = position
     cell = min(size_mm[0], size_mm[1]) / float(n)
     items: List = []
+
+    # Optional background card for contrast
+    bg_margin = 6.0
+    grid_w = n * cell
+    grid_h = n * cell
+
     for ri, row in enumerate(matrix):
         for ci, col in enumerate(row):
             shape = QgsLayoutItemShape(layout)
             shape.setShapeType(QgsLayoutItemShape.Shape.Rectangle)
             shape.attemptResize(QgsLayoutSize(cell, cell, _MM))
-            # matrix row 0 is the high-Y row; draw it at the top
             shape.attemptMove(QgsLayoutPoint(x0 + ci * cell, y0 + ri * cell, _MM))
             shape.setSymbol(_fill(col))
             layout.addLayoutItem(shape)
             items.append(shape)
-    grid_h = n * cell
-    items.append(_label(layout, x_label, x0, y0 + grid_h + 1.5, size=8, bold=True))
-    items.append(_label(layout, y_label, x0 - 3.0, y0 + grid_h,
-                        size=8, bold=True, rotation=270.0))
+
+    # High-contrast X & Y axis labels and directional indicators
+    items.append(_label(layout, f"{x_label} ➔", x0, y0 + grid_h + 2.0, size=8, bold=True, color="#0f172a"))
+    items.append(_label(layout, f"▲ {y_label}", x0 - 2.0, y0 + grid_h - 2.0, size=8, bold=True, rotation=270.0, color="#0f172a"))
+    items.append(_label(layout, "Low", x0 - 2.0, y0 + grid_h + 1.0, size=7, bold=False, color="#64748b"))
+    items.append(_label(layout, "High", x0 + grid_w - 6.0, y0 + grid_h + 1.0, size=7, bold=False, color="#64748b"))
     return items
 
 
@@ -150,7 +159,7 @@ def _build_diamond(layout, matrix, position, size_mm, x_label, y_label) -> List:
     half_h = size_mm[1] / (2.0 * n)
     x0, y0 = position
     offset_x = x0 + (n - 1) * half_w + half_w
-    offset_y = y0 + half_h + 6.0
+    offset_y = y0 + half_h + 8.0
     items: List = []
 
     for ri in range(n):
@@ -170,16 +179,11 @@ def _build_diamond(layout, matrix, position, size_mm, x_label, y_label) -> List:
             items.append(diamond)
 
     cx_mid = offset_x
-    items.append(_label(layout, "High", cx_mid - 4.0, offset_y - half_h - 5.0,
-                        size=7, bold=True))
-    items.append(_label(layout, "Low", cx_mid - 3.0,
-                        offset_y + (n - 1) * 2 * half_h + half_h + 1.0,
-                        size=7, bold=True))
-    items.append(_label(layout, x_label, offset_x + (n - 1) * half_w + 2.0,
-                        offset_y + (n - 1) * half_h, size=8, bold=True))
-    items.append(_label(layout, y_label, x0 - 2.0,
-                        offset_y + (n - 1) * half_h, size=8, bold=True,
-                        rotation=0.0))
+    # Top/bottom/left/right axis labels
+    items.append(_label(layout, "High Y ▲", cx_mid - 6.0, offset_y - (n * half_h) - 4.0, size=7, bold=True, color="#0f172a"))
+    items.append(_label(layout, "Low Y", cx_mid - 4.0, offset_y + (n * half_h) + 1.0, size=7, bold=False, color="#64748b"))
+    items.append(_label(layout, f"{x_label} ➔", offset_x + (n * half_w) - 2.0, offset_y - 2.0, size=8, bold=True, color="#0f172a"))
+    items.append(_label(layout, f"▲ {y_label}", x0 - 4.0, offset_y - 2.0, size=8, bold=True, color="#0f172a"))
     return items
 
 
@@ -207,7 +211,16 @@ def add_scalebar_to_layout(
         scalebar.setLinkedMap(map_item)
 
     # Style mapping: "Single Box", "Double Box", "Line Ticks", "Stepped Box"
-    scalebar.setStyle(style_name)
+    STYLE_MAP = {
+        "Single Box": "Single Box",
+        "Double Box": "Double Box",
+        "Line Ticks": "Line Ticks Middle",
+        "Line Ticks Middle": "Line Ticks Middle",
+        "Stepped Box": "Stepped Line",
+        "Stepped Line": "Stepped Line",
+    }
+    target_style = STYLE_MAP.get(style_name, "Single Box")
+    scalebar.setStyle(target_style)
     if hasattr(QgsUnitTypes, "DistanceUnit"):
         scalebar.setUnits(QgsUnitTypes.DistanceUnit.DistanceKilometers)
 

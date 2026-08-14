@@ -257,8 +257,14 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
     lyt_dec.setContentsMargins(8, 8, 8, 8)
     lyt_dec.setSpacing(10)
 
-    gb_bivar = QGroupBox("Bivariate Legend")
+    gb_bivar = QGroupBox("Bivariate Legend Settings")
     fl_bivar = QFormLayout(gb_bivar)
+
+    xlabel_input = QLineEdit("Variable X")
+    fl_bivar.addRow("X Axis Label:", xlabel_input)
+
+    ylabel_input = QLineEdit("Variable Y")
+    fl_bivar.addRow("Y Axis Label:", ylabel_input)
 
     palette_combo = QComboBox()
     palette_combo.addItem("Teal-Brown", ("#e8e8e8", "#5ab4ac", "#d8b365", "#8c510a"))
@@ -272,11 +278,7 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
     shape_combo.addItem("Square", "square")
     fl_bivar.addRow("Shape:", shape_combo)
 
-    title_input = QLineEdit()
-    title_input.setPlaceholderText("Bivariate Relationship")
-    fl_bivar.addRow("Title:", title_input)
-
-    btn_add_bivar = QPushButton("Add Bivariate Legend")
+    btn_add_bivar = QPushButton("➕ Add Bivariate Legend")
 
     def _add_bivar():
         layout = _get_designer_layout(designer)
@@ -284,17 +286,52 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
             return
         colors = palette_combo.currentData()
         ltype = shape_combo.currentData()
-        ltitle = title_input.text().strip() or "Bivariate Legend"
+        x_lbl = xlabel_input.text().strip() or "Variable X"
+        y_lbl = ylabel_input.text().strip() or "Variable Y"
         try:
             from .legend_decorator import add_bivariate_legend
-            add_bivariate_legend(layout, colors=colors, legend_type=ltype, title=ltitle)
+            add_bivariate_legend(layout, colors=colors, legend_type=ltype, x_label=x_lbl, y_label=y_lbl)
             if hasattr(iface, "messageBar"):
-                iface.messageBar().pushSuccess("CartoLab", f"Custom bivariate legend '{ltitle}' added.")
+                iface.messageBar().pushSuccess("CartoLab", f"Bivariate legend added ({x_lbl} vs {y_lbl}).")
         except Exception as exc:
-            QMessageBox.critical(parent_win, "Bivariate Legend", str(exc))
+            QMessageBox.critical(parent_win, "Bivariate Legend Error", str(exc))
 
     btn_add_bivar.clicked.connect(_add_bivar)
     fl_bivar.addRow(btn_add_bivar)
+
+    btn_update_bivar = QPushButton("🔄 Update Selected Legend in Layout")
+
+    def _update_bivar():
+        layout = _get_designer_layout(designer)
+        if not layout:
+            return
+        selected = layout.selectedItems()
+        if not selected:
+            QMessageBox.information(parent_win, "Update Legend", "Please select a bivariate legend group in the layout canvas first.")
+            return
+
+        # Record position of first selected item
+        pos_x = selected[0].pos().x()
+        pos_y = selected[0].pos().y()
+
+        # Remove selected items
+        for item in selected:
+            layout.removeItem(item)
+
+        colors = palette_combo.currentData()
+        ltype = shape_combo.currentData()
+        x_lbl = xlabel_input.text().strip() or "Variable X"
+        y_lbl = ylabel_input.text().strip() or "Variable Y"
+        try:
+            from .legend_decorator import add_bivariate_legend
+            add_bivariate_legend(layout, colors=colors, legend_type=ltype, position=(pos_x, pos_y), x_label=x_lbl, y_label=y_lbl)
+            if hasattr(iface, "messageBar"):
+                iface.messageBar().pushSuccess("CartoLab", "Bivariate legend updated in-place.")
+        except Exception as exc:
+            QMessageBox.critical(parent_win, "Update Legend Error", str(exc))
+
+    btn_update_bivar.clicked.connect(_update_bivar)
+    fl_bivar.addRow(btn_update_bivar)
     lyt_dec.addWidget(gb_bivar)
 
     gb_map_elem = QGroupBox("Map Elements & Motifs")
