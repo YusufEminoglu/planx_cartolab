@@ -247,8 +247,46 @@ def fisher_jenks_breaks(values: List[float], n_classes: int = 5) -> List[float]:
 
 
 # ---------------------------------------------------------------------------
-# Bivariate colour matrix (4×4, 5×5, etc.)
+# Curated Bivariate Palettes & Colour Matrix
 # ---------------------------------------------------------------------------
+
+BIVARIATE_PALETTE_PRESETS = {
+    "teal_brown": {
+        "label": "Teal - Brown (Environment & Resilience)",
+        "ll": "#e8e8e8", "lh": "#5ab4ac", "hl": "#d8b365", "hh": "#8c510a",
+    },
+    "stevens_pink_cyan": {
+        "label": "Stevens Pink - Cyan (Demographics & Social)",
+        "ll": "#e8e8e8", "lh": "#00bbf9", "hl": "#f72585", "hh": "#4a0e4e",
+    },
+    "blue_orange": {
+        "label": "Blue - Orange (Density & Economy)",
+        "ll": "#f0f3f8", "lh": "#2b5c8f", "hl": "#e27c38", "hh": "#3d2645",
+    },
+    "purple_green": {
+        "label": "Purple - Green (Land Use & Canopy)",
+        "ll": "#f3f3f3", "lh": "#38b000", "hl": "#7b2cbf", "hh": "#1b4332",
+    },
+    "night_neon": {
+        "label": "Night Neon (Dark Theme Visuals)",
+        "ll": "#222831", "lh": "#00fff5", "hl": "#ff007f", "hh": "#7900ff",
+    },
+}
+
+
+def bivariate_colour_matrix_hex(
+    size: int = 3,
+    color_ll: str = "#e8e8e8",
+    color_lh: str = "#5ab4ac",
+    color_hl: str = "#d8b365",
+    color_hh: str = "#8c510a",
+) -> List[List[str]]:
+    """
+    Generate a size×size bivariate colour matrix returned as hexadecimal string codes.
+    """
+    mat = bivariate_colour_matrix(size, color_ll, color_lh, color_hl, color_hh)
+    return [[c.name() for c in row] for row in mat]
+
 
 def bivariate_colour_matrix(
     size: int = 4,

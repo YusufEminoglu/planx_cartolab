@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.6.5] - 2026-08-14
+
+- Added curated Bivariate Palette Presets (Stevens Cyan-Pink, Teal-Brown, Blue-Orange, Purple-Green, Night Neon) and Hex Matrix Generator
+
 ## [2.6.4] - 2026-08-14
 
 - Added 1-click Copy High-Res Map to Clipboard, TIFF export, and cleaned dead code blocks

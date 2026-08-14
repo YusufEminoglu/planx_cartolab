@@ -225,6 +225,11 @@ check("Colour matrix 7x7", len(m2) == 7 and len(m2[0]) == 7)
 m1 = be.bivariate_colour_matrix(2)
 check("Colour matrix 2x2", len(m1) == 2 and len(m1[0]) == 2)
 
+check("BIVARIATE_PALETTE_PRESETS has teal_brown", "teal_brown" in be.BIVARIATE_PALETTE_PRESETS)
+check("BIVARIATE_PALETTE_PRESETS has stevens_pink_cyan", "stevens_pink_cyan" in be.BIVARIATE_PALETTE_PRESETS)
+m_hex = be.bivariate_colour_matrix_hex(3, "#e8e8e8", "#5ab4ac", "#d8b365", "#8c510a")
+check("bivariate_colour_matrix_hex returns 3x3 hex strings", len(m_hex) == 3 and len(m_hex[0]) == 3 and m_hex[0][0].startswith("#"))
+
 # -- Value-by-Alpha --
 p_vals = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
 r_vals = [90, 80, 70, 60, 50, 40, 30, 20, 10, 5]
