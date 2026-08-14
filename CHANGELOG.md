@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.5.4] - 2026-08-14
+
+- Ultra-premium 8x supersampled 0-margin squircle icon suite with terraced depth and specular lighting
+
 ## [2.5.3] - 2026-08-14
 
 - Elite 0-margin squircle icon suite (14 sub-tool icons), rich GUI toolbar and Print Layout integration
