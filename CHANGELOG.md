@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.6.2] - 2026-08-14
+
+- Expanded Bivariate Choropleth classification algorithms (Quantile equal-count, Equal Interval, Geometric, Natural Breaks) and robust edge indexing
+
 ## [2.6.1] - 2026-08-14
 
 - Scale bar style presets (Clean Line Ticks Up/Down, Academic Stepped Line) and dynamic Scale Ratio + Graphical Bar Combo indicator

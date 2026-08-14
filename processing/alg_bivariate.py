@@ -93,7 +93,12 @@ class BivariateChoroplethAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
     COLOR_HH = "COLOR_HH"
     OUTPUT = "OUTPUT"
 
-    METHODS = [("Geometric Interval", "geometric"), ("Fisher-Jenks", "fisher_jenks")]
+    METHODS = [
+        ("Quantile (Equal Count - Recommended)", "quantile"),
+        ("Geometric Interval", "geometric"),
+        ("Fisher-Jenks Natural Breaks", "fisher_jenks"),
+        ("Equal Interval", "equal"),
+    ]
 
     def name(self) -> str:
         return "bivariate_choropleth"
@@ -112,60 +117,97 @@ class BivariateChoroplethAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
 
     def shortHelpString(self) -> str:
         return (
-            "Create a bivariate choropleth map by classifying two numeric fields "
-            "into an NxN colour matrix.\n\n"
-            "Output adds three fields: bivar_x_class (int), bivar_y_class (int), "
-            "bivar_class (string). The output layer is automatically styled with "
-            "the computed bivariate colour matrix."
+            "Creates a 2D Bivariate Choropleth thematic map classifying two numeric fields "
+            "simultaneously into an NxN colour matrix (2x2, 3x3, or 4x4).\n\n"
+            "Outputs an automatically styled layer with high-quality translucent outlines "
+            "and human-readable class descriptions (e.g. Low-Low, High-High)."
         )
 
-    def initAlgorithm(self, config=None):
-        self.addParameter(QgsProcessingParameterFeatureSource(
-            self.INPUT, "Input layer", [QgsProcessing.SourceType.TypeVectorAnyGeometry]))
-        self.addParameter(QgsProcessingParameterField(
-            self.FIELD_X, "X-axis variable (column)", parentLayerParameterName=self.INPUT,
-            type=QgsProcessingParameterField.DataType.Numeric))
-        self.addParameter(QgsProcessingParameterField(
-            self.FIELD_Y, "Y-axis variable (row)", parentLayerParameterName=self.INPUT,
-            type=QgsProcessingParameterField.DataType.Numeric))
-        self.addParameter(QgsProcessingParameterNumber(
-            self.CLASSES, "Grid size (e.g. 4 = 4x4)", type=QgsProcessingParameterNumber.Type.Integer,
-            minValue=2, defaultValue=4, maxValue=7))
-        self.addParameter(QgsProcessingParameterEnum(
-            self.METHOD, "Classification method",
-            options=[m[0] for m in self.METHODS], defaultValue=0))
-        self.addParameter(QgsProcessingParameterColor(
-            self.COLOR_LL, "Low X - Low Y Colour", defaultValue=QColor("#e8e8e8")
-        ))
-        self.addParameter(QgsProcessingParameterColor(
-            self.COLOR_LH, "Low X - High Y Colour", defaultValue=QColor("#5ab4ac")
-        ))
-        self.addParameter(QgsProcessingParameterColor(
-            self.COLOR_HL, "High X - Low Y Colour", defaultValue=QColor("#d8b365")
-        ))
-        self.addParameter(QgsProcessingParameterColor(
-            self.COLOR_HH, "High X - High Y Colour", defaultValue=QColor("#8c510a")
-        ))
-        self.addParameter(QgsProcessingParameterFeatureSink(
-            self.OUTPUT, "Bivariate output"))
+    def initAlgorithm(self, config=None) -> None:
+        self.addParameter(
+            QgsProcessingParameterFeatureSource(
+                self.INPUT, "Input vector layer",
+                [QgsProcessing.SourceType.TypeVectorPolygon, QgsProcessing.SourceType.TypeVectorPoint],
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterField(
+                self.FIELD_X, "Horizontal axis field (X)",
+                parentLayerParameterName=self.INPUT,
+                type=QgsProcessingParameterField.Numeric,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterField(
+                self.FIELD_Y, "Vertical axis field (Y)",
+                parentLayerParameterName=self.INPUT,
+                type=QgsProcessingParameterField.Numeric,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterNumber(
+                self.CLASSES, "Number of classes per axis (N x N)",
+                type=QgsProcessingParameterNumber.Integer,
+                defaultValue=3, minValue=2, maxValue=4,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterEnum(
+                self.METHOD, "Classification method",
+                options=[m[0] for m in self.METHODS],
+                defaultValue=0,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterColor(
+                self.COLOR_LL, "Bottom-Left colour (Low X, Low Y)",
+                defaultValue=QColor("#e8e8e8"),
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterColor(
+                self.COLOR_LH, "Top-Left colour (Low X, High Y)",
+                defaultValue=QColor("#5ab4ac"),
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterColor(
+                self.COLOR_HL, "Bottom-Right colour (High X, Low Y)",
+                defaultValue=QColor("#d8b365"),
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterColor(
+                self.COLOR_HH, "Top-Right colour (High X, High Y)",
+                defaultValue=QColor("#8c510a"),
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterFeatureSink(
+                self.OUTPUT, "Bivariate Layer",
+            )
+        )
 
-    def processAlgorithm(self, parameters, context, feedback):
+    def processAlgorithm(self, parameters, context, feedback) -> dict:
         source = self.parameterAsSource(parameters, self.INPUT, context)
+        if source is None:
+            raise QgsProcessingException("Invalid input layer.")
+
         field_x = self.parameterAsString(parameters, self.FIELD_X, context)
         field_y = self.parameterAsString(parameters, self.FIELD_Y, context)
         n_classes = self.parameterAsInt(parameters, self.CLASSES, context)
         method_idx = self.parameterAsEnum(parameters, self.METHOD, context)
         method = self.METHODS[method_idx][1]
 
-        color_ll_q = self.parameterAsColor(parameters, self.COLOR_LL, context)
-        color_lh_q = self.parameterAsColor(parameters, self.COLOR_LH, context)
-        color_hl_q = self.parameterAsColor(parameters, self.COLOR_HL, context)
-        color_hh_q = self.parameterAsColor(parameters, self.COLOR_HH, context)
+        c_ll = self.parameterAsColor(parameters, self.COLOR_LL, context)
+        c_lh = self.parameterAsColor(parameters, self.COLOR_LH, context)
+        c_hl = self.parameterAsColor(parameters, self.COLOR_HL, context)
+        c_hh = self.parameterAsColor(parameters, self.COLOR_HH, context)
 
-        color_ll = color_ll_q.name()
-        color_lh = color_lh_q.name()
-        color_hl = color_hl_q.name()
-        color_hh = color_hh_q.name()
+        color_ll = c_ll.name() if hasattr(c_ll, "name") else str(c_ll)
+        color_lh = c_lh.name() if hasattr(c_lh, "name") else str(c_lh)
+        color_hl = c_hl.name() if hasattr(c_hl, "name") else str(c_hl)
+        color_hh = c_hh.name() if hasattr(c_hh, "name") else str(c_hh)
 
         # collect paired values
         x_vals, y_vals = [], []
@@ -181,9 +223,10 @@ class BivariateChoroplethAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         if not x_vals:
             raise QgsProcessingException("No valid paired numeric values found.")
 
-        classify_fn = geometric_interval_breaks if method == "geometric" else fisher_jenks_breaks
-        x_breaks = classify_fn(x_vals, n_classes)
-        y_breaks = classify_fn(y_vals, n_classes)
+        from ..core.quick_style import compute_breaks
+        req_method = "jenks" if method == "fisher_jenks" else method
+        x_breaks = compute_breaks(x_vals, method=req_method, n=n_classes)
+        y_breaks = compute_breaks(y_vals, method=req_method, n=n_classes)
 
         feedback.pushInfo(
             f"X breaks ({field_x}): {[round(b, 4) for b in x_breaks]}\n"
@@ -236,6 +279,12 @@ class BivariateChoroplethAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
 
 
 def _break_index(value: float, breaks: list) -> int:
+    if not breaks or len(breaks) < 2:
+        return 0
+    if value <= breaks[0]:
+        return 0
+    if value >= breaks[-1]:
+        return len(breaks) - 2
     for i in range(len(breaks) - 1):
         if breaks[i] <= value < breaks[i + 1]:
             return i
