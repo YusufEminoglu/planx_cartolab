@@ -101,16 +101,31 @@ def attach_cartolab_to_designer(iface, designer) -> None:
         elif hasattr(main_win, "addDockWidget"):
             main_win.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock)
 
-    # 2. Add single PlanX CartoLab Menu item to Designer MenuBar (No extra top toolbar)
+    # 2. Add single PlanX CartoLab Menu item and QToolBar Action Button
     with suppress(Exception):
+        act_toggle = dock.toggleViewAction()
+        act_toggle.setText("PlanX CartoLab Studio")
+        act_toggle.setIcon(icon)
+        act_toggle.setCheckable(True)
+
         menubar = main_win.menuBar()
         if menubar:
             menu = QMenu("&PlanX CartoLab", menubar)
-            act_toggle = dock.toggleViewAction()
-            act_toggle.setText("Show/Hide CartoLab Studio Panel")
-            act_toggle.setIcon(icon)
             menu.addAction(act_toggle)
             menubar.addMenu(menu)
+
+        # Add toggle action directly to the Print Layout Designer's primary toolbar
+        toolbars = main_win.findChildren(QToolBar)
+        target_tb = None
+        for tb in toolbars:
+            tb_name = tb.objectName().lower()
+            if "layout" in tb_name or "main" in tb_name:
+                target_tb = tb
+                break
+        if target_tb is None and toolbars:
+            target_tb = toolbars[0]
+        if target_tb:
+            target_tb.addAction(act_toggle)
 
 
 def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
@@ -282,10 +297,17 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
     fl_bivar.addRow(btn_add_bivar)
     lyt_dec.addWidget(gb_bivar)
 
-    gb_map_elem = QGroupBox("Map Elements")
+    gb_map_elem = QGroupBox("Map Elements & Motifs")
     fl_elem = QFormLayout(gb_map_elem)
 
-    btn_dock_scalebar = QPushButton("📏 Add Scale Bar")
+    scalebar_combo = QComboBox()
+    scalebar_combo.addItem("Single Box", "Single Box")
+    scalebar_combo.addItem("Double Box", "Double Box")
+    scalebar_combo.addItem("Line Ticks", "Line Ticks")
+    scalebar_combo.addItem("Stepped Box", "Stepped Box")
+    fl_elem.addRow("Scalebar Style:", scalebar_combo)
+
+    btn_dock_scalebar = QPushButton("📏 Add Executive Scale Bar")
 
     def _dock_scalebar():
         layout = _get_designer_layout(designer)
@@ -293,16 +315,23 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
             return
         try:
             from .legend_decorator import add_scalebar_to_layout
-            add_scalebar_to_layout(layout)
+            sname = scalebar_combo.currentData() or "Single Box"
+            add_scalebar_to_layout(layout, style_name=sname)
             if hasattr(iface, "messageBar"):
-                iface.messageBar().pushSuccess("CartoLab", "Scale bar added to layout.")
+                iface.messageBar().pushSuccess("CartoLab", f"Executive scale bar '{sname}' added to layout.")
         except Exception as exc:
             QMessageBox.critical(parent_win, "Scale Bar Error", str(exc))
 
     btn_dock_scalebar.clicked.connect(_dock_scalebar)
     fl_elem.addRow(btn_dock_scalebar)
 
-    btn_dock_north = QPushButton("🧭 Add North Arrow")
+    north_combo = QComboBox()
+    north_combo.addItem("Architectural Compass Rose", "compass_rose")
+    north_combo.addItem("Swiss Minimalist Needle", "swiss_minimal")
+    north_combo.addItem("Nautical Star 4-Point", "nautical_star")
+    fl_elem.addRow("North Arrow Motif:", north_combo)
+
+    btn_dock_north = QPushButton("🧭 Add Publication North Arrow")
 
     def _dock_north():
         layout = _get_designer_layout(designer)
@@ -310,9 +339,10 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
             return
         try:
             from .legend_decorator import add_north_arrow_to_layout
-            add_north_arrow_to_layout(layout)
+            npreset = north_combo.currentData() or "compass_rose"
+            add_north_arrow_to_layout(layout, preset=npreset)
             if hasattr(iface, "messageBar"):
-                iface.messageBar().pushSuccess("CartoLab", "North arrow added to layout.")
+                iface.messageBar().pushSuccess("CartoLab", f"Publication north arrow '{north_combo.currentText()}' added.")
         except Exception as exc:
             QMessageBox.critical(parent_win, "North Arrow Error", str(exc))
 

@@ -56,10 +56,12 @@ def add_locator_inset_map(
 
         # Add extent overview rectangle linking inset map to main map
         if hasattr(inset_map, "overviews"):
-            overview = inset_map.overviews().addOverview("MainMapOverview")
-            if overview:
+            stack = inset_map.overviews()
+            if hasattr(stack, "addOverview"):
+                overview = QgsLayoutItemMapOverview("MainMapOverview", inset_map)
                 overview.setLinkedMap(main_map)
                 overview.setEnabled(True)
+                stack.addOverview(overview)
 
     layout.addLayoutItem(inset_map)
     layout.refresh()

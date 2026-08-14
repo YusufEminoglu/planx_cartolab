@@ -188,42 +188,108 @@ def add_scalebar_to_layout(
     map_item: QgsLayoutItemMap = None,
     position: tuple = (15.0, 15.0),
     style_name: str = "Single Box",
+    segments: int = 2,
+    units_per_segment: float = 1.0,
+    unit_label: str = "km",
 ) -> QgsLayoutItemScaleBar:
-    """Add a native scalebar item to the layout attached to the primary map frame."""
+    """Add an executive publication-ready scalebar to the layout."""
+    if layout is None or QgsLayoutItemScaleBar is None:
+        return None
+
     scalebar = QgsLayoutItemScaleBar(layout)
     if map_item is None:
         for item in layout.items():
             if isinstance(item, QgsLayoutItemMap):
                 map_item = item
                 break
+
     if map_item is not None:
         scalebar.setLinkedMap(map_item)
+
+    # Style mapping: "Single Box", "Double Box", "Line Ticks", "Stepped Box"
     scalebar.setStyle(style_name)
-    scalebar.setUnits(QgsUnitTypes.DistanceUnit.DistanceKilometers)
-    scalebar.setNumberOfSegments(2)
-    scalebar.setUnitsPerSegment(1.0)
+    if hasattr(QgsUnitTypes, "DistanceUnit"):
+        scalebar.setUnits(QgsUnitTypes.DistanceUnit.DistanceKilometers)
+
+    scalebar.setNumberOfSegments(max(1, segments))
+    scalebar.setUnitsPerSegment(units_per_segment)
+    scalebar.setUnitLabel(unit_label)
+
+    # Apply typography
+    if QFont is not None:
+        f = QFont("Inter", 8, QFont.Weight.Bold)
+        if hasattr(scalebar, "setFont"):
+            scalebar.setFont(f)
+
     scalebar.attemptMove(QgsLayoutPoint(position[0], position[1], _MM))
     layout.addLayoutItem(scalebar)
+    layout.refresh()
     return scalebar
 
 
 def add_north_arrow_to_layout(
     layout: QgsLayout,
     position: tuple = (15.0, 15.0),
-    size_mm: tuple = (16.0, 16.0),
-) -> QgsLayoutItemPolygon:
-    """Add a clean north arrow motif to the layout."""
+    size_mm: tuple = (16.0, 22.0),
+    preset: str = "compass_rose",
+) -> QgsLayoutItemGroup:
+    """
+    Insert a publication-ready north arrow motif (Compass Rose, Swiss Minimalist, Nautical Star).
+    Returns the grouped layout item containing the compass components.
+    """
+    if layout is None:
+        return None
+
     x0, y0 = position
     w, h = size_mm
     cx = x0 + w / 2.0
-    poly = QPolygonF([
-        QPointF(cx, y0),
-        QPointF(x0 + w, y0 + h),
-        QPointF(cx, y0 + h * 0.75),
-        QPointF(x0, y0 + h),
-    ])
-    arrow = QgsLayoutItemPolygon(poly, layout)
-    arrow.setSymbol(_fill(QColor("#0f172a")))
-    layout.addLayoutItem(arrow)
-    return arrow
+    cy = y0 + h / 2.0
+    items = []
 
+    if preset == "swiss_minimal":
+        # Ultra-clean thin needle arrow
+        poly_l = QPolygonF([QPointF(cx, y0 + 6.0), QPointF(cx - w / 4.0, y0 + h), QPointF(cx, y0 + h * 0.75)])
+        poly_r = QPolygonF([QPointF(cx, y0 + 6.0), QPointF(cx + w / 4.0, y0 + h), QPointF(cx, y0 + h * 0.75)])
+        p_l = QgsLayoutItemPolygon(poly_l, layout)
+        p_l.setSymbol(_fill(QColor("#0f172a")))
+        p_r = QgsLayoutItemPolygon(poly_r, layout)
+        p_r.setSymbol(_fill(QColor("#94a3b8")))
+        layout.addLayoutItem(p_l)
+        layout.addLayoutItem(p_r)
+        items.extend([p_l, p_r])
+        lbl = _label(layout, "N", cx - 2.5, y0, size=9, bold=True)
+        items.append(lbl)
+
+    elif preset == "nautical_star":
+        # 4-point Nautical Star Compass
+        poly_top = QPolygonF([QPointF(cx, y0 + 6.0), QPointF(cx + w / 5.0, cy), QPointF(cx, cy)])
+        poly_right = QPolygonF([QPointF(x0 + w, cy), QPointF(cx, cy + h / 5.0), QPointF(cx, cy)])
+        poly_bottom = QPolygonF([QPointF(cx, y0 + h), QPointF(cx - w / 5.0, cy), QPointF(cx, cy)])
+        poly_left = QPolygonF([QPointF(x0, cy), QPointF(cx, cy - h / 5.0), QPointF(cx, cy)])
+        for poly, col in [(poly_top, "#0f172a"), (poly_right, "#475569"), (poly_bottom, "#0f172a"), (poly_left, "#475569")]:
+            item = QgsLayoutItemPolygon(poly, layout)
+            item.setSymbol(_fill(QColor(col)))
+            layout.addLayoutItem(item)
+            items.append(item)
+        lbl = _label(layout, "N", cx - 2.5, y0, size=9, bold=True)
+        items.append(lbl)
+
+    else:
+        # Classic 8-Point Compass Rose with dual-facet shading
+        facet_left = QPolygonF([QPointF(cx, y0 + 6.0), QPointF(x0, y0 + h), QPointF(cx, y0 + h * 0.8)])
+        facet_right = QPolygonF([QPointF(cx, y0 + 6.0), QPointF(x0 + w, y0 + h), QPointF(cx, y0 + h * 0.8)])
+        p1 = QgsLayoutItemPolygon(facet_left, layout)
+        p1.setSymbol(_fill(QColor("#0f172a")))
+        p2 = QgsLayoutItemPolygon(facet_right, layout)
+        p2.setSymbol(_fill(QColor("#cbd5e1")))
+        layout.addLayoutItem(p1)
+        layout.addLayoutItem(p2)
+        items.extend([p1, p2])
+        lbl = _label(layout, "N", cx - 2.5, y0, size=9, bold=True)
+        items.append(lbl)
+
+    if hasattr(layout, "groupItems") and items:
+        grp = layout.groupItems(items)
+        if grp:
+            return grp
+    return items

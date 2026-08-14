@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.5.0] - 2026-08-14
+
+- Next-gen Print Layout Studio: QToolBar toggle action, executive North Arrow motifs, scalebar presets, and grouped bivariate legend settings
+
 ## [2.4.0] - 2026-08-14
 
 - Full CartoLab cartographic engine & layout studio refactor with topology-preserving cartogram and live preview
