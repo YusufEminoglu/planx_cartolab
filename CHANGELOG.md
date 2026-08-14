@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.6.4] - 2026-08-14
+
+- Added 1-click Copy High-Res Map to Clipboard, TIFF export, and cleaned dead code blocks
+
 ## [2.6.3] - 2026-08-14
 
 - Unit suffix cleaning in safe_float/safe_int for real-world GIS/OSM data (e.g. '8 m', '15.2 sqm', '5 floors')

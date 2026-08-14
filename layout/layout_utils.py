@@ -11,13 +11,16 @@ from __future__ import annotations
 import os
 from typing import List, Optional
 
-from qgis.core import (
-    QgsApplication,
-    QgsLayout,
-    QgsLayoutExporter,
-    QgsLayoutItemMap,
-    QgsProject,
-)
+try:
+    from qgis.core import (
+        QgsApplication,
+        QgsLayout,
+        QgsLayoutExporter,
+        QgsLayoutItemMap,
+        QgsProject,
+    )
+except ImportError:
+    QgsApplication = QgsLayout = QgsLayoutExporter = QgsLayoutItemMap = QgsProject = None
 
 from ..core.layout_math import unique_name
 
@@ -83,6 +86,8 @@ def export_layout(layout: QgsLayout, path: str, dpi: int = 300) -> bool:
     ``True`` on success. A pre-existing target file is removed first so raster
     drivers do not refuse to overwrite.
     """
+    if layout is None or QgsLayoutExporter is None:
+        return False
     exporter = QgsLayoutExporter(layout)
     ext = os.path.splitext(path)[1].lower()
     try:
@@ -99,8 +104,35 @@ def export_layout(layout: QgsLayout, path: str, dpi: int = 300) -> bool:
         settings = QgsLayoutExporter.SvgExportSettings()
         settings.dpi = dpi
         result = exporter.exportToSvg(path, settings)
+    elif ext in (".tif", ".tiff"):
+        settings = QgsLayoutExporter.ImageExportSettings()
+        settings.dpi = dpi
+        result = exporter.exportToImage(path, settings)
     else:
         settings = QgsLayoutExporter.ImageExportSettings()
         settings.dpi = dpi
         result = exporter.exportToImage(path, settings)
     return result == QgsLayoutExporter.ExportResult.Success
+
+
+def copy_layout_to_clipboard(layout: QgsLayout, dpi: int = 300) -> bool:
+    """
+    Render first page of ``layout`` at ``dpi`` and copy directly to system clipboard.
+    """
+    if layout is None:
+        return False
+    try:
+        from qgis.PyQt.QtWidgets import QApplication
+        exporter = QgsLayoutExporter(layout)
+        settings = QgsLayoutExporter.ImageExportSettings()
+        settings.dpi = dpi
+        img = exporter.renderPageToImage(0, settings)
+        if not img.isNull():
+            cb = QApplication.clipboard()
+            if cb:
+                cb.setImage(img)
+                return True
+    except Exception:
+        return False
+    return False
+

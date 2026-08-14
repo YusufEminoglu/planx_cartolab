@@ -511,28 +511,6 @@ class CartoLabDashboard(_QDialogBase):
         lyt.addStretch()
         return w
 
-        for i, (name, aid, desc) in enumerate(algos):
-            card = QFrame()
-            card.setProperty("classCard", "true")
-            cv = QVBoxLayout(card)
-            cv.setContentsMargins(8, 8, 8, 8)
-            title = QLabel(f"<b>{name}</b>")
-            title.setStyleSheet("color:#173741; font-size:13px;")
-            d_lbl = QLabel(desc)
-            d_lbl.setWordWrap(True)
-            d_lbl.setStyleSheet("color:#4a6871; font-size:11px;")
-            btn = QPushButton("Run Algorithm")
-            btn.clicked.connect(lambda _, x=aid, n=name: self._run_algorithm(x, n))
-            cv.addWidget(title)
-            cv.addWidget(d_lbl, 1)
-            cv.addWidget(btn, 0, Qt.AlignmentFlag.AlignRight)
-            r, c = divmod(i, 2)
-            grid.addWidget(card, r + 1, c)
-
-        lyt.addWidget(gb)
-        lyt.addStretch()
-        return w
-
     def _build_modules_tab(self) -> None:
         """Workspace 3: Searchable Card Catalog for Processing Algorithms."""
         mod_tab = QWidget()

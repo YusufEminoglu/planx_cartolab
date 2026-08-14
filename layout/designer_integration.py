@@ -757,6 +757,28 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
     dpi_combo.setCurrentIndex(1)
     fl_exp.addRow("Quality:", dpi_combo)
 
+    btn_dock_copy = QPushButton("Copy Image to Clipboard")
+    btn_dock_copy.setObjectName("ghost")
+    btn_dock_copy.setIcon(_get_cartolab_icon("layout.png"))
+
+    def _dock_copy():
+        layout = _get_designer_layout(designer)
+        if not layout:
+            return
+        dpi = dpi_combo.currentData() or 300
+        try:
+            from .layout_utils import copy_layout_to_clipboard
+            if copy_layout_to_clipboard(layout, dpi=int(dpi)):
+                if hasattr(iface, "messageBar"):
+                    iface.messageBar().pushSuccess("CartoLab", f"High-resolution map ({dpi} DPI) copied to clipboard.")
+            else:
+                QMessageBox.warning(parent_win, "Copy to Clipboard", "Could not render layout to clipboard.")
+        except Exception as exc:
+            QMessageBox.critical(parent_win, "Clipboard Error", str(exc))
+
+    btn_dock_copy.clicked.connect(_dock_copy)
+    fl_exp.addRow(btn_dock_copy)
+
     btn_dock_export = QPushButton("Export & Open ↗")
     btn_dock_export.setIcon(_get_cartolab_icon("layout.png"))
 
@@ -767,7 +789,12 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
         dpi = dpi_combo.currentData()
         safe = "".join(c if c.isalnum() else "_" for c in layout.name())
         default = os.path.join(os.path.expanduser("~"), f"{safe}.png")
-        path, _ = QFileDialog.getSaveFileName(parent_win, "Export Layout", default, "PNG Image (*.png);;PDF Document (*.pdf);;SVG Vector (*.svg)")
+        path, _ = QFileDialog.getSaveFileName(
+            parent_win,
+            "Export Layout",
+            default,
+            "PNG Image (*.png);;PDF Document (*.pdf);;TIFF Image (*.tif *.tiff);;SVG Vector (*.svg)",
+        )
         if not path:
             return
         try:
