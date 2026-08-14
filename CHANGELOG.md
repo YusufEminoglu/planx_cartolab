@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.7.2] - 2026-08-14
+
+- Enhanced Isometric 3D Layer Stacker with pure test safety and clean polyline connectors
+
 ## [2.7.1] - 2026-08-14
 
 - Enhanced Locator Inset Map decorator with smart corner docking, extent overview styling, and header tags

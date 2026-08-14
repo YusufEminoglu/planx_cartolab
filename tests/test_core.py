@@ -838,6 +838,9 @@ check("create_map_sheet is callable", callable(ms.create_map_sheet))
 from planx_cartolab.layout import locator_map as lm
 check("add_locator_inset_map is callable", callable(lm.add_locator_inset_map))
 
+from planx_cartolab.layout import isometric_stacker as iso
+check("create_isometric_stack_layout is callable", callable(iso.create_isometric_stack_layout))
+
 # ===================================================================
 # SUMMARY
 # ===================================================================

@@ -10,17 +10,26 @@ from __future__ import annotations
 
 from typing import List
 
-from qgis.PyQt.QtGui import QFont
-from qgis.core import (
-    QgsPrintLayout,
-    QgsLayoutItemMap,
-    QgsLayoutPoint,
-    QgsLayoutSize,
-    QgsProject,
-    QgsRectangle,
-    QgsUnitTypes,
-    QgsMapLayer,
-)
+try:
+    from qgis.PyQt.QtGui import QFont, QPolygonF
+    from qgis.PyQt.QtCore import QPointF
+    from qgis.core import (
+        QgsPrintLayout,
+        QgsLayoutItemMap,
+        QgsLayoutItemLabel,
+        QgsLayoutItemPolyline,
+        QgsLineSymbol,
+        QgsLayoutPoint,
+        QgsLayoutSize,
+        QgsProject,
+        QgsRectangle,
+        QgsUnitTypes,
+        QgsMapLayer,
+    )
+except ImportError:
+    QFont = QPolygonF = QPointF = None
+    QgsPrintLayout = QgsLayoutItemMap = QgsLayoutItemLabel = QgsLayoutItemPolyline = QgsLineSymbol = None
+    QgsLayoutPoint = QgsLayoutSize = QgsProject = QgsRectangle = QgsUnitTypes = QgsMapLayer = None
 
 from .layout_utils import unique_layout_name
 
@@ -112,7 +121,6 @@ def create_isometric_stack_layout(
         )
 
         # add label text above each map
-        from qgis.core import QgsLayoutItemLabel
         label = QgsLayoutItemLabel(layout)
         label.setText(layer.name())
         font = QFont()
@@ -129,10 +137,6 @@ def create_isometric_stack_layout(
         layout.addLayoutItem(map_item)
 
     # Draw connector lines between adjacent map layers
-    from qgis.PyQt.QtCore import QPointF
-    from qgis.PyQt.QtGui import QPolygonF
-    from qgis.core import QgsLayoutItemPolyline, QgsLineSymbol
-
     for i in range(len(layers) - 1):
         dx1, dy1 = offsets[i]
         dx2, dy2 = offsets[i + 1]
