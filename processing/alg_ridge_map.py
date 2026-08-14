@@ -2,18 +2,22 @@
 """Ridge Map (Joyplot) — Processing algorithm."""
 from __future__ import annotations
 
+from contextlib import suppress
+
+from qgis.PyQt.QtGui import QColor
 from qgis.core import (
     QgsFeatureSink,
     QgsProcessing,
     QgsProcessingAlgorithm,
     QgsProcessingException,
-    QgsProcessingParameterFeatureSink,
-    QgsProcessingParameterRasterLayer,
-    QgsProcessingParameterNumber,
+    QgsProcessingParameterColor,
     QgsProcessingParameterExtent,
-    QgsProcessingOutputVectorLayer,
+    QgsProcessingParameterFeatureSink,
+    QgsProcessingParameterNumber,
+    QgsProcessingParameterRasterLayer,
     QgsRasterLayer,
-    QgsProject,
+    QgsLineSymbol,
+    QgsSingleSymbolRenderer,
 )
 
 from ..core.style_transformer import generate_ridge_lines
@@ -28,6 +32,8 @@ class RidgeMapAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
     LINE_SPACING = "LINE_SPACING"
     SMOOTH = "SMOOTH"
     EXTENT = "EXTENT"
+    LINE_COLOR = "LINE_COLOR"
+    LINE_WIDTH = "LINE_WIDTH"
     OUTPUT = "OUTPUT"
 
     def name(self) -> str:
@@ -48,10 +54,11 @@ class RidgeMapAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
     def shortHelpString(self) -> str:
         return (
             "Generate a ridge-line (joy division style) vector layer from a "
-            "single-band raster.  The raster values deform scanlines vertically, "
+            "single-band raster. The raster values deform scanlines vertically, "
             "producing overlapping wave profiles.\n\n"
-            "Use with transparency and a dark canvas background for best effect.\n"
-            "Best raster inputs: DEM, density surfaces, LST, impervious surface ratio."
+            "• Vertical exaggeration & Line spacing: Control wave crest height and frequency.\n"
+            "• Line color & width: Configured directly for publication rendering.\n"
+            "Best raster inputs: DEM elevation, population density surfaces, LST, urban heat index."
         )
 
     def initAlgorithm(self, config=None):
@@ -83,16 +90,29 @@ class RidgeMapAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
                                           optional=True)
         )
         self.addParameter(
+            QgsProcessingParameterColor(self.LINE_COLOR, "Ridge line color",
+                                        defaultValue=QColor(255, 255, 255, 240))
+        )
+        self.addParameter(
+            QgsProcessingParameterNumber(self.LINE_WIDTH, "Ridge line width (mm)",
+                                         type=QgsProcessingParameterNumber.Type.Double,
+                                         defaultValue=0.35, minValue=0.05, maxValue=5.0)
+        )
+        self.addParameter(
             QgsProcessingParameterFeatureSink(self.OUTPUT, "Ridge lines output")
         )
 
     def processAlgorithm(self, parameters, context, feedback):
         raster: QgsRasterLayer = self.parameterAsRasterLayer(parameters, self.RASTER, context)
+        if raster is None:
+            raise QgsProcessingException(self.invalidSourceError(parameters, self.RASTER))
         n_lines = self.parameterAsInt(parameters, self.N_LINES, context)
         v_scale = self.parameterAsDouble(parameters, self.VERTICAL_SCALE, context)
         spacing = self.parameterAsDouble(parameters, self.LINE_SPACING, context)
         smooth = self.parameterAsInt(parameters, self.SMOOTH, context)
         extent = self.parameterAsExtent(parameters, self.EXTENT, context)
+        line_color = self.parameterAsColor(parameters, self.LINE_COLOR, context) if self.LINE_COLOR in parameters else QColor(255, 255, 255, 240)
+        line_width = self.parameterAsDouble(parameters, self.LINE_WIDTH, context) if self.LINE_WIDTH in parameters else 0.35
 
         feedback.pushInfo(f"Generating {n_lines} ridge lines from {raster.name()}...")
 
@@ -113,4 +133,17 @@ class RidgeMapAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
             feedback.setProgress(int(100 * current / total))
 
         feedback.pushInfo(f"Ridge map ready: {total} scanlines.")
+
+        with suppress(Exception):
+            out_layer = context.getMapLayer(dest_id)
+            if out_layer:
+                c_str = f"{line_color.red()},{line_color.green()},{line_color.blue()},{line_color.alpha()}"
+                symbol = QgsLineSymbol.createSimple({
+                    "line_style": "solid",
+                    "line_color": c_str,
+                    "line_width": str(line_width),
+                })
+                out_layer.setRenderer(QgsSingleSymbolRenderer(symbol))
+                out_layer.triggerRepaint()
+
         return {self.OUTPUT: dest_id}

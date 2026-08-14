@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.8.1] - 2026-08-14
+
+- Added LINE_COLOR, LINE_WIDTH, and automated SingleSymbolRenderer to Ridge Map (Joyplot)
+
 ## [2.8.0] - 2026-08-14
 
 - Added LINE_STYLE, LINE_COLOR, and LINE_WIDTH direct styling parameters to Graticule Grid
