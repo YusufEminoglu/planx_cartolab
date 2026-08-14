@@ -15,6 +15,7 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QVariant
 from qgis.PyQt.QtGui import QColor
 
+from ..core.utils import safe_float
 from ..core.bivariate_engine import (
     geometric_interval_breaks, head_tail_breaks, fisher_jenks_breaks,
 )
@@ -83,9 +84,9 @@ class GeometricIntervalAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         values = []
         features_raw = []
         for feat in source.getFeatures():
-            val = feat[field_name]
-            if val is not None and math.isfinite(float(val)):
-                values.append(float(val))
+            fv = safe_float(feat[field_name])
+            if fv is not None:
+                values.append(fv)
                 features_raw.append(feat)
 
         if not values:
@@ -121,7 +122,7 @@ class GeometricIntervalAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         for current, feat in enumerate(features_raw):
             if feedback.isCanceled():
                 break
-            val = float(feat[field_name])
+            val = safe_float(feat[field_name], 0.0)
             class_idx = 0
             for i in range(len(breaks) - 1):
                 if breaks[i] <= val < breaks[i + 1]:

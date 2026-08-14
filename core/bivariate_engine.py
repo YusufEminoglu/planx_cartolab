@@ -19,6 +19,8 @@ from typing import List, Tuple, Optional
 
 from qgis.PyQt.QtGui import QColor
 
+from .utils import safe_float
+
 
 # ---------------------------------------------------------------------------
 # Utility helpers
@@ -26,7 +28,11 @@ from qgis.PyQt.QtGui import QColor
 
 def _validate_values(values: List[float]) -> List[float]:
     """Filter None/NaN and return sorted finite values."""
-    clean = [v for v in values if v is not None and math.isfinite(v)]
+    clean = []
+    for v in values:
+        f = safe_float(v)
+        if f is not None:
+            clean.append(f)
     if not clean:
         raise ValueError("No valid numeric values provided for classification.")
     return sorted(clean)
@@ -345,10 +351,11 @@ def compute_alpha_values(
 
     result = []
     for v in reliability_values:
-        if v is None or not math.isfinite(v):
+        fv = safe_float(v)
+        if fv is None:
             result.append(alpha_min)
             continue
-        idx = bisect_left(breaks, v) - 1
+        idx = bisect_left(breaks, fv) - 1
         idx = max(0, min(idx, len(alpha_steps) - 1))
         result.append(alpha_steps[idx])
     return result

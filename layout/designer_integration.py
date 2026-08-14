@@ -81,6 +81,13 @@ def attach_cartolab_to_designer(iface, designer) -> None:
     if main_win is None:
         return
 
+    # Clean up any existing CartoLab dock widgets in this designer window
+    with suppress(Exception):
+        for existing in main_win.findChildren(QDockWidget):
+            if existing.objectName() == "CartoLabLayoutStudioDock":
+                main_win.removeDockWidget(existing)
+                existing.deleteLater()
+
     icon_dir = os.path.join(os.path.dirname(__file__), "..", "icons")
     icon_path = os.path.join(icon_dir, "icon.png")
     icon = QIcon(icon_path) if os.path.exists(icon_path) else QIcon()
@@ -461,10 +468,15 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
 
 def _get_designer_layout(designer):
     """Retrieve the QgsLayout from a designer instance safely."""
-    if hasattr(designer, "layout"):
-        return designer.layout()
-    if hasattr(designer, "currentLayout"):
-        return designer.currentLayout()
-    if hasattr(designer, "masterLayout"):
-        return designer.masterLayout()
+    if designer is None:
+        return None
+    for attr in ("layout", "currentLayout", "masterLayout"):
+        if hasattr(designer, attr):
+            val = getattr(designer, attr)
+            if callable(val):
+                res = val()
+                if res:
+                    return res
+            elif val:
+                return val
     return None

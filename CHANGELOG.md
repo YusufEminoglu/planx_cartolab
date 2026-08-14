@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.4.0] - 2026-08-14
+
+- Full CartoLab cartographic engine & layout studio refactor with topology-preserving cartogram and live preview
+
 ## [2.3.0] - 2026-08-13
 
 ### Added

@@ -88,14 +88,15 @@ def run(algo_id, params, label):
         return None, ctx
     out = {}
     for k, v in res.items():
-        # only try to resolve plausible layer references (single-line, no prose
-        # summaries) so multi-line outputs like the 2.5D SUMMARY are left alone
-        if (isinstance(v, str) and "\n" not in v
-                and not v.lower().endswith((".html", ".pdf", ".md", ".qml"))):
+        if isinstance(v, str) and "\n" not in v and not v.lower().endswith((".html", ".pdf", ".md", ".qml")):
             lyr = QgsProcessingUtils.mapLayerFromString(v, ctx)
+            if not lyr:
+                matches = QgsProject.instance().mapLayersByName(v.replace("memory:", ""))
+                if matches:
+                    lyr = matches[0]
+            if not lyr:
+                lyr = QgsProject.instance().mapLayer(v)
             if lyr is not None:
-                ctx.temporaryLayerStore().takeMapLayer(lyr)
-                QgsProject.instance().addMapLayer(lyr)
                 out[k] = lyr
                 continue
         out[k] = v
@@ -388,6 +389,30 @@ _pdf = os.path.join(tempfile.gettempdir(), "cartolab_e2e_sheet.pdf")
 ok("layout exports to PDF", export_layout(sheet, _pdf, dpi=72) and os.path.exists(_pdf))
 _svg = os.path.join(tempfile.gettempdir(), "cartolab_e2e_sheet.svg")
 ok("layout exports to SVG", export_layout(sheet, _svg, dpi=72) and os.path.exists(_svg))
+
+# ===========================================================================
+# REAL DATASET E2E (geostats_Sample_Dataset.gpkg)
+# ===========================================================================
+real_gpkg = r"C:\Users\YE\Downloads\geostats_Sample_Dataset.gpkg"
+if os.path.exists(real_gpkg):
+    print("\n--- Real Dataset Testing (geostats_Sample_Dataset.gpkg) ---")
+    real_layer = QgsVectorLayer(real_gpkg, "real_geostats", "ogr")
+    ok("real gpkg valid", real_layer.isValid())
+    if real_layer.isValid():
+        QgsProject.instance().addMapLayer(real_layer)
+        out_real_bivar, _ = run("planx_cartolab:bivariate_choropleth", {
+            "INPUT": real_layer, "FIELD_X": "ss_choice_median", "FIELD_Y": "ss_integration_median",
+            "CLASSES": 3, "OUTPUT": "memory:real_bivar_res"
+        }, "real_bivariate")
+        lyr = out_real_bivar["OUTPUT"] if out_real_bivar else None
+        if hasattr(lyr, "featureCount"):
+            ok("real dataset bivariate_choropleth", lyr.featureCount() == 387, f"got {lyr.featureCount()}")
+
+        out_real_qs, _ = run("planx_cartolab:quick_style", {
+            "INPUT": real_layer, "FIELD": "transit_accessibility", "MODE": 1, "CLASSES": 5, "METHOD": 0,
+            "PALETTE": 0, "REVERSE": False, "OUTLINE": True
+        }, "real_quick_style")
+        ok("real dataset quick_style", out_real_qs is not None and isinstance(out_real_qs.get("SUMMARY"), str))
 
 # ===========================================================================
 print("\n" + "=" * 60)

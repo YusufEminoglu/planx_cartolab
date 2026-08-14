@@ -217,7 +217,26 @@ class CartoLabDashboard(_QDialogBase):
         self.resize(*DASHBOARD_SIZE)
         self._apply_style()
         self._build_ui()
+        self._connect_project_signals()
         self._refresh()
+
+    def _connect_project_signals(self) -> None:
+        with suppress(Exception):
+            proj = QgsProject.instance()
+            if proj:
+                proj.layersAdded.connect(self._on_layers_changed)
+                proj.layersRemoved.connect(self._on_layers_changed)
+
+    def _on_layers_changed(self, *args) -> None:
+        self._refresh_all_layer_combos()
+        self._refresh()
+
+    def _refresh_all_layer_combos(self) -> None:
+        """Refresh all layer comboboxes across every tab when project layers change."""
+        with suppress(Exception):
+            self._refresh_qs_layers()
+        with suppress(Exception):
+            self._refresh_25d_layers()
 
     # ── Styling ──────────────────────────────────────────────────────
 
@@ -1195,16 +1214,27 @@ class CartoLabDashboard(_QDialogBase):
         self.qs_reverse_check.toggled.connect(self._update_qs_preview)
         self.qs_outline_check = QCheckBox("White outline")
         self.qs_outline_check.setChecked(True)
+        self.qs_live_check = QCheckBox("Live Auto-Apply ⚡")
+        self.qs_live_check.toggled.connect(self._on_live_check_toggled)
         opts.addWidget(self.qs_cbsafe_check)
         opts.addWidget(self.qs_reverse_check)
         opts.addWidget(self.qs_outline_check)
+        opts.addWidget(self.qs_live_check)
         opts.addStretch()
         g.addLayout(opts, 9, 0, 1, 2)
 
+        btn_box = QHBoxLayout()
         btn = QPushButton("Apply Quick Style")
         btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         btn.clicked.connect(self._on_apply_quick_style)
-        g.addWidget(btn, 10, 0, 1, 2)
+        btn_box.addWidget(btn, 2)
+
+        btn_qml = QPushButton("💾 Export QML Style")
+        btn_qml.setObjectName("ghost")
+        btn_qml.clicked.connect(self._on_export_qml_style)
+        btn_box.addWidget(btn_qml, 1)
+
+        g.addLayout(btn_box, 10, 0, 1, 2)
 
         outer.addWidget(gb)
         outer.addStretch()
@@ -1247,6 +1277,26 @@ class CartoLabDashboard(_QDialogBase):
         self.qs_palette_combo.blockSignals(False)
         self._update_qs_preview()
 
+    def _on_live_check_toggled(self, checked: bool) -> None:
+        if checked:
+            self._on_apply_quick_style()
+
+    def _on_export_qml_style(self) -> None:
+        layer = self._layer_by_id(self.qs_layer_combo.currentData())
+        if layer is None:
+            QMessageBox.information(self, "Export QML", "Select a vector layer first.")
+            return
+        filename, _ = QFileDialog.getSaveFileName(
+            self, "Save Layer Style (.qml)", f"{layer.name()}_style.qml", "QGIS Layer Style (*.qml)"
+        )
+        if filename:
+            msg, ok = layer.saveNamedStyle(filename)
+            if ok:
+                if hasattr(self, "iface") and self.iface:
+                    self.iface.messageBar().pushSuccess("CartoLab", f"Layer style saved -> {filename}")
+            else:
+                QMessageBox.warning(self, "Export QML", f"Failed to save style: {msg}")
+
     def _update_qs_preview(self) -> None:
         from ..core import palettes as _pal
         if not hasattr(self, "qs_preview"):
@@ -1286,6 +1336,9 @@ class CartoLabDashboard(_QDialogBase):
             block.setToolTip(c)
             block.setStyleSheet(f"background: {c}; border-radius: 2px; border: 1px solid #778899;")
             self.qs_swatch_layout.addWidget(block, 1)
+
+        if hasattr(self, "qs_live_check") and self.qs_live_check.isChecked():
+            self._on_apply_quick_style()
 
 
     def _on_25d_auto_estimate_height(self) -> None:

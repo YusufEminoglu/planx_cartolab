@@ -14,6 +14,7 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QVariant
 from qgis.PyQt.QtGui import QColor
 
+from ..core.utils import safe_float
 from ..core.hexgrid import point_to_cell, cell_center, hex_vertices
 from ._help_mixin import CartoLabHelpMixin
 
@@ -75,9 +76,15 @@ class HexbinAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         weight_field = self.parameterAsString(parameters, self.WEIGHT, context)
         stat = self.STATS[self.parameterAsEnum(parameters, self.STAT, context)][1]
 
-        if stat in ("sum", "mean") and not weight_field:
-            raise QgsProcessingException(
-                f"Statistic '{stat}' needs a weight field. Pick one or use 'Count'.")
+        ext = source.sourceExtent()
+        extent_span = max(ext.width(), ext.height()) if ext and not ext.isEmpty() else 1000.0
+        if size <= 0:
+            size = extent_span / 40.0  # Default ~800 cells across extent
+
+        min_allowed = extent_span / 500.0  # Cap grid to max ~250,000 cells max
+        if size < min_allowed:
+            size = min_allowed
+            feedback.pushInfo(f"Cell size adjusted to safeguard memory -> {size:.2f}")
 
         # bin points
         bins = {}  # (q, r) -> [count, sum_weight]
@@ -92,13 +99,7 @@ class HexbinAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
             cell = point_to_cell(pt.x(), pt.y(), size)
             w = 1.0
             if weight_field:
-                try:
-                    w = float(feat[weight_field])
-                except (TypeError, ValueError):
-                    w = float("nan")
-                if not math.isfinite(w):
-                    # skip non-finite weights for sum/mean, but still count
-                    w = None
+                w = safe_float(feat[weight_field])
             entry = bins.setdefault(cell, [0, 0.0])
             entry[0] += 1
             if w is not None:

@@ -6,6 +6,7 @@ from contextlib import suppress
 
 from qgis.PyQt.QtGui import QColor
 from qgis.core import (
+    QgsProcessing,
     QgsProcessingAlgorithm,
     QgsProcessingException,
     QgsProcessingOutputString,
@@ -23,17 +24,11 @@ from qgis.core import (
 
 from ..core import palettes as pal
 from ..core import quick_style as qs
+from ..core.utils import safe_float
 from ..core.bivariate_engine import geometric_interval_breaks
 from ._help_mixin import CartoLabHelpMixin
 
 _MODE_AUTO, _MODE_GRAD, _MODE_CAT = 0, 1, 2
-_METHODS = [
-    ("Quantile (equal count)", qs.QUANTILE),
-    ("Equal interval", qs.EQUAL),
-    ("Geometric interval", qs.GEOMETRIC),
-]
-# Ordered palette list: sequential, then diverging, then qualitative.
-_PALETTES = pal.ordered_names()
 _MAX_CATS = 100
 
 
@@ -47,6 +42,13 @@ class QuickStyleAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
     REVERSE = "REVERSE"
     OUTLINE = "OUTLINE"
     SUMMARY = "SUMMARY"
+
+    MODES = [("Auto (detect field type)", "auto"),
+             ("Graduated (numeric)", "graduated"),
+             ("Categorized (unique values)", "categorized")]
+    METHODS = [("Quantile (equal count)", qs.QUANTILE),
+               ("Equal interval", qs.EQUAL),
+               ("Geometric interval", qs.GEOMETRIC)]
 
     def name(self) -> str:
         return "quick_style"
@@ -63,74 +65,78 @@ class QuickStyleAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
     def createInstance(self):
         return QuickStyleAlgorithm()
 
+    def flags(self):
+        f = super().flags()
+        if hasattr(QgsProcessingAlgorithm, "FlagNoExecutionResults"):
+            f |= QgsProcessingAlgorithm.FlagNoExecutionResults
+        if hasattr(QgsProcessingAlgorithm, "FlagSupportsInPlaceEdits"):
+            f |= QgsProcessingAlgorithm.FlagSupportsInPlaceEdits
+        return f
+
     def shortHelpString(self) -> str:
         return (
-            "Style any vector layer in one step. Pick a field and a colour "
-            "palette (ColorBrewer or the colour-blind-safe viridis family) and "
-            "CartoLab applies a graduated renderer for numeric fields or a "
-            "categorized renderer for text fields, with quantile, equal-interval "
-            "or geometric-interval class breaks. The renderer is applied to the "
-            "selected layer in place."
+            "Style an existing vector layer in place without creating a copy.\n\n"
+            "Pick a field and a palette name: numeric fields become a graduated "
+            "choropleth with ColorBrewer / colour-blind-safe palettes; string fields "
+            "become a categorized map.\n\n"
+            "In 'Auto' mode the layer field type decides whether graduated or "
+            "categorized is applied."
         )
 
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterVectorLayer(
-            self.INPUT, "Vector layer"))
+            self.INPUT, "Vector layer", [QgsProcessing.SourceType.TypeVectorAnyGeometry]))
         self.addParameter(QgsProcessingParameterField(
             self.FIELD, "Field to style", parentLayerParameterName=self.INPUT))
         self.addParameter(QgsProcessingParameterEnum(
-            self.MODE, "Style as",
-            options=["Auto (numeric -> graduated, text -> categories)",
-                     "Graduated (numeric)", "Categorized (unique values)"],
-            defaultValue=_MODE_AUTO))
+            self.MODE, "Style as", options=[m[0] for m in self.MODES], defaultValue=0))
         self.addParameter(QgsProcessingParameterNumber(
             self.CLASSES, "Number of classes (graduated)",
-            type=QgsProcessingParameterNumber.Type.Integer,
-            defaultValue=5, minValue=2, maxValue=12))
+            type=QgsProcessingParameterNumber.Type.Integer, defaultValue=5, minValue=2, maxValue=12))
         self.addParameter(QgsProcessingParameterEnum(
             self.METHOD, "Class break method (graduated)",
-            options=[m[0] for m in _METHODS], defaultValue=0))
+            options=[m[0] for m in self.METHODS], defaultValue=0))
         self.addParameter(QgsProcessingParameterEnum(
-            self.PALETTE, "Colour palette", options=_PALETTES,
-            defaultValue=_PALETTES.index(pal.default_palette(pal.SEQUENTIAL))))
+            self.PALETTE, "Colour palette", options=pal.ordered_names(), defaultValue=0))
         self.addParameter(QgsProcessingParameterBoolean(
             self.REVERSE, "Reverse palette", defaultValue=False))
         self.addParameter(QgsProcessingParameterBoolean(
             self.OUTLINE, "Thin white outline", defaultValue=True))
-        self.addOutput(QgsProcessingOutputString(self.SUMMARY, "Style summary"))
+        self.addOutput(QgsProcessingOutputString(self.SUMMARY, "Summary of changes"))
 
     def processAlgorithm(self, parameters, context, feedback):
         layer = self.parameterAsVectorLayer(parameters, self.INPUT, context)
         if layer is None:
-            raise QgsProcessingException("Select a valid vector layer.")
+            raise QgsProcessingException(self.invalidSourceError(parameters, self.INPUT))
         field = self.parameterAsString(parameters, self.FIELD, context)
-        mode = self.parameterAsEnum(parameters, self.MODE, context)
+        mode_idx = self.parameterAsEnum(parameters, self.MODE, context)
         classes = self.parameterAsInt(parameters, self.CLASSES, context)
-        method = _METHODS[self.parameterAsEnum(parameters, self.METHOD, context)][1]
-        palette = _PALETTES[self.parameterAsEnum(parameters, self.PALETTE, context)]
+        method_idx = self.parameterAsEnum(parameters, self.METHOD, context)
+        palette_idx = self.parameterAsEnum(parameters, self.PALETTE, context)
         reverse = self.parameterAsBool(parameters, self.REVERSE, context)
         outline = self.parameterAsBool(parameters, self.OUTLINE, context)
 
-        idx = layer.fields().indexOf(field)
-        if idx < 0:
-            raise QgsProcessingException(f"Field '{field}' not found.")
-        is_numeric = layer.fields().at(idx).isNumeric()
+        mode = self.MODES[mode_idx][1]
+        method = self.METHODS[method_idx][1]
+        palette_names = pal.ordered_names()
+        palette = palette_names[palette_idx] if palette_idx < len(palette_names) else palette_names[0]
 
-        if mode == _MODE_AUTO:
-            mode = _MODE_GRAD if is_numeric else _MODE_CAT
-        if mode == _MODE_GRAD and not is_numeric:
-            raise QgsProcessingException(
-                f"Field '{field}' is not numeric; choose Categorized instead.")
+        field_idx = layer.fields().indexOf(field)
+        if field_idx < 0:
+            raise QgsProcessingException(f"Field '{field}' not found in layer '{layer.name()}'.")
+        is_numeric = layer.fields()[field_idx].isNumeric()
 
-        if mode == _MODE_GRAD:
-            summary = self._graduated(layer, field, classes, method, palette,
-                                      reverse, outline)
+        if mode == "auto":
+            target_mode = "graduated" if is_numeric else "categorized"
         else:
-            summary = self._categorized(layer, field, palette, reverse, outline,
-                                        feedback)
+            target_mode = mode
+
+        if target_mode == "graduated":
+            summary = self._graduated(layer, field, classes, method, palette, reverse, outline)
+        else:
+            summary = self._categorized(layer, field, palette, reverse, outline, feedback)
 
         layer.triggerRepaint()
-        feedback.pushInfo(summary)
         return {self.SUMMARY: summary}
 
     # -- helpers ----------------------------------------------------------
@@ -152,7 +158,7 @@ class QuickStyleAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         return list(reversed(cols)) if reverse else cols
 
     def _graduated(self, layer, field, classes, method, palette, reverse, outline):
-        values = [f[field] for f in layer.getFeatures() if f[field] is not None]
+        values = [safe_float(f[field]) for f in layer.getFeatures() if safe_float(f[field]) is not None]
         if not values:
             raise QgsProcessingException(f"Field '{field}' has no numeric values.")
         if method == qs.QUANTILE:

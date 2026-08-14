@@ -15,6 +15,7 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QVariant
 from qgis.PyQt.QtGui import QColor
 
+from ..core.utils import safe_float
 from ..core.bivariate_engine import (
     geometric_interval_breaks, fisher_jenks_breaks, bivariate_colour_matrix,
 )
@@ -169,11 +170,11 @@ class BivariateChoroplethAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         x_vals, y_vals = [], []
         features_raw = []
         for feat in source.getFeatures():
-            xv = feat[field_x]
-            yv = feat[field_y]
-            if xv is not None and yv is not None and math.isfinite(float(xv)) and math.isfinite(float(yv)):
-                x_vals.append(float(xv))
-                y_vals.append(float(yv))
+            fx = safe_float(feat[field_x])
+            fy = safe_float(feat[field_y])
+            if fx is not None and fy is not None:
+                x_vals.append(fx)
+                y_vals.append(fy)
                 features_raw.append(feat)
 
         if not x_vals:
@@ -205,8 +206,8 @@ class BivariateChoroplethAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         for current, feat in enumerate(features_raw):
             if feedback.isCanceled():
                 break
-            col_idx = _break_index(float(feat[field_x]), x_breaks)
-            row_idx = _break_index(float(feat[field_y]), y_breaks)
+            col_idx = _break_index(safe_float(feat[field_x], 0.0), x_breaks)
+            row_idx = _break_index(safe_float(feat[field_y], 0.0), y_breaks)
 
             attrs = feat.attributes()[:]
             attrs.append(col_idx)

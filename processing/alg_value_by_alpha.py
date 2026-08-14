@@ -12,6 +12,7 @@ from qgis.core import (
 )
 from qgis.PyQt.QtCore import QVariant
 
+from ..core.utils import safe_float
 from ..core.bivariate_engine import compute_alpha_values
 from ._help_mixin import CartoLabHelpMixin
 
@@ -78,12 +79,10 @@ class ValueByAlphaAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         reliability_vals = []
         features_raw = []
         for feat in source.getFeatures():
-            pv = feat[colour_field]
-            rv = feat[alpha_field]
-            pv_ok = pv is not None and math.isfinite(float(pv))
-            rv_ok = rv is not None and math.isfinite(float(rv))
-            primary_vals.append(float(pv) if pv_ok else 0.0)
-            reliability_vals.append(float(rv) if rv_ok else 0.0)
+            pv = safe_float(feat[colour_field])
+            rv = safe_float(feat[alpha_field])
+            primary_vals.append(pv if pv is not None else 0.0)
+            reliability_vals.append(rv if rv is not None else 0.0)
             features_raw.append(feat)
 
         if not features_raw:

@@ -35,15 +35,21 @@ def apply_minimalist_grid(
     if map_item is None:
         return False
 
-    # Derive rounded intervals from the current extent when not supplied.
-    if interval_x is None or interval_y is None:
-        extent = map_item.extent()
-        span = max(extent.width(), extent.height()) if extent else 0.0
-        auto = nice_interval(span, target_divisions)
-        if auto <= 0:
-            auto = (span / 5.0) if span > 0 else 1000.0
-        interval_x = auto if interval_x is None else interval_x
-        interval_y = auto if interval_y is None else interval_y
+    # Derive rounded intervals from extent (targeting ~6-8 X divisions, ~4-6 Y divisions)
+    extent = map_item.extent()
+    if interval_x is None:
+        w = extent.width() if extent else 0.0
+        auto_x = nice_interval(w, target_divisions=7)
+        if auto_x <= 0:
+            auto_x = (w / 7.0) if w > 0 else 1000.0
+        interval_x = auto_x
+
+    if interval_y is None:
+        h = extent.height() if extent else 0.0
+        auto_y = nice_interval(h, target_divisions=5)
+        if auto_y <= 0:
+            auto_y = (h / 5.0) if h > 0 else 1000.0
+        interval_y = auto_y
 
     # Drop any previous CartoLab grid so repeated runs stay idempotent.
     # Grids are addressed by an auto-generated UUID id(), not their name,

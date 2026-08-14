@@ -12,13 +12,20 @@ from __future__ import annotations
 import math
 from typing import List
 
+from .utils import safe_float
+
 QUANTILE = "quantile"
 EQUAL = "equal"
 GEOMETRIC = "geometric"
 
 
 def _clean(values) -> List[float]:
-    return sorted(float(v) for v in values if v is not None)
+    cleaned = []
+    for v in values:
+        f = safe_float(v)
+        if f is not None:
+            cleaned.append(f)
+    return sorted(cleaned)
 
 
 def quantile_breaks(values, n: int) -> List[float]:

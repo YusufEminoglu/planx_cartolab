@@ -69,5 +69,18 @@ def style_layout_legend(
     target_legend.setSymbolHeight(4.0)
     target_legend.setBoxSpace(2.5)
 
+    # Sanitize layer item titles automatically (e.g. ss_choice_median -> Choice Median)
+    if hasattr(target_legend, "model"):
+        model = target_legend.model()
+        if model and hasattr(model, "rootGroup"):
+            root = model.rootGroup()
+            if root:
+                for child in root.children():
+                    if hasattr(child, "name") and hasattr(child, "setName"):
+                        raw_name = child.name()
+                        clean_name = raw_name.replace("_", " ").title()
+                        clean_name = clean_name.replace("Ss ", "").replace("Gic ", "")
+                        child.setName(clean_name)
+
     layout.refresh()
     return target_legend

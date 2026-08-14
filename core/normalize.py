@@ -25,15 +25,20 @@ METHODS = [
 ]
 
 
+from .utils import safe_float
+
+
 def _finite(v) -> bool:
-    try:
-        return v is not None and math.isfinite(float(v))
-    except (TypeError, ValueError):
-        return False
+    return safe_float(v) is not None
 
 
 def _clean(values) -> List[float]:
-    return [float(v) for v in values if _finite(v)]
+    cleaned = []
+    for v in values:
+        f = safe_float(v)
+        if f is not None:
+            cleaned.append(f)
+    return cleaned
 
 
 def mean(values) -> float:
@@ -65,18 +70,18 @@ def z_scores(values) -> List[Optional[float]]:
     sd = pstdev(values)
     if sd == 0:
         return [0.0 if _finite(v) else None for v in values]
-    return [((float(v) - m) / sd) if _finite(v) else None for v in values]
+    return [(safe_float(v) - m) / sd if _finite(v) else None for v in values]
 
 
 def robust_z(values) -> List[Optional[float]]:
     """Median-centred, MAD-scaled z (1.4826 makes MAD ~ stdev for normal data)."""
     med = median(values)
-    abs_dev = [abs(float(v) - med) for v in values if _finite(v)]
+    abs_dev = [abs(safe_float(v) - med) for v in values if _finite(v)]
     mad = median(abs_dev) if abs_dev else 0.0
     if mad == 0:
         return [0.0 if _finite(v) else None for v in values]
     scale = 1.4826 * mad
-    return [((float(v) - med) / scale) if _finite(v) else None for v in values]
+    return [(safe_float(v) - med) / scale if _finite(v) else None for v in values]
 
 
 def min_max(values, lo: float = 0.0, hi: float = 1.0) -> List[Optional[float]]:
@@ -88,7 +93,7 @@ def min_max(values, lo: float = 0.0, hi: float = 1.0) -> List[Optional[float]]:
         return [lo if _finite(v) else None for v in values]
     span = vmax - vmin
     return [
-        (lo + (float(v) - vmin) / span * (hi - lo)) if _finite(v) else None
+        (lo + (safe_float(v) - vmin) / span * (hi - lo)) if _finite(v) else None
         for v in values
     ]
 
@@ -102,10 +107,10 @@ def percentile_rank(values) -> List[Optional[float]]:
     ordered = sorted(c)
     out: List[Optional[float]] = []
     for v in values:
-        if not _finite(v):
+        fv = safe_float(v)
+        if fv is None:
             out.append(None)
             continue
-        fv = float(v)
         below = sum(1 for x in ordered if x < fv)
         equal = sum(1 for x in ordered if x == fv)
         out.append(100.0 * (below + 0.5 * equal) / n)
@@ -123,7 +128,7 @@ def log_scale(values, base: float = 10.0) -> List[Optional[float]]:
         shift = -vmin + 1.0
     log_base = math.log(base)
     return [
-        (math.log(float(v) + shift) / log_base) if _finite(v) else None
+        (math.log(safe_float(v) + shift) / log_base) if _finite(v) else None
         for v in values
     ]
 
@@ -132,8 +137,10 @@ def rate(numerators, denominators, scale: float = 1.0) -> List[Optional[float]]:
     """Element-wise numerator/denominator * scale; None when either is bad or d==0."""
     out: List[Optional[float]] = []
     for num, den in zip(numerators, denominators):
-        if not _finite(num) or not _finite(den) or float(den) == 0.0:
+        fn = safe_float(num)
+        fd = safe_float(den)
+        if fn is None or fd is None or fd == 0.0:
             out.append(None)
         else:
-            out.append(float(num) / float(den) * scale)
+            out.append(fn / fd * scale)
     return out

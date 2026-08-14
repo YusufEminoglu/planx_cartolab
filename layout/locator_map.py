@@ -50,8 +50,9 @@ def add_locator_inset_map(
 
     if main_map is not None:
         # Scale inset map out 5x for context
-        inset_map.setExtent(main_map.extent())
-        inset_map.zoomByFactor(5.0)
+        ext = main_map.extent()
+        ext.scale(5.0)
+        inset_map.setExtent(ext)
 
         # Add extent overview rectangle linking inset map to main map
         if hasattr(inset_map, "overviews"):

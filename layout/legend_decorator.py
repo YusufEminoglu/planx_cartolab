@@ -62,6 +62,12 @@ def add_bivariate_legend_to_layout(
         items = _build_square(layout, matrix, position, size_mm, x_label, y_label)
     else:
         items = _build_diamond(layout, matrix, position, size_mm, x_label, y_label)
+
+    if hasattr(layout, "groupItems") and items:
+        grp = layout.groupItems(items)
+        if grp:
+            return grp
+    return items
 def add_bivariate_legend(
     layout: QgsLayout,
     colors: tuple = None,

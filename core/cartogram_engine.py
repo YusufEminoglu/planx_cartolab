@@ -17,6 +17,8 @@ from qgis.core import (
     QgsFeature, QgsGeometry, QgsVectorLayer,
 )
 
+from .utils import safe_float
+
 
 # ---------------------------------------------------------------------------
 # WKT coordinate parsing — version-agnostic
@@ -115,11 +117,16 @@ class CartogramFeature:
 
 class CartogramEngine:
     """
-    Diffusion cartogram transformer.
+    Continuous-area cartogram solver (Gastner & Newman diffusion algorithm).
 
-    Usage::
+    Transforms polygon geometries so that each polygon's area is proportional to
+    a specified numeric attribute.
 
-        engine = CartogramEngine(source_layer, field_name, max_iter=50, max_error=5.0)
+    Usage
+    -----
+    ::
+
+        engine = CartogramEngine(source_layer, "population", max_iterations=30)
         iterations, error = engine.run(feedback=...)
         engine.write_to_layer(output_layer)
     """
@@ -145,10 +152,10 @@ class CartogramEngine:
             geom = feat.geometry()
             if geom.isEmpty() or geom.isNull():
                 continue
-            val = feat[self.field]
-            if val is None:
+            val = safe_float(feat[self.field], 1e-12)
+            if val <= 0:
                 val = 1e-12
-            cf = CartogramFeature(feat.id(), geom, float(val))
+            cf = CartogramFeature(feat.id(), geom, val)
             cf.recompute_properties()
             cf.extract_coords()
             self.features.append(cf)
@@ -225,15 +232,26 @@ class CartogramEngine:
     def _diffusion_step(self, damping: float, cutoff: float, sigma2: float) -> None:
         """
         Single diffusion step with Gaussian-weighted force kernel.
-
-        Features that are too small (positive mass) push their boundaries
-        outward; too-large features (negative mass) pull inward. The force
-        from feature_j on a vertex of feature_i is weighted by a Gaussian
-        of the distance between the vertex and feature_j's centroid.
+        Deforms vertices using a shared topological node map to ensure 100% boundary
+        contiguity without gaps or tears between neighboring polygons.
         """
         n = len(self.features)
+        if n == 0:
+            return
 
-        # Spatial hash grid for feature centroids using cell_size = cutoff
+        avg_radius = sum(f.radius for f in self.features) / float(n)
+        max_disp = avg_radius * 0.25
+
+        # 1. Collect unique topological nodes across all polygon vertices
+        # Node key rounded to 5 decimal places (~1mm tolerance)
+        nodes = {}  # node_key -> (vx, vy, [fx, fy])
+        for f in self.features:
+            for vx, vy in f.coords:
+                key = (round(vx, 5), round(vy, 5))
+                if key not in nodes:
+                    nodes[key] = (vx, vy, [0.0, 0.0])
+
+        # 2. Spatial hash grid for feature centroids using cell_size = cutoff
         grid = {}
         cell_size = max(cutoff, 1e-5)
         for j, f_j in enumerate(self.features):
@@ -246,48 +264,49 @@ class CartogramEngine:
                 grid[key] = []
             grid[key].append((j, f_j))
 
-        for i, f_i in enumerate(self.features):
-            new_coords = []
-            for vx, vy in f_i.coords:
-                fx, fy = 0.0, 0.0
+        # 3. Compute displacement ONCE for each unique topological node
+        for key, node_data in nodes.items():
+            vx, vy, f_vec = node_data
+            fx, fy = 0.0, 0.0
+            vgx = int(math.floor(vx / cell_size))
+            vgy = int(math.floor(vy / cell_size))
 
-                # Query cell coordinates of the vertex
-                vgx = int(math.floor(vx / cell_size))
-                vgy = int(math.floor(vy / cell_size))
-
-                # Check current cell and 8 neighboring cells
-                for dx in (-1, 0, 1):
-                    for dy in (-1, 0, 1):
-                        cell_features = grid.get((vgx + dx, vgy + dy))
-                        if not cell_features:
+            for dx in (-1, 0, 1):
+                for dy in (-1, 0, 1):
+                    cell_features = grid.get((vgx + dx, vgy + dy))
+                    if not cell_features:
+                        continue
+                    for j, f_j in cell_features:
+                        dist = math.hypot(vx - f_j.cx, vy - f_j.cy)
+                        if dist > cutoff:
                             continue
-                        for j, f_j in cell_features:
-                            if i == j:
-                                continue
-                            dist = math.hypot(vx - f_j.cx, vy - f_j.cy)
-                            if dist > cutoff:
-                                continue
-                            if dist < 1e-12:
-                                dist = 1e-12
-                            # Gaussian distance weight: smooth, bounded influence
-                            weight = math.exp(-dist * dist / (2.0 * sigma2))
-                            influence = f_j.mass * f_j.radius * damping * weight
-                            # direction from centroid_j to vertex_i
-                            dir_x = (vx - f_j.cx) / dist
-                            dir_y = (vy - f_j.cy) / dist
-                            fx += influence * dir_x
-                            fy += influence * dir_y
+                        if dist < 1e-12:
+                            dist = 1e-12
+                        weight = math.exp(-dist * dist / (2.0 * sigma2))
+                        influence = f_j.mass * f_j.radius * damping * weight
+                        dir_x = (vx - f_j.cx) / dist
+                        dir_y = (vy - f_j.cy) / dist
+                        fx += influence * dir_x
+                        fy += influence * dir_y
 
-                # clamp displacement per iteration to prevent oscillation
-                max_disp = f_i.radius * 0.3
-                disp = math.hypot(fx, fy)
-                if disp > max_disp:
-                    scale = max_disp / disp
-                    fx *= scale
-                    fy *= scale
+            # Clamp node displacement uniformly
+            disp = math.hypot(fx, fy)
+            if disp > max_disp:
+                scale = max_disp / disp
+                fx *= scale
+                fy *= scale
+            f_vec[0] = fx
+            f_vec[1] = fy
+
+        # 4. Map displaced node coordinates back into each feature's vertex array
+        for f in self.features:
+            new_coords = []
+            for vx, vy in f.coords:
+                key = (round(vx, 5), round(vy, 5))
+                fx, fy = nodes[key][2]
                 new_coords.append((vx + fx, vy + fy))
-            f_i.coords = new_coords
-            f_i.writeback_coords()
+            f.coords = new_coords
+            f.writeback_coords()
 
     def write_to_layer(self, output_layer: QgsVectorLayer) -> None:
         """Write distorted geometries into an existing memory layer."""

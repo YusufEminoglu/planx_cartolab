@@ -46,7 +46,10 @@ def add_publication_title_block(
 
     # Background Panel Shape
     panel = QgsLayoutItemShape(layout)
-    panel.setShapeType(QgsLayoutItemShape.ShapeRect)
+    if hasattr(QgsLayoutItemShape, "Rectangle"):
+        panel.setShapeType(QgsLayoutItemShape.Rectangle)
+    elif hasattr(QgsLayoutItemShape, "ShapeRect"):
+        panel.setShapeType(QgsLayoutItemShape.ShapeRect)
     panel.attemptMove(QgsLayoutPoint(x0, y0, _MM))
     panel.attemptResize(QgsLayoutSize(width_mm, 28.0, _MM))
 

@@ -15,7 +15,8 @@ from qgis.core import (
 )
 from qgis.PyQt.QtCore import QVariant
 
-from ..core.proportional_symbols import symbol_size, nice_legend_values
+from ..core.utils import safe_float
+from ..core import proportional_symbols as ps
 from ._help_mixin import CartoLabHelpMixin
 
 
@@ -44,13 +45,13 @@ class ProportionalSymbolsAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
 
     def shortHelpString(self) -> str:
         return (
-            "Place a point at each feature whose symbol size is proportional to a "
-            "numeric field.\n\n"
-            "Flannery compensation (size = value ** 0.5716) corrects the fact that "
-            "readers under-estimate circle area, so big values are not perceived as "
-            "too small. Disable it for true area-proportional scaling.\n\n"
-            "Adds a 'psym_size' field (mm) used as data-defined marker size, and "
-            "prints suggested nested-legend values."
+            "Convert any vector layer to point symbols sized proportionally to a "
+            "numeric field, using Flannery perceptual compensation by default.\n\n"
+            "Readers systematically under-estimate circle area; Flannery scaling "
+            "(exponent ~0.57) compensates so visual perception matches true data "
+            "ratios.\n\n"
+            "Outputs point geometries at centroids with 'psym_value' and 'psym_size' "
+            "(symbol size in mm) fields, styled automatically with a nested legend."
         )
 
     def initAlgorithm(self, config=None):
@@ -61,10 +62,10 @@ class ProportionalSymbolsAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
             type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterNumber(
             self.MAX_SIZE, "Maximum symbol size (mm)",
-            type=QgsProcessingParameterNumber.Type.Double, defaultValue=12.0, minValue=0.1))
+            type=QgsProcessingParameterNumber.Type.Double, defaultValue=16.0, minValue=1.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.MIN_SIZE, "Minimum symbol size (mm)",
-            type=QgsProcessingParameterNumber.Type.Double, defaultValue=1.0, minValue=0.0))
+            type=QgsProcessingParameterNumber.Type.Double, defaultValue=2.0, minValue=0.0))
         self.addParameter(QgsProcessingParameterBoolean(
             self.FLANNERY, "Apply Flannery perceptual compensation", defaultValue=True))
         self.addParameter(QgsProcessingParameterFeatureSink(
@@ -79,15 +80,11 @@ class ProportionalSymbolsAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         min_size = self.parameterAsDouble(parameters, self.MIN_SIZE, context)
         flannery = self.parameterAsBool(parameters, self.FLANNERY, context)
 
-        features_raw = []
         values = []
+        features_raw = []
         for feat in source.getFeatures():
-            v = feat[field_name]
-            try:
-                fv = float(v)
-            except (TypeError, ValueError):
-                fv = None
-            if fv is not None and math.isfinite(fv):
+            fv = safe_float(feat[field_name])
+            if fv is not None:
                 values.append(fv)
             features_raw.append(feat)
 
@@ -115,13 +112,10 @@ class ProportionalSymbolsAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
             geom = feat.geometry()
             if geom is None or geom.isEmpty():
                 continue
-            try:
-                fv = float(feat[field_name])
-            except (TypeError, ValueError):
-                fv = 0.0
-            size = symbol_size(fv, v_max, max_size, min_size, flannery)
+            fv = safe_float(feat[field_name], 0.0)
+            size = ps.symbol_size(fv, v_max, max_size, min_size, flannery)
             attrs = feat.attributes()[:]
-            attrs.append(fv if math.isfinite(fv) else None)
+            attrs.append(fv)
             attrs.append(size)
             nf = QgsFeature(out_fields)
             nf.setGeometry(geom.pointOnSurface())
@@ -129,7 +123,7 @@ class ProportionalSymbolsAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
             sink.addFeature(nf, QgsFeatureSink.Flag.FastInsert)
             feedback.setProgress(int(100 * current / total))
 
-        legend = nice_legend_values(v_min, v_max, 3)
+        legend = ps.nice_legend_values(v_min, v_max, 3)
         feedback.pushInfo(
             f"Value range [{v_min:g}, {v_max:g}]. "
             f"Suggested legend circles: {', '.join(f'{v:g}' for v in legend) or 'n/a'}."
