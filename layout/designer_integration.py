@@ -8,12 +8,13 @@ export & open right inside the QGIS Print Layout Designer window.
 """
 from __future__ import annotations
 
+import math
 import os
 from contextlib import suppress
 from typing import Optional
 
 try:
-    from qgis.core import QgsProject
+    from qgis.core import QgsProject, QgsLayoutItemMap
     from qgis.PyQt.QtCore import Qt, QUrl
     from qgis.PyQt.QtGui import QDesktopServices, QIcon
     from qgis.PyQt.QtWidgets import (
@@ -37,7 +38,7 @@ try:
         QWidget,
     )
 except ImportError:
-    QgsProject = None
+    QgsProject = QgsLayoutItemMap = None
     Qt = QUrl = QDesktopServices = QIcon = QAction = QComboBox = QDockWidget = QDoubleSpinBox = QFileDialog = QFormLayout = QGroupBox = QHBoxLayout = QLabel = QLineEdit = QMenu = QMessageBox = QPushButton = QScrollArea = QTabWidget = QToolBar = QVBoxLayout = QWidget = None
 
 
@@ -155,24 +156,26 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
     tabs = QTabWidget()
     tabs.setStyleSheet("""
         QTabWidget::pane {
-            border: 1px solid #cbd5e1;
+            border: 1px solid #e2e8f0;
             border-radius: 6px;
             background: #ffffff;
         }
         QTabBar::tab {
             background: #f1f5f9;
-            color: #334155;
-            padding: 7px 12px;
-            font-weight: 700;
+            color: #475569;
+            padding: 8px 12px;
+            font-weight: 600;
             font-size: 11px;
             border-top-left-radius: 6px;
             border-top-right-radius: 6px;
             margin-right: 2px;
+            border: 1px solid #e2e8f0;
         }
         QTabBar::tab:selected {
             background: #ffffff;
-            color: #0284c7;
-            border-bottom: 2px solid #0284c7;
+            color: #0f172a;
+            font-weight: 700;
+            border-bottom: 2px solid #2563eb;
         }
         QGroupBox {
             font-weight: 700;
@@ -181,6 +184,7 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
             border-radius: 6px;
             margin-top: 8px;
             padding: 10px 8px 8px 8px;
+            background: #ffffff;
         }
         QGroupBox::title {
             subcontrol-origin: margin;
@@ -190,23 +194,33 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
         }
         QPushButton {
             background-color: #0f172a;
-            color: #f8fafc;
+            color: #ffffff;
             border-radius: 6px;
             padding: 7px 12px;
-            font-weight: 700;
-            border: 1px solid #1e293b;
+            font-weight: 600;
+            font-size: 11px;
+            border: 1px solid #0f172a;
         }
         QPushButton:hover {
-            background-color: #0284c7;
-            border-color: #0369a1;
-            color: #ffffff;
+            background-color: #1e293b;
+            border-color: #1e293b;
+        }
+        QPushButton#ghost {
+            background-color: #ffffff;
+            color: #334155;
+            border: 1px solid #cbd5e1;
+        }
+        QPushButton#ghost:hover {
+            background-color: #f8fafc;
+            color: #0f172a;
         }
         QLineEdit, QComboBox, QDoubleSpinBox {
             background: #ffffff;
             border: 1px solid #cbd5e1;
-            border-radius: 4px;
-            padding: 5px;
+            border-radius: 5px;
+            padding: 4px 6px;
             color: #0f172a;
+            font-size: 11px;
         }
     """)
 
@@ -458,6 +472,45 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
     btn_dock_legend_style.clicked.connect(_dock_legend_style)
     fl_elem.addRow(btn_dock_legend_style)
 
+    btn_dock_filter_legend = QPushButton("Filter Legend to Map Extent")
+    btn_dock_filter_legend.setObjectName("ghost")
+    btn_dock_filter_legend.setIcon(_get_cartolab_icon("style.png"))
+
+    def _dock_filter_legend():
+        layout = _get_designer_layout(designer)
+        if not layout:
+            return
+        main_map = None
+        for item in layout.items():
+            if isinstance(item, QgsLayoutItemMap):
+                main_map = item
+                break
+        if not main_map:
+            QMessageBox.warning(parent_win, "Filter Legend", "No map item found in layout.")
+            return
+
+        from qgis.core import QgsLayoutItemLegend
+        applied = False
+        for item in layout.items():
+            if isinstance(item, QgsLayoutItemLegend):
+                item.setAutoUpdateModel(False)
+                if hasattr(item, "setLinkedMap"):
+                    item.setLinkedMap(main_map)
+                if hasattr(item, "setLegendFilterByMapEnabled"):
+                    item.setLegendFilterByMapEnabled(True)
+                item.updateLegend()
+                applied = True
+
+        if applied:
+            layout.refresh()
+            if hasattr(iface, "messageBar"):
+                iface.messageBar().pushSuccess("CartoLab", "Legend filtered to visible map extent.")
+        else:
+            QMessageBox.information(parent_win, "Filter Legend", "No legend found in layout.")
+
+    btn_dock_filter_legend.clicked.connect(_dock_filter_legend)
+    fl_elem.addRow(btn_dock_filter_legend)
+
     btn_dock_locator = QPushButton("Add Locator / Inset Map")
     btn_dock_locator.setIcon(_get_cartolab_icon("grid.png"))
 
@@ -476,7 +529,31 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
     btn_dock_locator.clicked.connect(_dock_locator)
     fl_elem.addRow(btn_dock_locator)
 
-    btn_dock_grid = QPushButton("Apply Coordinate Grid")
+    lyt_dec.addWidget(gb_map_elem)
+
+    # Dedicated Publication Coordinate Grid Group
+    gb_grid = QGroupBox("Publication Coordinate Grid")
+    fl_grid = QFormLayout(gb_grid)
+
+    grid_density_combo = QComboBox()
+    grid_density_combo.addItem("Standard (5-6 divisions)", (6, 5))
+    grid_density_combo.addItem("Coarse / Clean (3-4 divisions)", (4, 3))
+    grid_density_combo.addItem("Dense (7-9 divisions)", (8, 6))
+    fl_grid.addRow("Grid Density:", grid_density_combo)
+
+    grid_style_combo = QComboBox()
+    grid_style_combo.addItem("Solid Lines", "Solid")
+    grid_style_combo.addItem("Crosshairs (+)", "Cross")
+    grid_style_combo.addItem("Border Ticks Only", "FrameAndAnnotationsOnly")
+    fl_grid.addRow("Grid Style:", grid_style_combo)
+
+    grid_frame_combo = QComboBox()
+    grid_frame_combo.addItem("Academic Zebra Border", "Zebra")
+    grid_frame_combo.addItem("Clean Line Border", "LineBorder")
+    grid_frame_combo.addItem("Frame-Free (Minimal)", "NoFrame")
+    fl_grid.addRow("Frame Border:", grid_frame_combo)
+
+    btn_dock_grid = QPushButton("Apply Publication Grid")
     btn_dock_grid.setIcon(_get_cartolab_icon("grid.png"))
 
     def _dock_grid():
@@ -485,17 +562,54 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
             return
         try:
             from .coordinate_grid import apply_coordinate_grid_decorator
-            apply_coordinate_grid_decorator(layout)
+            divs = grid_density_combo.currentData() or (6, 5)
+            gstyle = grid_style_combo.currentData() or "Solid"
+            fstyle = grid_frame_combo.currentData() or "Zebra"
+            apply_coordinate_grid_decorator(
+                layout,
+                target_divisions_x=divs[0],
+                target_divisions_y=divs[1],
+                grid_style=gstyle,
+                frame_style=fstyle,
+                show_annotations=True,
+            )
             if hasattr(iface, "messageBar"):
-                iface.messageBar().pushSuccess("CartoLab", "Coordinate grid applied to layout map.")
+                iface.messageBar().pushSuccess("CartoLab", "Publication coordinate grid applied.")
         except Exception as exc:
             QMessageBox.critical(parent_win, "Coordinate Grid Error", str(exc))
 
     btn_dock_grid.clicked.connect(_dock_grid)
-    fl_elem.addRow(btn_dock_grid)
+    fl_grid.addRow(btn_dock_grid)
 
+    lyt_dec.addWidget(gb_grid)
 
-    lyt_dec.addWidget(gb_map_elem)
+    # Smart Map Utilities
+    gb_smart = QGroupBox("Smart Map Tools")
+    fl_smart = QFormLayout(gb_smart)
+
+    btn_snap_scale = QPushButton("Snap to Standard Scale (1:10k, 1:25k…)")
+    btn_snap_scale.setIcon(_get_cartolab_icon("compass.png"))
+
+    def _dock_snap_scale():
+        layout = _get_designer_layout(designer)
+        if not layout:
+            return
+        for item in layout.items():
+            if isinstance(item, QgsLayoutItemMap):
+                curr = item.scale()
+                scales = [500, 1000, 2000, 2500, 5000, 10000, 20000, 25000, 50000, 100000, 200000, 250000, 500000, 1000000]
+                best = min(scales, key=lambda s: abs(math.log(s) - math.log(max(1.0, curr))))
+                item.setScale(best)
+                item.updateBoundingRect()
+                layout.refresh()
+                if hasattr(iface, "messageBar"):
+                    iface.messageBar().pushSuccess("CartoLab", f"Map scale snapped to 1:{best:,}")
+                return
+        QMessageBox.warning(parent_win, "Snap Scale", "No map item found in layout.")
+
+    btn_snap_scale.clicked.connect(_dock_snap_scale)
+    fl_smart.addRow(btn_snap_scale)
+    lyt_dec.addWidget(gb_smart)
 
     lyt_dec.addStretch()
 

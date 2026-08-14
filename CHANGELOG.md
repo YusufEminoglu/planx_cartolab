@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.5.6] - 2026-08-14
+
+- Calm modern slate GUI styling, publication-standard coordinate grid engine with auto-intervals and smart map tools
+
 ## [2.5.5] - 2026-08-14
 
 - Clean minimalist vector sub-icons and single toolbar entry points in QGIS canvas and Print Layout

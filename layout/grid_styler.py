@@ -35,13 +35,13 @@ def apply_minimalist_grid(
     if map_item is None:
         return False
 
-    # Derive rounded intervals from extent (targeting ~6-8 X divisions, ~4-6 Y divisions)
+    # Derive rounded intervals from extent (targeting ~5-6 X divisions, ~4-5 Y divisions)
     extent = map_item.extent()
     if interval_x is None:
         w = extent.width() if extent else 0.0
-        auto_x = nice_interval(w, target_divisions=7)
+        auto_x = nice_interval(w, target_divisions=6)
         if auto_x <= 0:
-            auto_x = (w / 7.0) if w > 0 else 1000.0
+            auto_x = (w / 6.0) if w > 0 else 1000.0
         interval_x = auto_x
 
     if interval_y is None:
@@ -69,7 +69,7 @@ def apply_minimalist_grid(
     # No frame — a minimal academic look with only interior lines + labels.
     _NoFrame = getattr(getattr(QgsLayoutItemMapGrid, "FrameStyle", QgsLayoutItemMapGrid), "NoFrame", getattr(QgsLayoutItemMapGrid, "NoFrame", 0))
     grid.setFrameStyle(_NoFrame)
-    grid.setLineSymbol(QgsLineSymbol.createSimple({"color": "#c8c8c8", "width": "0.2"}))
+    grid.setLineSymbol(QgsLineSymbol.createSimple({"color": "#cbd5e1", "width": "0.15"}))
 
     grid.setAnnotationEnabled(True)
     grid.setAnnotationPrecision(0)
