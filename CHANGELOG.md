@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.8.3] - 2026-08-14
+
+- Added PALETTE parameter, Maximum Breaks, and Pretty Breaks to Advanced Classification
+
 ## [2.8.2] - 2026-08-14
 
 - Added PALETTE, CLASSIFIER, and CLASSES direct styling parameters to Hexbin Aggregation

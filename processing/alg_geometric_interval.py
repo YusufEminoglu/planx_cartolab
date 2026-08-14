@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-"""Adaptive Geometric Interval Classification — Processing algorithm."""
+"""Adaptive Geometric Interval & Advanced Classification — Processing algorithm."""
 from __future__ import annotations
 
-import math
+from contextlib import suppress
 
 from qgis.core import (
     QgsClassificationCustom, QgsFeature, QgsFeatureSink, QgsField, QgsFields,
@@ -19,6 +19,8 @@ from ..core.utils import safe_float
 from ..core.bivariate_engine import (
     geometric_interval_breaks, head_tail_breaks, fisher_jenks_breaks,
 )
+from ..core.quick_style import maximum_breaks, pretty_breaks
+from ..core.palettes import get_palette
 from ._help_mixin import CartoLabHelpMixin
 
 
@@ -28,19 +30,27 @@ class GeometricIntervalAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
     FIELD = "FIELD"
     CLASSES = "CLASSES"
     METHOD = "METHOD"
+    PALETTE = "PALETTE"
     OUTPUT = "OUTPUT"
 
     METHODS = [
         ("Adaptive Geometric Interval (GIC)", "geometric"),
         ("Head/Tail Breaks", "head_tail"),
         ("Fisher-Jenks Natural Breaks", "fisher_jenks"),
+        ("Maximum Distribution Breaks", "maximum_breaks"),
+        ("Pretty Nice-Round Breaks", "pretty_breaks"),
+    ]
+
+    PALETTES_LIST = [
+        "Viridis", "Plasma", "Inferno", "Magma", "Cividis",
+        "Turbo", "Mako", "Rocket", "Blues", "Oranges", "YlOrRd", "Purples", "Greens"
     ]
 
     def name(self) -> str:
         return "geometric_interval_classification"
 
     def displayName(self) -> str:
-        return "Advanced Classification (GIC / Head-Tail / Fisher-Jenks)"
+        return "Advanced Classification (GIC / Head-Tail / Jenks / Max / Pretty)"
 
     def group(self) -> str:
         return "Classification"
@@ -53,11 +63,14 @@ class GeometricIntervalAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
 
     def shortHelpString(self) -> str:
         return (
-            "Classify a numeric field using one of three advanced algorithms.\n\n"
-            "  - Adaptive GIC: optimal for skewed continuous data\n"
-            "  - Head/Tail Breaks: for heavy-tailed / power-law distributions\n"
-            "  - Fisher-Jenks: natural breaks minimising within-class variance\n\n"
-            "Adds a 'gic_class' integer field (0-based class index) to the output."
+            "Classify a numeric field using advanced cartographic algorithms.\n\n"
+            "• Adaptive GIC: Optimal for skewed continuous and geometric growth data.\n"
+            "• Head/Tail Breaks: Optimal for heavy-tailed / power-law spatial distributions.\n"
+            "• Fisher-Jenks: Natural breaks minimising within-class variance.\n"
+            "• Maximum Breaks: Splits data at the largest natural distribution gaps.\n"
+            "• Pretty Breaks: Heckbert algorithm for clean rounded interval boundaries.\n\n"
+            "Output carries 'gic_class' (0-based integer index) and 'gic_label' fields, "
+            "and is styled automatically with the chosen color ramp."
         )
 
     def initAlgorithm(self, config=None):
@@ -72,15 +85,22 @@ class GeometricIntervalAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterEnum(
             self.METHOD, "Classification method",
             options=[m[0] for m in self.METHODS], defaultValue=0))
+        self.addParameter(QgsProcessingParameterEnum(
+            self.PALETTE, "Color ramp",
+            options=self.PALETTES_LIST, defaultValue=0))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUTPUT, "Classified output"))
 
     def processAlgorithm(self, parameters, context, feedback):
         source = self.parameterAsSource(parameters, self.INPUT, context)
+        if source is None:
+            raise QgsProcessingException(self.invalidSourceError(parameters, self.INPUT))
         field_name = self.parameterAsString(parameters, self.FIELD, context)
         n_classes = self.parameterAsInt(parameters, self.CLASSES, context)
         method_idx = self.parameterAsEnum(parameters, self.METHOD, context)
         method = self.METHODS[method_idx][1]
+        pal_idx = self.parameterAsEnum(parameters, self.PALETTE, context) if self.PALETTE in parameters else 0
+        pal_name = self.PALETTES_LIST[pal_idx] if 0 <= pal_idx < len(self.PALETTES_LIST) else "Viridis"
 
         values = []
         features_raw = []
@@ -101,12 +121,15 @@ class GeometricIntervalAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
             breaks = head_tail_breaks(values)
         elif method == "fisher_jenks":
             breaks = fisher_jenks_breaks(values, n_classes)
+        elif method == "maximum_breaks":
+            breaks = maximum_breaks(values, n_classes)
+        elif method == "pretty_breaks":
+            breaks = pretty_breaks(values, n_classes)
         else:
             raise QgsProcessingException(f"Unknown method: {method}")
 
         feedback.pushInfo(f"Breaks: {[round(b, 4) for b in breaks]}")
 
-        # Build output field schema
         out_fields = QgsFields()
         for f in source.fields():
             out_fields.append(QgsField(f.name(), f.type()))
@@ -126,10 +149,9 @@ class GeometricIntervalAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
             val = safe_float(feat[field_name], 0.0)
             class_idx = 0
             for i in range(len(breaks) - 1):
-                if breaks[i] <= val < breaks[i + 1]:
+                if breaks[i] <= val <= breaks[i + 1]:
                     class_idx = i
                     break
-            # build attributes: copy original + append classification
             attrs = feat.attributes()[:]
             attrs.append(class_idx)
             label = labels[class_idx] if class_idx < len(labels) else f"Class {class_idx + 1}"
@@ -141,27 +163,24 @@ class GeometricIntervalAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
             sink.addFeature(new_feat, QgsFeatureSink.Flag.FastInsert)
             feedback.setProgress(int(100 * current / total))
 
-        # Apply graduated symbology
-        try:
+        with suppress(Exception):
             out_layer = context.getMapLayer(dest_id)
             if out_layer:
-                colours = [
-                    QColor("#440154"), QColor("#3b528b"), QColor("#21918c"),
-                    QColor("#5ec962"), QColor("#fde725"),
-                ]
+                num_classes = max(1, len(breaks) - 1)
+                colours = get_palette(pal_name, num_classes)
                 ranges = []
-                for i in range(len(breaks) - 1):
+                for i in range(num_classes):
                     sym = QgsSymbol.defaultSymbol(out_layer.geometryType())
-                    col = colours[min(i, len(colours) - 1)]
-                    sym.setColor(col)
-                    sym.setOpacity(0.85)
-                    label = f"{breaks[i]:.2f} – {breaks[i+1]:.2f}"
-                    ranges.append(QgsRendererRange(breaks[i], breaks[i+1], sym, label))
-                renderer = QgsGraduatedSymbolRenderer(field_name, ranges)
-                renderer.setClassificationMethod(QgsClassificationCustom())
-                out_layer.setRenderer(renderer)
-                out_layer.triggerRepaint()
-        except Exception as exc:
-            feedback.pushInfo(f"Renderer styling skipped (cosmetic): {exc}")
+                    if sym:
+                        col = colours[min(i, len(colours) - 1)]
+                        sym.setColor(QColor(col))
+                        sym.setOpacity(0.88)
+                        label = f"{breaks[i]:.2f} – {breaks[i+1]:.2f}"
+                        ranges.append(QgsRendererRange(breaks[i], breaks[i+1], sym, label))
+                if ranges:
+                    renderer = QgsGraduatedSymbolRenderer(field_name, ranges)
+                    renderer.setClassificationMethod(QgsClassificationCustom())
+                    out_layer.setRenderer(renderer)
+                    out_layer.triggerRepaint()
 
         return {self.OUTPUT: dest_id}
