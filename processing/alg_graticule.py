@@ -2,13 +2,18 @@
 """Graticule / Reference Grid — Processing algorithm."""
 from __future__ import annotations
 
+from contextlib import suppress
+
+from qgis.PyQt.QtCore import QVariant
+from qgis.PyQt.QtGui import QColor
 from qgis.core import (
     QgsFeature, QgsFeatureSink, QgsField, QgsFields, QgsGeometry, QgsPointXY,
     QgsProcessing, QgsProcessingAlgorithm, QgsProcessingException,
+    QgsProcessingParameterColor, QgsProcessingParameterEnum,
     QgsProcessingParameterExtent, QgsProcessingParameterFeatureSink,
     QgsProcessingParameterNumber, QgsWkbTypes,
+    QgsLineSymbol, QgsSingleSymbolRenderer,
 )
-from qgis.PyQt.QtCore import QVariant
 
 from ..core.graticule import nice_interval, graticule_lines
 from ._help_mixin import CartoLabHelpMixin
@@ -19,7 +24,13 @@ class GraticuleAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
     EXTENT = "EXTENT"
     X_INTERVAL = "X_INTERVAL"
     Y_INTERVAL = "Y_INTERVAL"
+    LINE_STYLE = "LINE_STYLE"
+    LINE_COLOR = "LINE_COLOR"
+    LINE_WIDTH = "LINE_WIDTH"
     OUTPUT = "OUTPUT"
+
+    STYLES = ["Solid Line", "Dashed Line", "Dotted Line", "Dash-Dot Line"]
+    STYLE_MAP = ["solid", "dash", "dot", "dash dot"]
 
     def name(self) -> str:
         return "graticule_grid"
@@ -42,9 +53,9 @@ class GraticuleAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
             "'nice' round coordinate intervals. Each line carries its orientation, "
             "constant coordinate and a formatted label (label it with the 'label' "
             "field).\n\n"
-            "Leave an interval at 0 to auto-pick a round step (~8 lines across the "
-            "extent). The output uses the extent's CRS — set the extent in the CRS "
-            "you want the grid drawn in."
+            "• Auto-picks nice rounded step intervals (~8 lines across extent) if left at 0.\n"
+            "• Direct styling control: Solid, Dashed, Dotted, or Dash-Dot with custom color and line width.\n"
+            "The output uses the extent's CRS — set the extent in the CRS you want the grid drawn in."
         )
 
     def initAlgorithm(self, config=None):
@@ -55,6 +66,13 @@ class GraticuleAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterNumber(
             self.Y_INTERVAL, "Horizontal line (parallel) interval, 0 = auto",
             type=QgsProcessingParameterNumber.Type.Double, defaultValue=0.0, minValue=0.0))
+        self.addParameter(QgsProcessingParameterEnum(
+            self.LINE_STYLE, "Grid line style", options=self.STYLES, defaultValue=1))
+        self.addParameter(QgsProcessingParameterColor(
+            self.LINE_COLOR, "Grid line color", defaultValue=QColor(160, 160, 160, 180)))
+        self.addParameter(QgsProcessingParameterNumber(
+            self.LINE_WIDTH, "Grid line width (mm)",
+            type=QgsProcessingParameterNumber.Type.Double, defaultValue=0.25, minValue=0.05, maxValue=5.0))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUTPUT, "Graticule output", QgsProcessing.SourceType.TypeVectorLine))
 
@@ -65,6 +83,10 @@ class GraticuleAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
             raise QgsProcessingException("The supplied extent is empty.")
         x_interval = self.parameterAsDouble(parameters, self.X_INTERVAL, context)
         y_interval = self.parameterAsDouble(parameters, self.Y_INTERVAL, context)
+        style_idx = self.parameterAsEnum(parameters, self.LINE_STYLE, context) if self.LINE_STYLE in parameters else 1
+        line_style = self.STYLE_MAP[style_idx] if 0 <= style_idx < len(self.STYLE_MAP) else "dash"
+        line_color = self.parameterAsColor(parameters, self.LINE_COLOR, context) if self.LINE_COLOR in parameters else QColor(160, 160, 160, 180)
+        line_width = self.parameterAsDouble(parameters, self.LINE_WIDTH, context) if self.LINE_WIDTH in parameters else 0.25
 
         xmin, ymin = rect.xMinimum(), rect.yMinimum()
         xmax, ymax = rect.xMaximum(), rect.yMaximum()
@@ -94,4 +116,17 @@ class GraticuleAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         feedback.pushInfo(
             f"Graticule: {len(lines)} lines (x step {x_step:g}, y step {y_step:g})."
         )
+
+        with suppress(Exception):
+            out_layer = context.getMapLayer(dest_id)
+            if out_layer:
+                c_str = f"{line_color.red()},{line_color.green()},{line_color.blue()},{line_color.alpha()}"
+                symbol = QgsLineSymbol.createSimple({
+                    "line_style": line_style,
+                    "line_color": c_str,
+                    "line_width": str(line_width),
+                })
+                out_layer.setRenderer(QgsSingleSymbolRenderer(symbol))
+                out_layer.triggerRepaint()
+
         return {self.OUTPUT: dest_id}

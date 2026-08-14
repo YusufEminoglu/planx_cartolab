@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.8.0] - 2026-08-14
+
+- Added LINE_STYLE, LINE_COLOR, and LINE_WIDTH direct styling parameters to Graticule Grid
+
 ## [2.7.9] - 2026-08-14
 
 - Added PALETTE, CLASSES, and automated Data-Defined Opacity Renderer to Value-by-Alpha
