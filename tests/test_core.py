@@ -838,6 +838,12 @@ check("apply_typography_hierarchy function exists", callable(te.apply_typography
 check("TYPOGRAPHY_PRESETS has swiss_modern", "swiss_modern" in te.TYPOGRAPHY_PRESETS)
 check("TYPOGRAPHY_PRESETS has academic_serif", "academic_serif" in te.TYPOGRAPHY_PRESETS)
 
+from planx_cartolab.core import qgis_25d_style as q25
+check("25D preset emerald_metropolis exists", "emerald_metropolis" in q25.STYLE_25D_PRESETS)
+check("25D preset terracotta_mediterranean exists", "terracotta_mediterranean" in q25.STYLE_25D_PRESETS)
+check("25D floor palette turbo_height exists", "turbo_height" in q25.FLOOR_BAND_PALETTES)
+check("25D floor palette viridis_height exists", "viridis_height" in q25.FLOOR_BAND_PALETTES)
+
 
 
 

@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.8.4] - 2026-08-14
+
+- Added Emerald Metropolis and Terracotta Mediterranean 2.5D presets, plus Turbo/Viridis height palettes
+
 ## [2.8.3] - 2026-08-14
 
 - Added PALETTE parameter, Maximum Breaks, and Pretty Breaks to Advanced Classification

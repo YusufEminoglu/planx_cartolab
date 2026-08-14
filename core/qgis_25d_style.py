@@ -79,6 +79,20 @@ STYLE_25D_PRESETS: Dict[str, dict] = {
         "shadow": "#212529",
         "shadow_spread": 3.5,
     },
+    "emerald_metropolis": {
+        "label": "Emerald Metropolis",
+        "roof": "#52b788",
+        "wall": "#1b4332",
+        "shadow": "#081c15",
+        "shadow_spread": 4.0,
+    },
+    "terracotta_mediterranean": {
+        "label": "Terracotta Mediterranean",
+        "roof": "#f4a261",
+        "wall": "#b34233",
+        "shadow": "#4a121a",
+        "shadow_spread": 3.5,
+    },
 }
 
 
@@ -113,6 +127,24 @@ FLOOR_BAND_PALETTES: Dict[str, dict] = {
             "#ffc8dd", "#ffafcc", "#ffd6a5", "#fdffb6",
             "#caffbf", "#9bf6ff", "#a0c4ff", "#bdb2ff",
             "#d8e2dc", "#ffe5d9", "#ffcad4", "#f4acb7",
+        ),
+    },
+    "turbo_height": {
+        "label": "Turbo Height Spectrum",
+        "colors": (
+            "#30123b", "#4662d8", "#35abf8", "#1ae4b6",
+            "#72fe5e", "#c8ef34", "#faba39", "#f66c19",
+            "#cb2a04", "#7a0403", "#5c015b", "#2a0845",
+            "#00b4d8", "#0077b6", "#023e8a", "#03045e",
+        ),
+    },
+    "viridis_height": {
+        "label": "Viridis Height Spectrum",
+        "colors": (
+            "#440154", "#482878", "#3e4989", "#31688e",
+            "#26828e", "#1f9e89", "#35b779", "#6ece58",
+            "#b5de2b", "#fde725", "#80ed99", "#38b000",
+            "#007200", "#004b23", "#132a13", "#001a00",
         ),
     },
 }
