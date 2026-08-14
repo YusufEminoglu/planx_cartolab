@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.6.3] - 2026-08-14
+
+- Unit suffix cleaning in safe_float/safe_int for real-world GIS/OSM data (e.g. '8 m', '15.2 sqm', '5 floors')
+
 ## [2.6.2] - 2026-08-14
 
 - Expanded Bivariate Choropleth classification algorithms (Quantile equal-count, Equal Interval, Geometric, Natural Breaks) and robust edge indexing
