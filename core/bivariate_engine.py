@@ -280,10 +280,23 @@ def bivariate_colour_matrix_hex(
     color_lh: str = "#5ab4ac",
     color_hl: str = "#d8b365",
     color_hh: str = "#8c510a",
+    preset: Optional[str] = None,
+    n_classes: Optional[int] = None,
 ) -> List[List[str]]:
     """
     Generate a size×size bivariate colour matrix returned as hexadecimal string codes.
+    Supports preset name and/or corner colors, and accepts either size or n_classes.
     """
+    if isinstance(size, str):
+        preset = size
+        size = n_classes or 3
+    elif n_classes is not None:
+        size = n_classes
+
+    if preset and preset in BIVARIATE_PALETTE_PRESETS:
+        p = BIVARIATE_PALETTE_PRESETS[preset]
+        color_ll, color_lh, color_hl, color_hh = p["ll"], p["lh"], p["hl"], p["hh"]
+
     mat = bivariate_colour_matrix(size, color_ll, color_lh, color_hl, color_hh)
     return [[c.name() for c in row] for row in mat]
 

@@ -617,7 +617,7 @@ class CartoLabDashboard(_QDialogBase):
         from ..core.bivariate_engine import bivariate_colour_matrix_hex
         preset_key = self.bivar_preset_combo.currentData() or "teal_brown"
         n = self.bivar_classes_spin.value()
-        matrix = bivariate_colour_matrix_hex(preset_key, n_classes=n)
+        matrix = bivariate_colour_matrix_hex(size=n, preset=preset_key)
 
         # Clear old items
         while self.bivar_matrix_layout.count():

@@ -229,6 +229,10 @@ check("BIVARIATE_PALETTE_PRESETS has teal_brown", "teal_brown" in be.BIVARIATE_P
 check("BIVARIATE_PALETTE_PRESETS has stevens_pink_cyan", "stevens_pink_cyan" in be.BIVARIATE_PALETTE_PRESETS)
 m_hex = be.bivariate_colour_matrix_hex(3, "#e8e8e8", "#5ab4ac", "#d8b365", "#8c510a")
 check("bivariate_colour_matrix_hex returns 3x3 hex strings", len(m_hex) == 3 and len(m_hex[0]) == 3 and m_hex[0][0].startswith("#"))
+m_hex_preset = be.bivariate_colour_matrix_hex(size=4, preset="teal_brown")
+check("bivariate_colour_matrix_hex with preset returns 4x4", len(m_hex_preset) == 4 and len(m_hex_preset[0]) == 4)
+m_hex_alias = be.bivariate_colour_matrix_hex("stevens_pink_cyan", n_classes=3)
+check("bivariate_colour_matrix_hex with positional preset and n_classes returns 3x3", len(m_hex_alias) == 3 and len(m_hex_alias[0]) == 3)
 
 # -- Value-by-Alpha --
 p_vals = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]

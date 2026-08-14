@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.8.8] - 2026-08-14
+
+- Fixed bivariate_colour_matrix_hex parameter signature and Dashboard preview matrix generation
+
 ## [2.8.7] - 2026-08-14
 
 - Added Left and Right Sidebar composition archetypes to Layout Optimizer
