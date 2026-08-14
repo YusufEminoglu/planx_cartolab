@@ -681,6 +681,41 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
     fl_iso.addRow(btn_apply_iso)
     lyt_exp.addWidget(gb_iso)
 
+    gb_atlas = QGroupBox("Map Book & Atlas Automation")
+    fl_atlas = QFormLayout(gb_atlas)
+
+    atlas_layer_combo = QComboBox()
+    if QgsProject and QgsProject.instance():
+        for lyr in QgsProject.instance().mapLayers().values():
+            if hasattr(lyr, "geometryType"):
+                atlas_layer_combo.addItem(lyr.name(), lyr)
+    fl_atlas.addRow("Coverage Layer:", atlas_layer_combo)
+
+    btn_setup_atlas = QPushButton("Configure Map Book Atlas (1-Click)")
+    btn_setup_atlas.setIcon(_get_cartolab_icon("layout.png"))
+
+    def _dock_setup_atlas():
+        layout = _get_designer_layout(designer)
+        if not layout:
+            return
+        cov_layer = atlas_layer_combo.currentData()
+        if not cov_layer:
+            QMessageBox.warning(parent_win, "Atlas Setup", "Select a coverage layer first.")
+            return
+        try:
+            from .atlas_builder import setup_layout_atlas
+            if setup_layout_atlas(layout, cov_layer):
+                if hasattr(iface, "messageBar"):
+                    iface.messageBar().pushSuccess("CartoLab", f"Map Book Atlas configured for '{cov_layer.name()}'.")
+            else:
+                QMessageBox.warning(parent_win, "Atlas Setup", "Could not configure atlas on layout.")
+        except Exception as exc:
+            QMessageBox.critical(parent_win, "Atlas Setup Error", str(exc))
+
+    btn_setup_atlas.clicked.connect(_dock_setup_atlas)
+    fl_atlas.addRow(btn_setup_atlas)
+    lyt_exp.addWidget(gb_atlas)
+
     gb_exp = QGroupBox("Quick Export")
     fl_exp = QFormLayout(gb_exp)
 

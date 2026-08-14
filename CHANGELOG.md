@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.5.8] - 2026-08-14
+
+- Astronomical Solar Lighting calculator for 2.5D extrusions, and 1-click Map Book Atlas automation engine
+
 ## [2.5.7] - 2026-08-14
 
 - WCAG 2.1 Color Accessibility and CVD simulation engine, and Layout Visual Balance and Margin Optimizer

@@ -1118,6 +1118,22 @@ class CartoLabDashboard(_QDialogBase):
         light_layout.addWidget(self.wall_shading25d_check, 2, 2, 1, 2)
         lyt.addWidget(light_group)
 
+        solar_group = self._make_group("Astronomical Sun & Shadow Calculator")
+        solar_layout = QGridLayout(solar_group)
+        solar_layout.addWidget(QLabel("Sun Time Preset:"), 0, 0)
+        self.solar_time_combo = QComboBox()
+        self.solar_time_combo.addItem("Afternoon Studio (15:00) — Classic High Contrast", "afternoon_studio")
+        self.solar_time_combo.addItem("Morning Crisp (09:00) — Low Morning Sun", "morning_crisp")
+        self.solar_time_combo.addItem("Midday Zenith (12:30) — Bright High Sun", "midday_zenith")
+        self.solar_time_combo.addItem("Golden Hour (17:30) — Dramatic Low Shadows", "golden_hour")
+        solar_layout.addWidget(self.solar_time_combo, 0, 1)
+
+        btn_calc_sun = QPushButton("Calculate & Apply Sun Angles")
+        btn_calc_sun.setIcon(_cartolab_icon("isometric.png"))
+        btn_calc_sun.clicked.connect(self._on_apply_sun_lighting)
+        solar_layout.addWidget(btn_calc_sun, 0, 2)
+        lyt.addWidget(solar_group)
+
         action_row = QHBoxLayout()
         apply_btn = QPushButton("Apply 2.5D Style")
         apply_btn.clicked.connect(self._on_apply_25d_style)
@@ -1653,6 +1669,19 @@ class CartoLabDashboard(_QDialogBase):
         except Exception as exc:
             summary = str(exc)
         self.style25d_status.setPlainText(summary)
+
+    def _on_apply_sun_lighting(self) -> None:
+        try:
+            from ..core.sun_lighting import solar_to_25d_lighting
+            preset = self.solar_time_combo.currentData() or "afternoon_studio"
+            res = solar_to_25d_lighting(latitude_deg=38.4, season="equinox", time_preset=preset)
+            self.angle25d_spin.setValue(res["solar_altitude_deg"])
+            self.shadow_spread25d_spin.setValue(res["shadow_length_mult"])
+            self._update_25d_status_preview()
+            if hasattr(self, "iface") and self.iface:
+                self.iface.messageBar().pushSuccess("CartoLab", f"Applied {res['description']}.")
+        except Exception as exc:
+            QMessageBox.critical(self, "Solar Calculation Error", str(exc))
 
     def _on_apply_25d_style(self) -> None:
         layer = self._selected_25d_layer()

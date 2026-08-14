@@ -769,6 +769,18 @@ check("CVD simulation returns valid hex", sim_d.startswith("#") and len(sim_d) =
 eval_res = ca.evaluate_palette_accessibility(["#ffffff", "#3b82f6", "#0f172a"])
 check("evaluate_palette_accessibility has rating", "rating" in eval_res and "min_step_contrast" in eval_res)
 
+section("Solar Position & 2.5D Architectural Lighting")
+from planx_cartolab.core import sun_lighting as sl
+alt, az = sl.calculate_solar_position(latitude_deg=38.4, day_of_year=172, solar_hour=12.5)
+check("solar altitude at noon is positive", alt > 60.0)
+check("solar azimuth is valid degree", 0.0 <= az <= 360.0)
+sun_res = sl.solar_to_25d_lighting(latitude_deg=38.4, season="summer_solstice", time_preset="afternoon_studio")
+check("solar_to_25d_lighting returns shadow multiplier", "shadow_length_mult" in sun_res and sun_res["shadow_length_mult"] > 0)
+
+from planx_cartolab.layout import atlas_builder as ab
+check("setup_layout_atlas function exists", callable(ab.setup_layout_atlas))
+
+
 
 
 
