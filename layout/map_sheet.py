@@ -13,30 +13,35 @@ from __future__ import annotations
 from contextlib import suppress
 from typing import List, Optional
 
-from qgis.PyQt.QtGui import QColor, QFont
-from qgis.PyQt.QtCore import QPointF
-from qgis.PyQt.QtGui import QPolygonF
-from qgis.core import (
-    QgsProject,
-    QgsPrintLayout,
-    QgsLayoutItemMap,
-    QgsLayoutItemLabel,
-    QgsLayoutItemLegend,
-    QgsLayoutItemScaleBar,
-    QgsLayoutItemPicture,
-    QgsLayoutItemPolygon,
-    QgsLayoutPoint,
-    QgsLayoutSize,
-    QgsLayoutMeasurement,
-    QgsUnitTypes,
-    QgsRectangle,
-    QgsFillSymbol,
-)
+try:
+    from qgis.PyQt.QtGui import QColor, QFont, QPolygonF
+    from qgis.PyQt.QtCore import QPointF
+    from qgis.core import (
+        QgsProject,
+        QgsPrintLayout,
+        QgsLayoutItemMap,
+        QgsLayoutItemLabel,
+        QgsLayoutItemLegend,
+        QgsLayoutItemScaleBar,
+        QgsLayoutItemPicture,
+        QgsLayoutItemPolygon,
+        QgsLayoutPoint,
+        QgsLayoutSize,
+        QgsLayoutMeasurement,
+        QgsUnitTypes,
+        QgsRectangle,
+        QgsFillSymbol,
+    )
+    _MM = QgsUnitTypes.LayoutUnit.LayoutMillimeters
+except ImportError:
+    QColor = QFont = QPolygonF = QPointF = None
+    QgsProject = QgsPrintLayout = QgsLayoutItemMap = QgsLayoutItemLabel = QgsLayoutItemLegend = None
+    QgsLayoutItemScaleBar = QgsLayoutItemPicture = QgsLayoutItemPolygon = QgsLayoutPoint = QgsLayoutSize = None
+    _MM = 0
 
 from ..core.layout_math import page_size_mm
 from .layout_utils import unique_layout_name, north_arrow_svg_path
 
-_MM = QgsUnitTypes.LayoutUnit.LayoutMillimeters
 # A real font fallback chain — QFont("A, B") treats the whole string as one
 # family name and matches nothing, so use setFamilies() for a true cascade.
 _FONT_FAMILIES = ["Inter", "Segoe UI", "Arial", "sans-serif"]
@@ -101,15 +106,16 @@ def create_map_sheet(
     add_north_arrow: bool = True,
     add_grid: bool = False,
     add_frame: bool = True,
+    preset: str = "swiss_modern",
     layout_name: str = "CartoLab Map Sheet",
     project: Optional[QgsProject] = None,
 ) -> QgsPrintLayout:
     """
-    Build and register a finished map sheet.
+    Build and register a finished publication-ready map sheet.
 
     Every element is optional via the ``add_*`` switches. Inputs left as
-    ``None`` are resolved from ``iface`` (canvas layers / extent / CRS) so a
-    caller can pass just ``iface`` and get a sensible sheet.
+    ``None`` are resolved from ``iface`` (canvas layers / extent / CRS).
+    Supports typography and styling presets ('swiss_modern', 'academic_serif', 'technical_blueprint', 'editorial_warm').
 
     Returns the :class:`QgsPrintLayout`, already added to the project's
     layout manager.
@@ -168,16 +174,24 @@ def create_map_sheet(
 
     if add_grid:
         with suppress(Exception):
-            from .grid_styler import apply_minimalist_grid
-            apply_minimalist_grid(layout, map_id="cartolab_map")
+            from .coordinate_grid import apply_coordinate_grid_decorator
+            apply_coordinate_grid_decorator(
+                layout,
+                map_item=map_item,
+                target_divisions_x=6,
+                target_divisions_y=5,
+                grid_style="Solid",
+                frame_style="Zebra",
+                show_annotations=True,
+            )
 
     # --- title / subtitle ------------------------------------------------
     if add_title:
         text = title or project.title() or "Map"
         label = QgsLayoutItemLabel(layout)
         label.setText(text)
-        label.setFont(_font(22, bold=True))
-        label.setFontColor(QColor("#1b2733"))
+        label.setFont(_font(20, bold=True))
+        label.setFontColor(QColor("#0f172a"))
         label.attemptMove(QgsLayoutPoint(margin, margin, _MM))
         label.attemptResize(QgsLayoutSize(page_w - 2 * margin, 10.0, _MM))
         layout.addLayoutItem(label)
@@ -185,8 +199,8 @@ def create_map_sheet(
         if subtitle:
             sub = QgsLayoutItemLabel(layout)
             sub.setText(subtitle)
-            sub.setFont(_font(11))
-            sub.setFontColor(QColor("#5a6b78"))
+            sub.setFont(_font(10))
+            sub.setFontColor(QColor("#475569"))
             sub.attemptMove(QgsLayoutPoint(margin, margin + 9.0, _MM))
             sub.attemptResize(QgsLayoutSize(page_w - 2 * margin, 6.0, _MM))
             layout.addLayoutItem(sub)
@@ -208,7 +222,7 @@ def create_map_sheet(
         bar = QgsLayoutItemScaleBar(layout)
         bar.setLinkedMap(map_item)
         bar.applyDefaultSettings()
-        bar.setStyle("Single Box")
+        bar.setStyle("Line Ticks Up" if preset == "swiss_modern" else "Single Box")
         bar.applyDefaultSize()
         bar.attemptMove(
             QgsLayoutPoint(map_x, map_y + map_h + gap, _MM)
@@ -224,12 +238,18 @@ def create_map_sheet(
         cred = QgsLayoutItemLabel(layout)
         cred.setText(credits)
         cred.setFont(_font(8))
-        cred.setFontColor(QColor("#7a8a97"))
+        cred.setFontColor(QColor("#64748b"))
         cred.attemptResize(QgsLayoutSize(map_w * 0.6, bottom_h, _MM))
         cred.attemptMove(
             QgsLayoutPoint(map_x + map_w * 0.4, map_y + map_h + gap, _MM)
         )
         layout.addLayoutItem(cred)
+
+    # Apply typography hierarchy preset if specified
+    if preset:
+        with suppress(Exception):
+            from .typography_engine import apply_typography_hierarchy
+            apply_typography_hierarchy(layout, preset=preset)
 
     project.layoutManager().addLayout(layout)
     layout.refresh()

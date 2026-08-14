@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.6.7] - 2026-08-14
+
+- Integrated Typography Presets, Coordinate Grid, and Clean Line Ticks into Auto Map Sheet Generator
+
 ## [2.6.6] - 2026-08-14
 
 - Added PALETTE_PRESET selector directly into Bivariate Choropleth Processing Algorithm

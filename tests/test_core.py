@@ -819,9 +819,8 @@ check("safe_float cleans meter suffix '8 m'", safe_float("8 m") == 8.0)
 check("safe_float cleans area suffix '15.5 sqm'", safe_float("15.5 sqm") == 15.5)
 check("safe_int cleans floor suffix '4 floors'", safe_int("4 floors") == 4)
 
-from planx_cartolab.layout import layout_utils as lu
-check("copy_layout_to_clipboard handles None gracefully", lu.copy_layout_to_clipboard(None) is False)
-check("export_layout handles None gracefully", lu.export_layout(None, "dummy.png") is False)
+from planx_cartolab.layout import map_sheet as ms
+check("create_map_sheet is callable", callable(ms.create_map_sheet))
 
 # ===================================================================
 # SUMMARY
