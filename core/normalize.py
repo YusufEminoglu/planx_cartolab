@@ -22,6 +22,9 @@ METHODS = [
     ("Min-max to 0-1", "minmax"),
     ("Percentile rank (0-100)", "percentile"),
     ("Log (base 10)", "log"),
+    ("Location Quotient (Specialisation Index)", "lq"),
+    ("Winsorized Min-Max (5th-95th percentile clamp)", "winsorized"),
+    ("Decile rank (1-10)", "decile"),
 ]
 
 
@@ -143,4 +146,82 @@ def rate(numerators, denominators, scale: float = 1.0) -> List[Optional[float]]:
             out.append(None)
         else:
             out.append(fn / fd * scale)
+    return out
+
+
+def location_quotient(numerators, denominators) -> List[Optional[float]]:
+    """
+    Calculate Location Quotient (LQ) / Specialisation Index:
+    LQ_i = (num_i / den_i) / (total_num / total_den)
+    """
+    cleaned_pairs = []
+    for num, den in zip(numerators, denominators):
+        fn = safe_float(num)
+        fd = safe_float(den)
+        if fn is not None and fd is not None and fd > 0:
+            cleaned_pairs.append((fn, fd))
+
+    if not cleaned_pairs:
+        return [None for _ in numerators]
+
+    total_num = sum(p[0] for p in cleaned_pairs)
+    total_den = sum(p[1] for p in cleaned_pairs)
+
+    if total_num <= 0 or total_den <= 0:
+        return [None for _ in numerators]
+
+    base_rate = total_num / total_den
+    out: List[Optional[float]] = []
+    for num, den in zip(numerators, denominators):
+        fn = safe_float(num)
+        fd = safe_float(den)
+        if fn is None or fd is None or fd == 0.0:
+            out.append(None)
+        else:
+            local_rate = fn / fd
+            out.append(round(local_rate / base_rate, 4))
+    return out
+
+
+def winsorized_min_max(values, lower_pct: float = 5.0, upper_pct: float = 95.0, lo: float = 0.0, hi: float = 1.0) -> List[Optional[float]]:
+    """
+    Winsorize outliers at lower and upper percentiles, then apply min-max scaling.
+    """
+    c = sorted(_clean(values))
+    if not c:
+        return [None for _ in values]
+    n = len(c)
+    idx_lo = int(math.floor(lower_pct / 100.0 * (n - 1)))
+    idx_hi = int(math.ceil(upper_pct / 100.0 * (n - 1)))
+    v_lo = c[max(0, min(idx_lo, n - 1))]
+    v_hi = c[max(0, min(idx_hi, n - 1))]
+
+    if v_hi == v_lo:
+        return [lo if _finite(v) else None for v in values]
+
+    span = v_hi - v_lo
+    out: List[Optional[float]] = []
+    for v in values:
+        fv = safe_float(v)
+        if fv is None:
+            out.append(None)
+        else:
+            clamped = max(v_lo, min(fv, v_hi))
+            scaled = lo + (clamped - v_lo) / span * (hi - lo)
+            out.append(round(scaled, 4))
+    return out
+
+
+def decile_rank(values) -> List[Optional[int]]:
+    """
+    Convert numerical distribution into decile ranks (integers 1 to 10).
+    """
+    ranks = percentile_rank(values)
+    out: List[Optional[int]] = []
+    for r in ranks:
+        if r is None:
+            out.append(None)
+        else:
+            dec = int(math.ceil(r / 10.0))
+            out.append(max(1, min(10, dec)))
     return out

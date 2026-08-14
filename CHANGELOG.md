@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.7.6] - 2026-08-14
+
+- Added Location Quotient (LQ), Winsorized Outlier-Trim, and Decile Rank Normalization
+
 ## [2.7.5] - 2026-08-14
 
 - Added Principal Inertia Orientation Angle (lbl_angle) to Visual-Center Label Points

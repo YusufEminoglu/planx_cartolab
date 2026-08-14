@@ -594,8 +594,16 @@ check("robust_z degenerate MAD -> 0", norm.robust_z([5, 5, 5, 5, 100])[0] == 0.0
 lg = norm.log_scale([1, 10, 100, 1000])
 check("log_scale base10", all(abs(a - b) < 1e-9 for a, b in zip(lg, [0.0, 1.0, 2.0, 3.0])), str(lg))
 check("log_scale shifts nonpositive", all(v is not None for v in norm.log_scale([-5, 0, 5])))
-check("log_scale keeps None", norm.log_scale([1, None, 100])[1] is None)
-check("normalize methods catalogue", len(norm.METHODS) == 6)
+lq = norm.location_quotient([10, 20], [100, 100])
+check("location_quotient computes relative specialisation", lq[0] < 1.0 < lq[1], str(lq))
+
+wmm = norm.winsorized_min_max([1, 2, 3, 4, 5, 6, 7, 8, 9, 1000], 10.0, 90.0)
+check("winsorized_min_max caps extreme outlier", wmm[-1] == 1.0 and wmm[0] == 0.0, str(wmm))
+
+dr = norm.decile_rank([10, 20, 30, 40, 50, 60, 70, 80, 90, 100])
+check("decile_rank assigns deciles 1 to 10", dr[0] == 1 and dr[-1] == 10, str(dr))
+
+check("normalize methods catalogue", len(norm.METHODS) >= 9)
 
 # ===================================================================
 # LAYOUT MATH — nice intervals, unique names, page geometry

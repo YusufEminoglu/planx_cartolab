@@ -81,9 +81,9 @@ class NormalizeFieldAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         denom_field = self.parameterAsString(parameters, self.DENOMINATOR, context)
         scale = self.parameterAsDouble(parameters, self.SCALE, context)
 
-        if method == "rate" and not denom_field:
+        if method in ("rate", "lq") and not denom_field:
             raise QgsProcessingException(
-                "The Rate method needs a denominator field (e.g. population).")
+                f"The {method.upper()} method needs a denominator field (e.g. total population / employment).")
 
         features_raw = list(source.getFeatures())
         numerators = [f[field_name] for f in features_raw]
@@ -91,14 +91,21 @@ class NormalizeFieldAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         if method == "rate":
             denominators = [f[denom_field] for f in features_raw]
             norm = nm.rate(numerators, denominators, scale)
+        elif method == "lq":
+            denominators = [f[denom_field] for f in features_raw]
+            norm = nm.location_quotient(numerators, denominators)
         elif method == "zscore":
             norm = nm.z_scores(numerators)
         elif method == "robust_z":
             norm = nm.robust_z(numerators)
         elif method == "minmax":
             norm = nm.min_max(numerators)
+        elif method == "winsorized":
+            norm = nm.winsorized_min_max(numerators, lower_pct=5.0, upper_pct=95.0)
         elif method == "percentile":
             norm = nm.percentile_rank(numerators)
+        elif method == "decile":
+            norm = nm.decile_rank(numerators)
         elif method == "log":
             norm = nm.log_scale(numerators)
         else:
