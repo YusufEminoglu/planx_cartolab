@@ -93,11 +93,22 @@ class BivariateChoroplethAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
     COLOR_HH = "COLOR_HH"
     OUTPUT = "OUTPUT"
 
+    PALETTE_PRESET = "PALETTE_PRESET"
+
     METHODS = [
         ("Quantile (Equal Count - Recommended)", "quantile"),
         ("Geometric Interval", "geometric"),
         ("Fisher-Jenks Natural Breaks", "fisher_jenks"),
         ("Equal Interval", "equal"),
+    ]
+
+    PRESETS = [
+        ("Teal - Brown (Environment & Resilience)", "teal_brown"),
+        ("Stevens Pink - Cyan (Demographics & Social)", "stevens_pink_cyan"),
+        ("Blue - Orange (Density & Economy)", "blue_orange"),
+        ("Purple - Green (Land Use & Canopy)", "purple_green"),
+        ("Night Neon (Dark Theme Visuals)", "night_neon"),
+        ("Custom Corner Colours", "custom"),
     ]
 
     def name(self) -> str:
@@ -119,6 +130,8 @@ class BivariateChoroplethAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         return (
             "Creates a 2D Bivariate Choropleth thematic map classifying two numeric fields "
             "simultaneously into an NxN colour matrix (2x2, 3x3, or 4x4).\n\n"
+            "Supports 5 curated cartographic palette presets (Stevens Pink-Cyan, Teal-Brown, "
+            "Blue-Orange, Purple-Green, Night Neon) or custom corner colours.\n\n"
             "Outputs an automatically styled layer with high-quality translucent outlines "
             "and human-readable class descriptions (e.g. Low-Low, High-High)."
         )
@@ -159,26 +172,33 @@ class BivariateChoroplethAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
             )
         )
         self.addParameter(
+            QgsProcessingParameterEnum(
+                self.PALETTE_PRESET, "Colour Palette Preset",
+                options=[p[0] for p in self.PRESETS],
+                defaultValue=0,
+            )
+        )
+        self.addParameter(
             QgsProcessingParameterColor(
-                self.COLOR_LL, "Bottom-Left colour (Low X, Low Y)",
+                self.COLOR_LL, "Bottom-Left colour (Low X, Low Y) [if Custom]",
                 defaultValue=QColor("#e8e8e8"),
             )
         )
         self.addParameter(
             QgsProcessingParameterColor(
-                self.COLOR_LH, "Top-Left colour (Low X, High Y)",
+                self.COLOR_LH, "Top-Left colour (Low X, High Y) [if Custom]",
                 defaultValue=QColor("#5ab4ac"),
             )
         )
         self.addParameter(
             QgsProcessingParameterColor(
-                self.COLOR_HL, "Bottom-Right colour (High X, Low Y)",
+                self.COLOR_HL, "Bottom-Right colour (High X, Low Y) [if Custom]",
                 defaultValue=QColor("#d8b365"),
             )
         )
         self.addParameter(
             QgsProcessingParameterColor(
-                self.COLOR_HH, "Top-Right colour (High X, High Y)",
+                self.COLOR_HH, "Top-Right colour (High X, High Y) [if Custom]",
                 defaultValue=QColor("#8c510a"),
             )
         )
@@ -198,16 +218,27 @@ class BivariateChoroplethAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         n_classes = self.parameterAsInt(parameters, self.CLASSES, context)
         method_idx = self.parameterAsEnum(parameters, self.METHOD, context)
         method = self.METHODS[method_idx][1]
+        preset_idx = self.parameterAsEnum(parameters, self.PALETTE_PRESET, context)
+        preset_key = self.PRESETS[preset_idx][1]
 
-        c_ll = self.parameterAsColor(parameters, self.COLOR_LL, context)
-        c_lh = self.parameterAsColor(parameters, self.COLOR_LH, context)
-        c_hl = self.parameterAsColor(parameters, self.COLOR_HL, context)
-        c_hh = self.parameterAsColor(parameters, self.COLOR_HH, context)
+        from ..core.bivariate_engine import BIVARIATE_PALETTE_PRESETS
 
-        color_ll = c_ll.name() if hasattr(c_ll, "name") else str(c_ll)
-        color_lh = c_lh.name() if hasattr(c_lh, "name") else str(c_lh)
-        color_hl = c_hl.name() if hasattr(c_hl, "name") else str(c_hl)
-        color_hh = c_hh.name() if hasattr(c_hh, "name") else str(c_hh)
+        if preset_key != "custom" and preset_key in BIVARIATE_PALETTE_PRESETS:
+            p_info = BIVARIATE_PALETTE_PRESETS[preset_key]
+            color_ll = p_info["ll"]
+            color_lh = p_info["lh"]
+            color_hl = p_info["hl"]
+            color_hh = p_info["hh"]
+        else:
+            c_ll = self.parameterAsColor(parameters, self.COLOR_LL, context)
+            c_lh = self.parameterAsColor(parameters, self.COLOR_LH, context)
+            c_hl = self.parameterAsColor(parameters, self.COLOR_HL, context)
+            c_hh = self.parameterAsColor(parameters, self.COLOR_HH, context)
+
+            color_ll = c_ll.name() if hasattr(c_ll, "name") else str(c_ll)
+            color_lh = c_lh.name() if hasattr(c_lh, "name") else str(c_lh)
+            color_hl = c_hl.name() if hasattr(c_hl, "name") else str(c_hl)
+            color_hh = c_hh.name() if hasattr(c_hh, "name") else str(c_hh)
 
         # collect paired values
         x_vals, y_vals = [], []

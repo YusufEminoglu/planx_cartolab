@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.6.6] - 2026-08-14
+
+- Added PALETTE_PRESET selector directly into Bivariate Choropleth Processing Algorithm
+
 ## [2.6.5] - 2026-08-14
 
 - Added curated Bivariate Palette Presets (Stevens Cyan-Pink, Teal-Brown, Blue-Orange, Purple-Green, Night Neon) and Hex Matrix Generator
