@@ -1,5 +1,9 @@
 # Changelog - PlanX CartoLab
 
+## [2.7.1] - 2026-08-14
+
+- Enhanced Locator Inset Map decorator with smart corner docking, extent overview styling, and header tags
+
 ## [2.7.0] - 2026-08-14
 
 - Added Interactive Bivariate Studio with Live Matrix Preview and 1-Click Execution to CartoLab Dashboard

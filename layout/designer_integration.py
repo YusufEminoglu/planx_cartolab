@@ -508,6 +508,25 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
     btn_dock_north.clicked.connect(_dock_north)
     fl_elem.addRow(btn_dock_north)
 
+    btn_dock_locator = QPushButton("Add Overview Locator Inset Map")
+    btn_dock_locator.setObjectName("ghost")
+    btn_dock_locator.setIcon(_get_cartolab_icon("layout.png"))
+
+    def _dock_locator():
+        layout = _get_designer_layout(designer)
+        if not layout:
+            return
+        try:
+            from .locator_map import add_locator_inset_map
+            add_locator_inset_map(layout)
+            if hasattr(iface, "messageBar"):
+                iface.messageBar().pushSuccess("CartoLab", "Overview locator inset map frame added.")
+        except Exception as exc:
+            QMessageBox.critical(parent_win, "Locator Map Error", str(exc))
+
+    btn_dock_locator.clicked.connect(_dock_locator)
+    fl_elem.addRow(btn_dock_locator)
+
     btn_dock_legend_style = QPushButton("Style Legend (Clean Publication)")
     btn_dock_legend_style.setIcon(_get_cartolab_icon("style.png"))
 

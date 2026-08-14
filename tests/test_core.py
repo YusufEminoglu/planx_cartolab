@@ -835,6 +835,9 @@ check("safe_int cleans floor suffix '4 floors'", safe_int("4 floors") == 4)
 from planx_cartolab.layout import map_sheet as ms
 check("create_map_sheet is callable", callable(ms.create_map_sheet))
 
+from planx_cartolab.layout import locator_map as lm
+check("add_locator_inset_map is callable", callable(lm.add_locator_inset_map))
+
 # ===================================================================
 # SUMMARY
 # ===================================================================
