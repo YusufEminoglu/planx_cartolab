@@ -2,6 +2,8 @@
 """Choropleth Normalization & Rates — Processing algorithm."""
 from __future__ import annotations
 
+from contextlib import suppress
+
 from qgis.core import (
     QgsFeature, QgsFeatureSink, QgsField, QgsFields, QgsGraduatedSymbolRenderer,
     QgsProcessing, QgsProcessingAlgorithm, QgsProcessingException,
@@ -13,6 +15,7 @@ from qgis.PyQt.QtCore import QVariant
 from qgis.PyQt.QtGui import QColor
 
 from ..core import normalize as nm
+from ..core import palettes as pal
 from ._help_mixin import CartoLabHelpMixin
 
 
@@ -23,6 +26,8 @@ class NormalizeFieldAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
     METHOD = "METHOD"
     DENOMINATOR = "DENOMINATOR"
     SCALE = "SCALE"
+    PALETTE = "PALETTE"
+    CLASSES = "CLASSES"
     OUTPUT = "OUTPUT"
 
     def name(self) -> str:
@@ -46,12 +51,12 @@ class NormalizeFieldAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
             "classification. Mapping a raw count as colour is the classic error "
             "(it just redraws population); normalise first.\n\n"
             "  - Rate: numerator / denominator x scale (e.g. cases per 100k)\n"
-            "  - Z-score / Robust z (median-MAD): standardise for comparison\n"
-            "  - Min-max: rescale to 0-1\n"
-            "  - Percentile rank: 0-100 position in the distribution\n"
-            "  - Log (base 10): tame heavy right tails\n\n"
-            "Writes a 'norm_value' field and a 'norm_method' tag, and graduates "
-            "the output on the new value."
+            "  - Location Quotient (LQ): specialisation index relative to benchmark base\n"
+            "  - Z-score / Robust z (median-MAD) / Robust IQR (median-IQR): standardise for comparison\n"
+            "  - Min-max / Winsorized min-max: rescale to 0-1 with optional outlier clamping\n"
+            "  - Percentile / Decile rank / Tukey Hinge: distribution position and box-plot binning\n"
+            "  - Log / Sigmoid / Power (Box-Cox): tame heavy right tails and stabilize variance\n\n"
+            "Writes 'norm_value' and 'norm_method' fields, and graduates the output layer automatically."
         )
 
     def initAlgorithm(self, config=None):
@@ -63,12 +68,18 @@ class NormalizeFieldAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterEnum(
             self.METHOD, "Method", options=[m[0] for m in nm.METHODS], defaultValue=0))
         self.addParameter(QgsProcessingParameterField(
-            self.DENOMINATOR, "Denominator field (Rate only)",
+            self.DENOMINATOR, "Denominator field (Rate / LQ only)",
             parentLayerParameterName=self.INPUT,
             type=QgsProcessingParameterField.DataType.Numeric, optional=True))
         self.addParameter(QgsProcessingParameterNumber(
             self.SCALE, "Rate scale (e.g. 1000, 100000)",
             type=QgsProcessingParameterNumber.Type.Double, defaultValue=1.0, minValue=1e-12))
+        self.addParameter(QgsProcessingParameterEnum(
+            self.PALETTE, "Color ramp for output styling",
+            options=pal.ordered_names(), defaultValue=0))
+        self.addParameter(QgsProcessingParameterNumber(
+            self.CLASSES, "Number of classes for graduated style",
+            type=QgsProcessingParameterNumber.Type.Integer, defaultValue=5, minValue=2, maxValue=20))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUTPUT, "Normalized output"))
 
@@ -77,9 +88,14 @@ class NormalizeFieldAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         if source is None:
             raise QgsProcessingException(self.invalidSourceError(parameters, self.INPUT))
         field_name = self.parameterAsString(parameters, self.FIELD, context)
-        method = nm.METHODS[self.parameterAsEnum(parameters, self.METHOD, context)][1]
+        method_idx = self.parameterAsEnum(parameters, self.METHOD, context)
+        method = nm.METHODS[method_idx][1] if 0 <= method_idx < len(nm.METHODS) else "rate"
         denom_field = self.parameterAsString(parameters, self.DENOMINATOR, context)
         scale = self.parameterAsDouble(parameters, self.SCALE, context)
+        palette_names = pal.ordered_names()
+        pal_idx = self.parameterAsEnum(parameters, self.PALETTE, context) if self.PALETTE in parameters else 0
+        pal_name = palette_names[pal_idx] if 0 <= pal_idx < len(palette_names) else "Viridis"
+        n_classes = self.parameterAsInt(parameters, self.CLASSES, context) if self.CLASSES in parameters else 5
 
         if method in ("rate", "lq") and not denom_field:
             raise QgsProcessingException(
@@ -98,6 +114,8 @@ class NormalizeFieldAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
             norm = nm.z_scores(numerators)
         elif method == "robust_z":
             norm = nm.robust_z(numerators)
+        elif method == "robust_iqr":
+            norm = nm.robust_iqr(numerators)
         elif method == "minmax":
             norm = nm.min_max(numerators)
         elif method == "winsorized":
@@ -106,6 +124,14 @@ class NormalizeFieldAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
             norm = nm.percentile_rank(numerators)
         elif method == "decile":
             norm = nm.decile_rank(numerators)
+        elif method == "tukey_hinge":
+            norm = nm.tukey_hinge_rank(numerators)
+        elif method == "sigmoid":
+            norm = nm.sigmoid_scale(numerators)
+        elif method == "power":
+            norm = nm.power_transform(numerators)
+        elif method == "quantile_norm":
+            norm = nm.quantile_normalize(numerators)
         elif method == "log":
             norm = nm.log_scale(numerators)
         else:
@@ -145,22 +171,17 @@ class NormalizeFieldAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
             f"{n_null} left null (missing / zero denominator)."
         )
 
-        try:
+        with suppress(Exception):
             out_layer = context.getMapLayer(dest_id)
             if out_layer and valid_values:
-                _apply_graduated(out_layer, "norm_value", min(valid_values), max(valid_values))
-        except Exception as exc:
-            feedback.pushInfo(f"Normalize renderer styling skipped (cosmetic): {exc}")
+                _apply_graduated(out_layer, "norm_value", min(valid_values), max(valid_values), pal_name, n_classes)
 
         return {self.OUTPUT: dest_id}
 
 
-def _apply_graduated(layer, field, vmin, vmax):
+def _apply_graduated(layer, field, vmin, vmax, pal_name="Viridis", n_classes=5):
     from qgis.core import QgsClassificationCustom
-    colours = [
-        QColor("#fde725"), QColor("#5ec962"), QColor("#21918c"),
-        QColor("#3b528b"), QColor("#440154"),
-    ]
+    colours = pal.get_palette(pal_name, n_classes)
     n = len(colours)
     span = (vmax - vmin) or 1.0
     ranges = []
@@ -168,10 +189,13 @@ def _apply_graduated(layer, field, vmin, vmax):
         lo = vmin + span * i / n
         hi = vmin + span * (i + 1) / n
         sym = QgsSymbol.defaultSymbol(layer.geometryType())
-        sym.setColor(colours[i])
-        sym.setOpacity(0.9)
-        ranges.append(QgsRendererRange(lo, hi, sym, f"{lo:.3f} – {hi:.3f}"))
-    renderer = QgsGraduatedSymbolRenderer(field, ranges)
-    renderer.setClassificationMethod(QgsClassificationCustom())
-    layer.setRenderer(renderer)
-    layer.triggerRepaint()
+        if sym:
+            sym.setColor(QColor(colours[i]))
+            sym.setOpacity(0.9)
+            ranges.append(QgsRendererRange(lo, hi, sym, f"{lo:.3f} – {hi:.3f}"))
+    if ranges:
+        renderer = QgsGraduatedSymbolRenderer(field, ranges)
+        renderer.setClassificationMethod(QgsClassificationCustom())
+        layer.setRenderer(renderer)
+        layer.triggerRepaint()
+

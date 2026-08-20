@@ -19,38 +19,74 @@ except ImportError:
 TYPOGRAPHY_PRESETS: Dict[str, Dict[str, any]] = {
     "swiss_modern": {
         "name": "Swiss Modernism",
-        "title_family": "Inter, Segoe UI, Arial, sans-serif",
-        "body_family": "Inter, Segoe UI, Arial, sans-serif",
-        "mono_family": "IBM Plex Mono, Consolas, monospace",
+        "title_family": "Segoe UI, Arial, Helvetica, sans-serif",
+        "body_family": "Segoe UI, Arial, Helvetica, sans-serif",
+        "mono_family": "Consolas, Courier New, monospace",
         "title_color": "#0f172a",
         "body_color": "#334155",
         "subtitle_color": "#64748b",
     },
+    "dark_matter": {
+        "name": "Dark Matter Obsidian",
+        "title_family": "Segoe UI, Arial, Helvetica, sans-serif",
+        "body_family": "Segoe UI, Arial, Helvetica, sans-serif",
+        "mono_family": "Consolas, Courier New, monospace",
+        "title_color": "#ffffff",
+        "body_color": "#f8fafc",
+        "subtitle_color": "#94a3b8",
+    },
+    "blueprint": {
+        "name": "Technical Blueprint",
+        "title_family": "Consolas, Segoe UI, monospace",
+        "body_family": "Segoe UI, Arial, sans-serif",
+        "mono_family": "Consolas, monospace",
+        "title_color": "#ffffff",
+        "body_color": "#e0f2fe",
+        "subtitle_color": "#38bdf8",
+    },
     "academic_serif": {
         "name": "Academic Journal",
-        "title_family": "Merriweather, Georgia, Times New Roman, serif",
+        "title_family": "Georgia, Times New Roman, serif",
         "body_family": "Georgia, Times New Roman, serif",
-        "mono_family": "Courier New, monospace",
+        "mono_family": "Consolas, Courier New, monospace",
         "title_color": "#1e293b",
         "body_color": "#334155",
         "subtitle_color": "#475569",
     },
     "technical_blueprint": {
         "name": "Technical Blueprint",
-        "title_family": "IBM Plex Mono, Consolas, Roboto Mono, monospace",
-        "body_family": "IBM Plex Mono, Consolas, monospace",
+        "title_family": "Consolas, Courier New, monospace",
+        "body_family": "Consolas, Courier New, monospace",
         "mono_family": "Consolas, monospace",
-        "title_color": "#0f766e",
-        "body_color": "#134e4a",
-        "subtitle_color": "#0d9488",
+        "title_color": "#ffffff",
+        "body_color": "#e0f2fe",
+        "subtitle_color": "#38bdf8",
     },
     "warm_editorial": {
         "name": "Warm Editorial",
-        "title_family": "Palatino, Georgia, serif",
-        "body_family": "Palatino Linotype, Georgia, serif",
+        "title_family": "Georgia, Palatino Linotype, serif",
+        "body_family": "Georgia, Palatino Linotype, serif",
         "mono_family": "Consolas, monospace",
         "title_color": "#292524",
         "body_color": "#44403c",
+        "subtitle_color": "#78716c",
+    },
+    "sepia_atlas": {
+        "name": "Vintage Sepia Atlas",
+        "title_family": "Georgia, Times New Roman, serif",
+        "body_family": "Georgia, Times New Roman, serif",
+        "mono_family": "Consolas, monospace",
+        "title_color": "#3d2612",
+        "body_color": "#573a23",
+        "subtitle_color": "#785338",
+    },
+    "japanese_washi": {
+        "name": "Japanese Washi Minimal",
+        "title_family": "Segoe UI, Arial, sans-serif",
+        "body_family": "Segoe UI, Arial, sans-serif",
+        "mono_family": "Consolas, monospace",
+        "title_color": "#1c1917",
+        "body_color": "#292524",
         "subtitle_color": "#78716c",
     },
 }
@@ -79,34 +115,38 @@ def apply_typography_hierarchy(layout: QgsLayout, preset: str = "swiss_modern") 
         item_id_lower = (item.id() or "").lower()
         text_lower = (item.text() or "").lower()
 
+        # Preserve intentional light/accent colors on dark banners or cards
+        curr_col = item.fontColor() if hasattr(item, "fontColor") else None
+        is_light_text = curr_col is not None and (curr_col.lightness() > 170 or curr_col.name().lower() in ("#ffffff", "#f8fafc", "#38bdf8", "#94a3b8", "#cbd5e1", "#e0f2fe", "#2563eb", "#16a34a", "#dc2626"))
+
         if "mono" in item_id_lower or "code" in item_id_lower:
             font.setFamily(mono_fam)
             font.setPointSize(max(8, font.pointSize()))
             if hasattr(QFont, "Weight"):
                 font.setWeight(QFont.Weight.Normal)
-            if body_col:
+            if body_col and not is_light_text:
                 item.setFontColor(body_col)
-        elif font.pointSize() >= 16 or "title" in item_id_lower:
+        elif font.pointSize() >= 14 or "title" in item_id_lower:
             font.setFamily(title_fam)
             if hasattr(QFont, "Weight"):
                 font.setWeight(QFont.Weight.Bold)
-            if title_col:
+            if title_col and not is_light_text:
                 item.setFontColor(title_col)
         elif "subtitle" in item_id_lower or "source" in text_lower or font.pointSize() <= 9:
             font.setFamily(body_fam)
             if hasattr(QFont, "Weight"):
                 font.setWeight(QFont.Weight.Normal)
-            if sub_col:
+            if sub_col and not is_light_text:
                 item.setFontColor(sub_col)
         else:
             font.setFamily(body_fam)
             if hasattr(QFont, "Weight"):
                 font.setWeight(QFont.Weight.Normal)
-            if body_col:
+            if body_col and not is_light_text:
                 item.setFontColor(body_col)
 
         item.setFont(font)
-        item.adjustSizeToText()
+        item.setBackgroundEnabled(False)
 
     layout.refresh()
     return True

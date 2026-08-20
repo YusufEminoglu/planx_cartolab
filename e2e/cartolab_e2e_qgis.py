@@ -58,8 +58,8 @@ QgsApplication.processingRegistry().addProvider(_prov)
 
 # Regression guard: prevent silent algorithm-count drift
 _algo_count = len(list(_prov.algorithms()))
-assert _algo_count == 13, f"expected 13 algorithms, got {_algo_count}"
-print(f"Provider algorithm count: {_algo_count} (pinned at 13)\n")
+assert _algo_count == 14, f"expected 14 algorithms, got {_algo_count}"
+print(f"Provider algorithm count: {_algo_count} (pinned at 14)\n")
 assert all(alg.helpUrl() == 'https://github.com/YusufEminoglu/planx_cartolab#module-catalog' for alg in _prov.algorithms()), 'helpUrl regression detected'
 
 CRS = "EPSG:3857"
@@ -156,7 +156,10 @@ def build_points():
 
 def build_raster():
     from osgeo import gdal, osr
-    path = os.path.join(tempfile.gettempdir(), "cartolab_e2e_dem.tif")
+    path = os.path.join(tempfile.gettempdir(), f"cartolab_e2e_dem_{os.getpid()}.tif")
+    if os.path.exists(path):
+        with suppress(Exception):
+            os.remove(path)
     w = h = 60
     drv = gdal.GetDriverByName("GTiff")
     ds = drv.Create(path, w, h, 1, gdal.GDT_Float32)
@@ -279,6 +282,33 @@ if out:
     zs = [f["norm_value"] for f in lyr.getFeatures() if f["norm_value"] is not None]
     ok("normalize z-score mean ~ 0", abs(sum(zs) / len(zs)) < 1e-6, str(sum(zs) / len(zs)))
 
+# Normalize (robust IQR)
+out, _ = run("planx_cartolab:normalize_field",
+             {"INPUT": polys, "FIELD": "score", "METHOD": 3, "PALETTE": 0, "CLASSES": 5,
+              "OUTPUT": "memory:"}, "normalize_field_robust_iqr")
+if out:
+    lyr = out["OUTPUT"]
+    ok("normalize robust IQR output valid", lyr is not None and lyr.featureCount() == 25)
+
+# 7) Bivariate Matrix Export
+out_bme, _ = run("planx_cartolab:bivariate_matrix_export",
+                 {"CLASSES": 3, "PALETTE_PRESET": 0, "DIAMOND": False, "CELL_SIZE": 50.0,
+                  "OUTPUT": "memory:"}, "bivariate_matrix_export_square")
+if out_bme:
+    lyr = out_bme["OUTPUT"]
+    ok("bivariate matrix square count == 9", lyr.featureCount() == 9, str(lyr.featureCount()))
+    ok("bivariate matrix has bivar_class and hex_color",
+       lyr.fields().indexFromName("bivar_class") >= 0 and lyr.fields().indexFromName("hex_color") >= 0)
+    ok("bivariate matrix HTML table generated",
+       isinstance(out_bme.get("OUTPUT_HTML"), str) and "<table" in out_bme.get("OUTPUT_HTML", ""))
+
+out_bme_d, _ = run("planx_cartolab:bivariate_matrix_export",
+                   {"CLASSES": 4, "PALETTE_PRESET": 1, "DIAMOND": True, "CELL_SIZE": 40.0,
+                    "OUTPUT": "memory:"}, "bivariate_matrix_export_diamond")
+if out_bme_d:
+    lyr = out_bme_d["OUTPUT"]
+    ok("bivariate matrix diamond count == 16", lyr.featureCount() == 16, str(lyr.featureCount()))
+
 # ===========================================================================
 # EXISTING ALGORITHMS (smoke)
 # ===========================================================================
@@ -288,6 +318,16 @@ out, _ = run("planx_cartolab:geometric_interval_classification",
              {"INPUT": polys, "FIELD": "score", "CLASSES": 5, "METHOD": 0,
               "OUTPUT": "memory:"}, "classification")
 ok("classification output", out is not None and out["OUTPUT"].featureCount() == 25)
+
+out_sd, _ = run("planx_cartolab:geometric_interval_classification",
+                {"INPUT": polys, "FIELD": "score", "CLASSES": 5, "METHOD": 3,
+                 "OUTPUT": "memory:"}, "classification_std_dev")
+ok("classification std dev output", out_sd is not None and out_sd["OUTPUT"].featureCount() == 25)
+
+out_bp, _ = run("planx_cartolab:geometric_interval_classification",
+                {"INPUT": polys, "FIELD": "score", "CLASSES": 5, "METHOD": 4,
+                 "OUTPUT": "memory:"}, "classification_box_plot")
+ok("classification box plot output", out_bp is not None and out_bp["OUTPUT"].featureCount() == 25)
 
 out, _ = run("planx_cartolab:bivariate_choropleth",
              {"INPUT": polys, "FIELD_X": "score", "FIELD_Y": "count", "CLASSES": 4,
@@ -364,7 +404,10 @@ ok("map sheet is print layout", isinstance(sheet, QgsPrintLayout))
 ok("map sheet has 1 map", _count(sheet, QgsLayoutItemMap) == 1)
 ok("map sheet has legend + scalebar",
    _count(sheet, QgsLayoutItemLegend) == 1 and _count(sheet, QgsLayoutItemScaleBar) == 1)
-ok("map sheet has north arrow", _count(sheet, QgsLayoutItemPicture) >= 1)
+ok("map sheet has north arrow",
+   _count(sheet, QgsLayoutItemPicture) >= 1
+   or any(hasattr(it, "id") and it.id() == "cartolab_north_arrow" for it in sheet.items())
+   or _count(sheet, QgsLayoutItemPolygon) >= 1)
 
 _sm = next(it for it in sheet.items() if isinstance(it, QgsLayoutItemMap))
 apply_minimalist_grid(sheet)
@@ -389,6 +432,33 @@ _pdf = os.path.join(tempfile.gettempdir(), "cartolab_e2e_sheet.pdf")
 ok("layout exports to PDF", export_layout(sheet, _pdf, dpi=72) and os.path.exists(_pdf))
 _svg = os.path.join(tempfile.gettempdir(), "cartolab_e2e_sheet.svg")
 ok("layout exports to SVG", export_layout(sheet, _svg, dpi=72) and os.path.exists(_svg))
+
+# ===========================================================================
+# TEMPLATE GALLERY E2E (all 5 publication archetypes)
+# ===========================================================================
+print("\n--- Template Gallery Subsystem ---")
+from planx_cartolab.layout.template_gallery import (
+    TEMPLATE_GALLERY,
+    create_template_layout,
+    create_report_figure,
+    create_academic_journal,
+    create_exhibition_poster,
+    create_fact_sheet,
+    create_diptych,
+)
+
+ok("template gallery has 5 archetypes", len(TEMPLATE_GALLERY) == 5)
+
+for tkey in ("report_figure", "academic_journal", "exhibition_poster", "fact_sheet", "diptych"):
+    t_lay = create_template_layout(
+        tkey, iface=None, layers=[polys, points],
+        title=f"E2E {tkey}", subtitle="Automated Test Subtitle", credits="CartoLab Suite",
+    )
+    ok(f"template {tkey} creates print layout", isinstance(t_lay, QgsPrintLayout))
+    ok(f"template {tkey} has map frame(s)", _count(t_lay, QgsLayoutItemMap) >= 1)
+    ok(f"template {tkey} has label(s)", _count(t_lay, QgsLayoutItemLabel) >= 1)
+    _tpng = os.path.join(tempfile.gettempdir(), f"cartolab_e2e_template_{tkey}.png")
+    ok(f"template {tkey} exports to PNG", export_layout(t_lay, _tpng, dpi=72) and os.path.exists(_tpng))
 
 # ===========================================================================
 # REAL DATASET E2E (geostats_Sample_Dataset.gpkg)

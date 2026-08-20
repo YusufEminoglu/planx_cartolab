@@ -9,7 +9,7 @@ pair them into ``n`` ranges.
 from __future__ import annotations
 
 import math
-from typing import List
+from typing import List, Optional, Tuple
 
 from .utils import safe_float
 
@@ -21,13 +21,16 @@ HEAD_TAIL = "head_tail"
 STD_DEV = "std_dev"
 MAXIMUM = "maximum"
 PRETTY = "pretty"
+BOX_PLOT = "box_plot"
+TUKEY = "tukey"
+EQUAL_AREA = "equal_area"
 
 
 def _clean(values) -> List[float]:
     cleaned = []
     for v in values:
         f = safe_float(v)
-        if f is not None:
+        if f is not None and not math.isnan(f) and not math.isinf(f):
             cleaned.append(f)
     return sorted(cleaned)
 
@@ -80,25 +83,36 @@ def head_tail_breaks_method(values) -> List[float]:
     return head_tail_breaks(xs)
 
 
-def std_dev_breaks(values, n: int = 5) -> List[float]:
+def std_dev_breaks(values, n: int = 5, interval_std: Optional[float] = None) -> List[float]:
     """Standard deviation interval breaks centered at the sample mean."""
+    from .bivariate_engine import standard_deviation_breaks
     xs = _clean(values)
     if not xs:
         return []
-    mean = sum(xs) / len(xs)
-    variance = sum((x - mean) ** 2 for x in xs) / len(xs)
-    std = math.sqrt(variance)
-    if std < 1e-9:
-        return [xs[0], xs[-1]]
+    return standard_deviation_breaks(xs, n_classes=n, interval_std=interval_std)
 
-    k_steps = [-2.0, -1.0, 0.0, 1.0, 2.0] if n >= 5 else [-1.0, 0.0, 1.0]
-    breaks = [xs[0]]
-    for k in k_steps:
-        val = mean + k * std
-        if xs[0] < val < xs[-1]:
-            breaks.append(val)
-    breaks.append(xs[-1])
-    return sorted(list(set(breaks)))
+
+def box_plot_breaks(values, n: int = 5, iqr_multiplier: float = 1.5) -> List[float]:
+    """Box Plot / Tukey Outlier-resistant breaks (Q1, median, Q3, inner fences)."""
+    from .bivariate_engine import box_plot_breaks as bp_breaks
+    xs = _clean(values)
+    if not xs:
+        return []
+    return bp_breaks(xs, iqr_multiplier=iqr_multiplier)
+
+
+def tukey_breaks(values, iqr_multiplier: float = 1.5) -> List[float]:
+    """Alias for box_plot_breaks."""
+    return box_plot_breaks(values, iqr_multiplier=iqr_multiplier)
+
+
+def equal_area_breaks(values, weights: Optional[List[float]] = None, n: int = 5) -> List[float]:
+    """Equal Area / Weighted Quantile breaks."""
+    from .bivariate_engine import equal_area_breaks as ea_breaks
+    xs = _clean(values)
+    if not xs:
+        return []
+    return ea_breaks(values, weights=weights, n_classes=n)
 
 
 def maximum_breaks(values, n: int = 5) -> List[float]:
@@ -148,7 +162,12 @@ def pretty_breaks(values, n: int = 5) -> List[float]:
     return breaks
 
 
-def compute_breaks(values, method: str = QUANTILE, n: int = 5) -> List[float]:
+def compute_breaks(
+    values,
+    method: str = QUANTILE,
+    n: int = 5,
+    weights: Optional[List[float]] = None,
+) -> List[float]:
     """Unified entry point to compute classification break edges."""
     m = (method or "").lower()
     if m == EQUAL:
@@ -162,6 +181,10 @@ def compute_breaks(values, method: str = QUANTILE, n: int = 5) -> List[float]:
         return head_tail_breaks_method(values)
     elif m == STD_DEV:
         return std_dev_breaks(values, n)
+    elif m in (BOX_PLOT, TUKEY):
+        return box_plot_breaks(values, n)
+    elif m == EQUAL_AREA:
+        return equal_area_breaks(values, weights=weights, n=n)
     elif m == MAXIMUM:
         return maximum_breaks(values, n)
     elif m == PRETTY:
@@ -178,7 +201,7 @@ def dedupe_edges(edges: List[float]) -> List[float]:
     return out
 
 
-def edges_to_ranges(edges):
+def edges_to_ranges(edges: List[float]) -> List[Tuple[float, float]]:
     """Turn ``n + 1`` edges into ``n`` ``(lower, upper)`` pairs."""
     clean = dedupe_edges(edges)
     return [(clean[i], clean[i + 1]) for i in range(len(clean) - 1)]

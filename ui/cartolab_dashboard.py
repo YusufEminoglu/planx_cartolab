@@ -13,6 +13,7 @@ from __future__ import annotations
 import os
 from contextlib import suppress
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
 
 try:
     import processing
@@ -115,6 +116,8 @@ ALGO_GROUPS = [
              "Seeded, hole-aware dots inside polygons - one dot per N units of a count field."),
             ("Proportional Symbols (Flannery)", "planx_cartolab:proportional_symbols",
              "Perceptually compensated graduated point symbols with nested-legend values."),
+            ("Bivariate Matrix Export", "planx_cartolab:bivariate_matrix_export",
+             "Export high-resolution standalone NxN bivariate legend matrices as SVG/PNG image."),
         ],
     ),
     (
@@ -177,6 +180,7 @@ CATEGORY_GROUPS = {
         "planx_cartolab:ridge_map",
         "planx_cartolab:dot_density",
         "planx_cartolab:proportional_symbols",
+        "planx_cartolab:bivariate_matrix_export",
     ],
     "Cartogram Engine": [
         "planx_cartolab:compute_cartogram",
@@ -246,6 +250,12 @@ class CartoLabDashboard(_QDialogBase):
             self._refresh_qs_layers()
         with suppress(Exception):
             self._refresh_25d_layers()
+        with suppress(Exception):
+            self._refresh_bivar_layers()
+        with suppress(Exception):
+            self._refresh_inspector_layers()
+        with suppress(Exception):
+            self._refresh_layout_combo()
 
     # ── Styling ──────────────────────────────────────────────────────
 
@@ -425,7 +435,7 @@ class CartoLabDashboard(_QDialogBase):
 
 
     def _build_symbology_studio_tab(self) -> None:
-        """Workspace 1: Unified Symbology & Thematic Studio (Quick Style, 2.5D, Advanced Suite)."""
+        """Workspace 1: Unified Symbology & Thematic Studio (Quick Style, 2.5D, Advanced Suite, Palette Inspector)."""
         studio_widget = QWidget()
         layout = QVBoxLayout(studio_widget)
         layout.setContentsMargins(4, 4, 4, 4)
@@ -451,6 +461,10 @@ class CartoLabDashboard(_QDialogBase):
         # Sub-tab 3: Advanced Thematic Suite
         thematic_widget = self._build_thematic_suite_subwidget()
         self.symbology_sub_tabs.addTab(thematic_widget, _cartolab_icon("bivariate.png"), "Advanced Thematic Suite")
+
+        # Sub-tab 4: Palette & Accessibility Inspector
+        palette_widget = self._build_palette_inspector_subwidget()
+        self.symbology_sub_tabs.addTab(palette_widget, _cartolab_icon("style.png"), "Palette & Accessibility")
 
         layout.addWidget(self.symbology_sub_tabs)
         self.stack.addWidget(studio_widget)
@@ -676,6 +690,328 @@ class CartoLabDashboard(_QDialogBase):
                 )
         except Exception as exc:
             QMessageBox.critical(self, "Bivariate Error", f"Failed to execute bivariate analysis:\n{exc}")
+
+    def _build_palette_inspector_subwidget(self) -> QWidget:
+        """Sub-tab 4: Dedicated Palette & Accessibility Inspector with live CVD simulation & WCAG scoring."""
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        w = QWidget()
+        scroll.setWidget(w)
+        lyt = QVBoxLayout(w)
+        lyt.setContentsMargins(12, 12, 12, 12)
+        lyt.setSpacing(12)
+
+        # ── Group 1: Palette Selection & Configuration ──
+        gb_sel = self._make_group("Palette Library & Class Configuration")
+        fl_sel = QGridLayout(gb_sel)
+        fl_sel.setContentsMargins(12, 12, 12, 12)
+        fl_sel.setSpacing(8)
+
+        fl_sel.addWidget(QLabel("Palette:"), 0, 0)
+        self.inspector_palette_combo = QComboBox()
+        self.inspector_palette_combo.currentIndexChanged.connect(self._update_inspector_preview)
+        fl_sel.addWidget(self.inspector_palette_combo, 0, 1, 1, 3)
+
+        fl_sel.addWidget(QLabel("Palette Type Filter:"), 1, 0)
+        self.inspector_kind_combo = QComboBox()
+        self.inspector_kind_combo.addItems(["All Palette Types", "Sequential", "Diverging", "Qualitative"])
+        self.inspector_kind_combo.currentIndexChanged.connect(self._populate_inspector_palettes)
+        fl_sel.addWidget(self.inspector_kind_combo, 1, 1)
+
+        fl_sel.addWidget(QLabel("Classes:"), 1, 2)
+        self.inspector_classes_spin = QSpinBox()
+        self.inspector_classes_spin.setRange(2, 12)
+        self.inspector_classes_spin.setValue(5)
+        self.inspector_classes_spin.valueChanged.connect(self._update_inspector_preview)
+        fl_sel.addWidget(self.inspector_classes_spin, 1, 3)
+
+        opt_row = QHBoxLayout()
+        self.inspector_cbsafe_check = QCheckBox("Colour-blind safe only 🟢")
+        self.inspector_cbsafe_check.toggled.connect(self._populate_inspector_palettes)
+        self.inspector_reverse_check = QCheckBox("Reverse Palette Direction ⇄")
+        self.inspector_reverse_check.toggled.connect(self._update_inspector_preview)
+        opt_row.addWidget(self.inspector_cbsafe_check)
+        opt_row.addWidget(self.inspector_reverse_check)
+        opt_row.addStretch()
+        fl_sel.addLayout(opt_row, 2, 0, 1, 4)
+
+        lyt.addWidget(gb_sel)
+
+        # ── Group 2: Live Palette & CVD Simulation Inspector ──
+        gb_cvd = self._make_group("Perceptual Color Vision Deficiency (CVD) Simulation Matrix")
+        fl_cvd = QVBoxLayout(gb_cvd)
+        fl_cvd.setContentsMargins(12, 12, 12, 12)
+        fl_cvd.setSpacing(8)
+
+        fl_cvd.addWidget(QLabel("<b>Continuous Linear Gradient:</b>"))
+        self.inspector_gradient_bar = QFrame()
+        self.inspector_gradient_bar.setFixedHeight(24)
+        self.inspector_gradient_bar.setStyleSheet("border-radius: 4px; border: 1px solid #94a3b8;")
+        fl_cvd.addWidget(self.inspector_gradient_bar)
+
+        fl_cvd.addWidget(QLabel("<b>CVD Simulation Comparison:</b>"))
+        self.inspector_cvd_grid = QGridLayout()
+        self.inspector_cvd_grid.setSpacing(6)
+        fl_cvd.addLayout(self.inspector_cvd_grid)
+
+        # Metrics Card Box
+        self.inspector_metrics_box = QFrame()
+        self.inspector_metrics_box.setStyleSheet("background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px;")
+        mb_lyt = QVBoxLayout(self.inspector_metrics_box)
+        mb_lyt.setContentsMargins(8, 6, 8, 6)
+        self.inspector_metrics_label = QLabel("Accessibility Metrics: Calculating...")
+        self.inspector_metrics_label.setWordWrap(True)
+        self.inspector_metrics_label.setStyleSheet("color: #0f172a; font-size: 12px;")
+        mb_lyt.addWidget(self.inspector_metrics_label)
+        fl_cvd.addWidget(self.inspector_metrics_box)
+
+        lyt.addWidget(gb_cvd)
+
+        # ── Group 3: Quick Apply & Export ──
+        gb_act = self._make_group("Apply & Export Palette")
+        fl_act = QGridLayout(gb_act)
+        fl_act.setContentsMargins(12, 12, 12, 12)
+        fl_act.setSpacing(8)
+
+        fl_act.addWidget(QLabel("Target Vector Layer:"), 0, 0)
+        self.inspector_layer_combo = QComboBox()
+        fl_act.addWidget(self.inspector_layer_combo, 0, 1)
+
+        btn_apply_pal = QPushButton("Apply to Layer ⚡")
+        btn_apply_pal.setIcon(_cartolab_icon("style.png"))
+        btn_apply_pal.clicked.connect(self._on_inspector_apply_to_layer)
+        fl_act.addWidget(btn_apply_pal, 0, 2)
+
+        btn_copy_hex = QPushButton("Copy Hex Codes 📋")
+        btn_copy_hex.setObjectName("ghost")
+        btn_copy_hex.clicked.connect(self._on_inspector_copy_hex)
+        fl_act.addWidget(btn_copy_hex, 1, 1)
+
+        btn_export_json = QPushButton("Export Palette JSON 💾")
+        btn_export_json.setObjectName("ghost")
+        btn_export_json.clicked.connect(self._on_inspector_export_json)
+        fl_act.addWidget(btn_export_json, 1, 2)
+
+        lyt.addWidget(gb_act)
+        lyt.addStretch()
+
+        self._populate_inspector_palettes()
+        self._refresh_inspector_layers()
+        return scroll
+
+    def _populate_inspector_palettes(self) -> None:
+        from ..core import palettes as _pal
+        if not hasattr(self, "inspector_palette_combo"):
+            return
+        current = self.inspector_palette_combo.currentData()
+        cb_only = self.inspector_cbsafe_check.isChecked()
+        kind_filter = (self.inspector_kind_combo.currentText() or "").lower()
+
+        names = []
+        for n in _pal.ordered_names():
+            meta = _pal.PALETTES.get(n, {})
+            p_kind = meta.get("kind", "").lower()
+            p_cb = meta.get("cb_safe", False)
+            if cb_only and not p_cb:
+                continue
+            if kind_filter in ("sequential", "diverging", "qualitative") and p_kind != kind_filter:
+                continue
+            names.append(n)
+
+        self.inspector_palette_combo.blockSignals(True)
+        self.inspector_palette_combo.clear()
+        for n in names:
+            meta = _pal.PALETTES.get(n, {})
+            badge = "🟢 Safe" if meta.get("cb_safe") else "⚠️ Normal"
+            kind_txt = meta.get("kind", "sequential").capitalize()
+            self.inspector_palette_combo.addItem(f"{n}  ({kind_txt} · {badge})", n)
+
+        if current is not None:
+            idx = self.inspector_palette_combo.findData(current)
+            if idx >= 0:
+                self.inspector_palette_combo.setCurrentIndex(idx)
+        self.inspector_palette_combo.blockSignals(False)
+        self._update_inspector_preview()
+
+    def _update_inspector_preview(self) -> None:
+        if not hasattr(self, "inspector_gradient_bar") or not hasattr(self, "inspector_cvd_grid"):
+            return
+        from ..core import palettes as _pal
+        from ..core.color_accessibility import evaluate_palette_accessibility, simulate_cvd_hex
+        pname = self.inspector_palette_combo.currentData() or "Viridis"
+        meta = _pal.PALETTES.get(pname, {})
+        n = max(2, self.inspector_classes_spin.value())
+        cols = _pal.get_palette(pname, n)
+        if self.inspector_reverse_check.isChecked():
+            cols = list(reversed(cols))
+
+        # 1. Update continuous gradient
+        stops = ", ".join(f"stop:{i / (len(cols) - 1):.3f} {c}" for i, c in enumerate(cols))
+        self.inspector_gradient_bar.setStyleSheet(
+            f"border-radius: 4px; border: 1px solid #94a3b8; background: qlineargradient(x1:0,y1:0,x2:1,y2:0,{stops});"
+        )
+
+        # 2. Clear and rebuild CVD grid
+        while self.inspector_cvd_grid.count():
+            item = self.inspector_cvd_grid.takeAt(0)
+            w = item.widget()
+            if w:
+                w.deleteLater()
+
+        cvd_modes = [
+            ("Normal Vision (Standard Trichromacy)", None),
+            ("Deuteranopia (Green-blind · ~6% of males)", "deuteranopia"),
+            ("Protanopia (Red-blind · ~2% of males)", "protanopia"),
+            ("Tritanopia (Blue-blind · rare)", "tritanopia"),
+            ("Achromatopsia (Monochromacy / Greyscale)", "achromatopsia"),
+        ]
+
+        for row_idx, (label_txt, cvd_type) in enumerate(cvd_modes):
+            lbl = QLabel(label_txt)
+            lbl.setStyleSheet("font-size: 11px; font-weight: 600; color: #334155;")
+            self.inspector_cvd_grid.addWidget(lbl, row_idx, 0)
+
+            swatch_container = QWidget()
+            s_layout = QHBoxLayout(swatch_container)
+            s_layout.setContentsMargins(0, 0, 0, 0)
+            s_layout.setSpacing(3)
+
+            for c_hex in cols:
+                sim_hex = simulate_cvd_hex(c_hex, cvd_type) if cvd_type else c_hex
+                block = QFrame()
+                block.setFixedHeight(18)
+                block.setToolTip(f"{c_hex} -> {sim_hex} ({label_txt})")
+                block.setStyleSheet(f"background: {sim_hex}; border: 1px solid #64748b; border-radius: 2px;")
+                s_layout.addWidget(block, 1)
+
+            self.inspector_cvd_grid.addWidget(swatch_container, row_idx, 1)
+
+        # 3. Compute accessibility metrics
+        eval_res = evaluate_palette_accessibility(cols)
+        rating_str = eval_res.get("rating", "Standard")
+        end_contrast = eval_res.get("endpoint_contrast", 1.0)
+        min_step = eval_res.get("min_step_contrast", 1.0)
+        cvd_info = eval_res.get("cvd_distinct", {})
+        cb_badge = "🟢 <b>Colorblind Safe</b>" if meta.get("cb_safe") else "⚠️ <b>General Audience (May require review for CVD)</b>"
+        kind_str = meta.get("kind", "sequential").capitalize()
+
+        metrics_html = (
+            f"<b>Palette:</b> {pname} ({kind_str})  ·  {cb_badge}<br>"
+            f"<b>WCAG 2.1 Contrast Rating:</b> <span style='color:#1d4ed8; font-weight:bold;'>{rating_str}</span> "
+            f"(Endpoint: <b>{end_contrast}:1</b> · Min Step: <b>{min_step}:1</b>)<br>"
+            f"<b>CVD Step Distinctness:</b> Deuteranopia: <b>{cvd_info.get('deuteranopia', 1.0)}:1</b> · "
+            f"Protanopia: <b>{cvd_info.get('protanopia', 1.0)}:1</b> · "
+            f"Tritanopia: <b>{cvd_info.get('tritanopia', 1.0)}:1</b>"
+        )
+        self.inspector_metrics_label.setText(metrics_html)
+
+    def _refresh_inspector_layers(self) -> None:
+        if not hasattr(self, "inspector_layer_combo"):
+            return
+        current = self.inspector_layer_combo.currentData()
+        self.inspector_layer_combo.blockSignals(True)
+        self.inspector_layer_combo.clear()
+        for lyr in self._vector_layers():
+            self.inspector_layer_combo.addItem(lyr.name(), lyr.id())
+        if current is not None:
+            idx = self.inspector_layer_combo.findData(current)
+            if idx >= 0:
+                self.inspector_layer_combo.setCurrentIndex(idx)
+        self.inspector_layer_combo.blockSignals(False)
+
+    def _on_inspector_apply_to_layer(self) -> None:
+        if processing is None:
+            QMessageBox.warning(self, "Apply Palette", "Processing framework is not available.")
+            return
+        layer = self._layer_by_id(self.inspector_layer_combo.currentData())
+        if layer is None:
+            QMessageBox.information(self, "Apply Palette", "Select a vector layer first.")
+            return
+        fields = [f.name() for f in layer.fields()]
+        if not fields:
+            QMessageBox.warning(self, "Apply Palette", "Selected layer has no fields to style.")
+            return
+        pname = self.inspector_palette_combo.currentData() or "Viridis"
+        from ..core import palettes as _pal
+        try:
+            pidx = _pal.ordered_names().index(pname)
+        except ValueError:
+            pidx = 0
+
+        # Choose first numeric field or first field
+        field = fields[0]
+        for f in layer.fields():
+            if field_is_numeric(f):
+                field = f.name()
+                break
+
+        params = {
+            "INPUT": layer,
+            "FIELD": field,
+            "MODE": 1,  # Graduated
+            "CLASSES": self.inspector_classes_spin.value(),
+            "METHOD": 0,  # Quantile
+            "PALETTE": pidx,
+            "REVERSE": self.inspector_reverse_check.isChecked(),
+            "OUTLINE": True,
+        }
+        try:
+            res = processing.run("planx_cartolab:quick_style", params)
+            with suppress(Exception):
+                if hasattr(self.iface, "layerTreeView"):
+                    self.iface.layerTreeView().refreshLayerSymbology(layer.id())
+            layer.triggerRepaint()
+            if hasattr(self, "iface") and self.iface:
+                self.iface.messageBar().pushSuccess(
+                    "CartoLab", f"Applied palette '{pname}' to layer '{layer.name()}' on field '{field}'."
+                )
+        except Exception as exc:
+            QMessageBox.critical(self, "Apply Palette Error", str(exc))
+
+    def _on_inspector_copy_hex(self) -> None:
+        from ..core import palettes as _pal
+        pname = self.inspector_palette_combo.currentData() or "Viridis"
+        n = max(2, self.inspector_classes_spin.value())
+        cols = _pal.get_palette(pname, n)
+        if self.inspector_reverse_check.isChecked():
+            cols = list(reversed(cols))
+        hex_text = ", ".join(cols)
+        QApplication.clipboard().setText(hex_text)
+        if hasattr(self, "iface") and self.iface:
+            self.iface.messageBar().pushSuccess("CartoLab", f"Copied {len(cols)} hex colors to clipboard: {hex_text}")
+
+    def _on_inspector_export_json(self) -> None:
+        import json
+        from ..core import palettes as _pal
+        from ..core.color_accessibility import evaluate_palette_accessibility
+        pname = self.inspector_palette_combo.currentData() or "Viridis"
+        meta = _pal.PALETTES.get(pname, {})
+        n = max(2, self.inspector_classes_spin.value())
+        cols = _pal.get_palette(pname, n)
+        if self.inspector_reverse_check.isChecked():
+            cols = list(reversed(cols))
+        eval_res = evaluate_palette_accessibility(cols)
+
+        data = {
+            "palette_name": pname,
+            "kind": meta.get("kind", "sequential"),
+            "colorblind_safe": meta.get("cb_safe", False),
+            "classes": len(cols),
+            "colors": cols,
+            "accessibility": eval_res,
+        }
+        filename, _ = QFileDialog.getSaveFileName(
+            self, "Export Palette JSON", f"{pname.lower()}_{n}_classes.json", "JSON Files (*.json)"
+        )
+        if filename:
+            try:
+                with open(filename, "w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=2)
+                if hasattr(self, "iface") and self.iface:
+                    self.iface.messageBar().pushSuccess("CartoLab", f"Palette JSON saved to {filename}")
+            except Exception as exc:
+                QMessageBox.critical(self, "Export JSON Error", str(exc))
 
     def _build_modules_tab(self) -> None:
         """Workspace 3: Searchable Card Catalog for Processing Algorithms."""
@@ -1342,8 +1678,18 @@ class CartoLabDashboard(_QDialogBase):
 
     def show_panel(self, tab_name: str) -> None:
         name = tab_name.lower()
-        if "layout" in name:
+        if "template" in name or "gallery" in name:
             self.tabs.setCurrentIndex(1)
+            if hasattr(self, "layout_sub_tabs"):
+                self.layout_sub_tabs.setCurrentIndex(0)
+        elif "isometric" in name:
+            self.tabs.setCurrentIndex(1)
+            if hasattr(self, "layout_sub_tabs"):
+                self.layout_sub_tabs.setCurrentIndex(2)
+        elif "layout" in name or "sheet" in name or "manager" in name:
+            self.tabs.setCurrentIndex(1)
+            if hasattr(self, "layout_sub_tabs"):
+                self.layout_sub_tabs.setCurrentIndex(1)
         elif "processing" in name or "module" in name or "hub" in name:
             self.tabs.setCurrentIndex(2)
         else:
@@ -1354,6 +1700,8 @@ class CartoLabDashboard(_QDialogBase):
                     self._refresh_25d_layers()
                 elif "thematic" in name or "bivariate" in name:
                     self.symbology_sub_tabs.setCurrentIndex(2)
+                elif "palette" in name or "accessibility" in name or "inspector" in name:
+                    self.symbology_sub_tabs.setCurrentIndex(3)
                 else:
                     self.symbology_sub_tabs.setCurrentIndex(0)
                     self._refresh_qs_layers()
@@ -1878,6 +2226,208 @@ class CartoLabDashboard(_QDialogBase):
         self.iface.messageBar().pushSuccess("CartoLab", "2.5D style summary copied to clipboard.")
 
     def _build_layout_tab(self) -> None:
+        """Workspace 2: Layout Automation Studio (Templates Gallery, Custom Map Sheet, Isometric Stacker)."""
+        studio_widget = QWidget()
+        layout = QVBoxLayout(studio_widget)
+        layout.setContentsMargins(4, 4, 4, 4)
+
+        self.layout_sub_tabs = QTabWidget()
+
+        # Sub-tab 1: Layout Templates Gallery
+        templates_widget = self._build_template_gallery_subwidget()
+        self.layout_sub_tabs.addTab(templates_widget, _cartolab_icon("layout.png"), "Layout Templates Gallery")
+
+        # Sub-tab 2: Custom Map Sheet & Manager
+        mapsheet_widget = self._build_custom_mapsheet_subwidget()
+        self.layout_sub_tabs.addTab(mapsheet_widget, _cartolab_icon("grid.png"), "Custom Map Sheet & Manager")
+
+        # Sub-tab 3: Isometric 3D Stacker
+        iso_widget = self._build_isometric_stacker_subwidget()
+        self.layout_sub_tabs.addTab(iso_widget, _cartolab_icon("isometric.png"), "3D Isometric Stacker")
+
+        layout.addWidget(self.layout_sub_tabs)
+        self.stack.addWidget(studio_widget)
+        self._refresh_layout_combo()
+
+    def _build_template_gallery_subwidget(self) -> QWidget:
+        """Workspace 2 (Sub-tab 1): Interactive Layout Template Gallery with visual archetype cards."""
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        w = QWidget()
+        scroll.setWidget(w)
+        lyt = QVBoxLayout(w)
+        lyt.setContentsMargins(12, 12, 12, 12)
+        lyt.setSpacing(14)
+
+        intro = QLabel(
+            "<b>PlanX CartoLab Layout Template Gallery</b> — Select a publication archetype below to generate "
+            "a complete, mathematically balanced print layout ready for report publishing, peer-reviewed journals, "
+            "exhibitions, briefings, or comparative urban analysis in one click."
+        )
+        intro.setWordWrap(True)
+        intro.setStyleSheet("color: #334155; font-size: 12px; margin-bottom: 4px;")
+        lyt.addWidget(intro)
+
+        self.template_card_inputs = {}
+
+        from ..layout.template_gallery import TEMPLATE_GALLERY
+
+        for tkey, tmeta in TEMPLATE_GALLERY.items():
+            card = QGroupBox()
+            card.setObjectName(f"templateCard_{tkey}")
+            card.setStyleSheet(
+                "QGroupBox { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; "
+                "margin-top: 10px; padding: 12px; }"
+                "QGroupBox:hover { border: 1px solid #94a3b8; }"
+            )
+            cv = QVBoxLayout(card)
+            cv.setContentsMargins(10, 10, 10, 10)
+            cv.setSpacing(8)
+
+            # Header row: Icon + Title + Category Chip
+            hdr = QHBoxLayout()
+            ic_lbl = QLabel()
+            ic_lbl.setPixmap(_cartolab_icon(tmeta.get("icon", "layout.png")).pixmap(24, 24))
+            hdr.addWidget(ic_lbl)
+
+            t_name = QLabel(f"<b>{tmeta['name']}</b>")
+            t_name.setStyleSheet("font-size: 14px; color: #0f172a;")
+            hdr.addWidget(t_name, 1)
+
+            chip = QLabel(tmeta.get("category", "Layout"))
+            chip.setStyleSheet(
+                "background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; "
+                "border-radius: 4px; padding: 2px 8px; font-weight: 700; font-size: 10px;"
+            )
+            hdr.addWidget(chip, 0, Qt.AlignmentFlag.AlignRight)
+            cv.addLayout(hdr)
+
+            # Tagline & Description
+            tagline = QLabel(f"<i>{tmeta['tagline']}</i>")
+            tagline.setStyleSheet("color: #475569; font-size: 11px;")
+            cv.addWidget(tagline)
+
+            desc = QLabel(tmeta["description"])
+            desc.setWordWrap(True)
+            desc.setStyleSheet("color: #334155; font-size: 11px;")
+            cv.addWidget(desc)
+
+            # Features Bullet Row
+            feat_txt = "  •  ".join(tmeta.get("features", []))
+            feat_lbl = QLabel(f"<span style='color:#059669;'>✓</span> {feat_txt}")
+            feat_lbl.setStyleSheet("color: #059669; font-size: 10.5px; font-weight: 600;")
+            feat_lbl.setWordWrap(True)
+            cv.addWidget(feat_lbl)
+
+            # Configuration Form Grid
+            cfg_grid = QGridLayout()
+            cfg_grid.setSpacing(6)
+
+            cfg_grid.addWidget(QLabel("Title:"), 0, 0)
+            in_title = QLineEdit(tmeta["name"])
+            cfg_grid.addWidget(in_title, 0, 1, 1, 3)
+
+            cfg_grid.addWidget(QLabel("Subtitle:"), 1, 0)
+            in_sub = QLineEdit(tmeta["tagline"])
+            cfg_grid.addWidget(in_sub, 1, 1, 1, 3)
+
+            cfg_grid.addWidget(QLabel("Credits:"), 2, 0)
+            in_cred = QLineEdit("PlanX CartoLab · Urban Analytics Studio")
+            cfg_grid.addWidget(in_cred, 2, 1, 1, 3)
+
+            cfg_grid.addWidget(QLabel("Page Size:"), 3, 0)
+            combo_size = QComboBox()
+            combo_size.addItems(["A4", "A3", "A2", "A1", "A0"])
+            def_page = tmeta.get("default_page", "A4")
+            s_idx = combo_size.findText(def_page)
+            if s_idx >= 0:
+                combo_size.setCurrentIndex(s_idx)
+            cfg_grid.addWidget(combo_size, 3, 1)
+
+            cfg_grid.addWidget(QLabel("Orientation:"), 3, 2)
+            combo_orient = QComboBox()
+            combo_orient.addItems(["Landscape", "Portrait"])
+            combo_orient.setCurrentIndex(0 if tmeta.get("default_landscape", True) else 1)
+            cfg_grid.addWidget(combo_orient, 3, 3)
+
+            cfg_grid.addWidget(QLabel("Paper Theme:"), 4, 0)
+            combo_theme = QComboBox()
+            combo_theme.addItem("Modern Swiss Minimalist", "swiss_modern")
+            combo_theme.addItem("Architectural Blueprint", "blueprint")
+            combo_theme.addItem("Dark Matter / Obsidian Urban", "dark_matter")
+            combo_theme.addItem("Vintage Sepia Atlas", "sepia_atlas")
+            combo_theme.addItem("Warm Editorial Newsprint", "warm_editorial")
+            combo_theme.addItem("Japanese Washi Minimal", "japanese_washi")
+            def_theme = tmeta.get("theme", "swiss_modern")
+            t_idx = combo_theme.findData(def_theme)
+            if t_idx >= 0:
+                combo_theme.setCurrentIndex(t_idx)
+            cfg_grid.addWidget(combo_theme, 4, 1, 1, 3)
+
+            cv.addLayout(cfg_grid)
+
+            # Action Button
+            btn_create = QPushButton(f"Create {tmeta['name']} ⚡")
+            btn_create.setIcon(_cartolab_icon(tmeta.get("icon", "layout.png")))
+            btn_create.clicked.connect(lambda _, k=tkey: self._on_create_template_from_card(k))
+            cv.addWidget(btn_create, 0, Qt.AlignmentFlag.AlignRight)
+
+            self.template_card_inputs[tkey] = {
+                "title": in_title,
+                "subtitle": in_sub,
+                "credits": in_cred,
+                "page_size": combo_size,
+                "orientation": combo_orient,
+                "theme": combo_theme,
+            }
+
+            lyt.addWidget(card)
+
+        lyt.addStretch()
+        return scroll
+
+    def _on_create_template_from_card(self, template_id: str) -> None:
+        if not QgsProject.instance().mapLayers():
+            QMessageBox.warning(
+                self, "Layout Template",
+                "No layers are loaded — the map frame would be empty. Load a layer first."
+            )
+            return
+        inputs = self.template_card_inputs.get(template_id, {})
+        title = inputs.get("title").text().strip() if inputs.get("title") else ""
+        subtitle = inputs.get("subtitle").text().strip() if inputs.get("subtitle") else ""
+        credits = inputs.get("credits").text().strip() if inputs.get("credits") else ""
+        page_size = inputs.get("page_size").currentText() if inputs.get("page_size") else "A4"
+        landscape = (inputs.get("orientation").currentText() == "Landscape") if inputs.get("orientation") else True
+        theme = inputs.get("theme").currentData() if inputs.get("theme") else "swiss_modern"
+
+        try:
+            from ..layout.template_gallery import create_template_layout
+            layout = create_template_layout(
+                template_id=template_id,
+                iface=self.iface,
+                project=QgsProject.instance(),
+                title=title,
+                subtitle=subtitle,
+                credits=credits,
+                page_size=page_size,
+                landscape=landscape,
+                theme=theme,
+            )
+            self._refresh_layout_combo()
+            if hasattr(self, "layout_combo"):
+                self.layout_combo.setCurrentText(layout.name())
+            self._open_in_designer(layout)
+            if hasattr(self, "iface") and self.iface:
+                self.iface.messageBar().pushSuccess(
+                    "CartoLab", f"Template '{layout.name()}' created and opened in Layout Designer."
+                )
+        except Exception as exc:
+            QMessageBox.critical(self, "Template Error", f"Failed to create template layout:\n{exc}")
+
+    def _build_custom_mapsheet_subwidget(self) -> QWidget:
+        """Workspace 2 (Sub-tab 2): Granular Custom Map Sheet builder, Layout Manager & Decorators."""
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
@@ -2009,23 +2559,9 @@ class CartoLabDashboard(_QDialogBase):
         gm.addLayout(exports)
         lyt.addWidget(gb_mgr)
 
-
         # ── Group 3: Decorators (apply to the selected layout) ───────
         gb_dec = self._make_group("Decorators — enhance the selected layout")
         gd = QVBoxLayout(gb_dec)
-
-        gd.addWidget(QLabel("Isometric stack layers (select 2+ to build a new stack):"))
-        self.iso_layer_list = QListWidget()
-        self.iso_layer_list.setSelectionMode(
-            QAbstractItemView.SelectionMode.MultiSelection
-        )
-        self.iso_layer_list.setMinimumHeight(96)
-        self.iso_layer_list.setMaximumHeight(150)
-        gd.addWidget(self.iso_layer_list)
-        btn_iso = QPushButton("Create Isometric Layer Stack")
-        btn_iso.setIcon(_cartolab_icon("isometric.png"))
-        btn_iso.clicked.connect(self._on_isometric_stack)
-        gd.addWidget(btn_iso)
 
         bivar_row = QHBoxLayout()
         bivar_row.addWidget(QLabel("Bivariate legend:"))
@@ -2061,13 +2597,44 @@ class CartoLabDashboard(_QDialogBase):
         gd.addLayout(deco_row)
         lyt.addWidget(gb_dec)
 
-        for button in (btn_sheet, btn_iso, btn_legend, btn_typo, btn_grid, btn_balance):
+        for button in (btn_sheet, btn_legend, btn_typo, btn_grid, btn_balance):
             button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
         lyt.addStretch()
         scroll.setWidget(w)
-        self.stack.addWidget(scroll)
-        self._refresh_layout_combo()
+        return scroll
+
+    def _build_isometric_stacker_subwidget(self) -> QWidget:
+        """Workspace 2 (Sub-tab 3): Dedicated 3D Isometric Layer Stacker studio."""
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        w = QWidget()
+        lyt = QVBoxLayout(w)
+        lyt.setContentsMargins(12, 12, 12, 12)
+        lyt.setSpacing(10)
+
+        gb_iso = self._make_group("3D Isometric Layer Stacking Studio")
+        gd = QVBoxLayout(gb_iso)
+
+        gd.addWidget(QLabel("Select 2+ layers from your project to assemble a layered isometric 3D stack:"))
+        self.iso_layer_list = QListWidget()
+        self.iso_layer_list.setSelectionMode(
+            QAbstractItemView.SelectionMode.MultiSelection
+        )
+        self.iso_layer_list.setMinimumHeight(140)
+        gd.addWidget(self.iso_layer_list)
+
+        btn_iso = QPushButton("Assemble 3D Isometric Print Layout ⚡")
+        btn_iso.setIcon(_cartolab_icon("isometric.png"))
+        btn_iso.clicked.connect(self._on_isometric_stack)
+        btn_iso.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        gd.addWidget(btn_iso)
+
+        lyt.addWidget(gb_iso)
+        lyt.addStretch()
+        scroll.setWidget(w)
+        return scroll
 
 
     # ── Layout Manager helpers ───────────────────────────────────────
@@ -2347,6 +2914,10 @@ class CartoLabDashboard(_QDialogBase):
             self._refresh_layout_combo()
         if hasattr(self, "qs_layer_combo"):
             self._refresh_qs_layers()
+        if hasattr(self, "bivar_layer_combo"):
+            self._refresh_bivar_layers()
+        if hasattr(self, "inspector_layer_combo"):
+            self._refresh_inspector_layers()
 
         for card in self.card_widgets:
             is_ready = reg.algorithmById(card.algo_id) is not None

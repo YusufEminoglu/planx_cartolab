@@ -4,14 +4,14 @@ Colour palette library for CartoLab.
 
 Pure logic (no ``qgis`` import) so it is unit-testable headless. Bundles the
 palettes people actually search for — ColorBrewer (sequential / diverging /
-qualitative) and the perceptually-uniform scientific ramps (viridis, magma,
-plasma, inferno, cividis) — with a colour-blind-safe flag on each, and samples
+qualitative) and the perceptually-uniform scientific ramps (Batlow, Viridis, Magma,
+Plasma, Inferno, Cividis, Twilight, Sunset) — with a colour-blind-safe flag on each, and samples
 any of them to an arbitrary class count.
 """
 from __future__ import annotations
 
 import math
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 SEQUENTIAL = "sequential"
 DIVERGING = "diverging"
@@ -23,7 +23,10 @@ KINDS = (SEQUENTIAL, DIVERGING, QUALITATIVE)
 # Sequential/diverging store an ordered gradient (sampled to N by interpolation);
 # qualitative store discrete swatches (taken in order, cycled if N is larger).
 PALETTES: Dict[str, dict] = {
-    # ---- scientific, perceptually uniform, all colour-blind safe ----------
+    # ---- scientific, perceptually uniform, colour-blind safe ramps --------
+    "Batlow": {"kind": SEQUENTIAL, "cb_safe": True, "colors": [
+        "#011959", "#114160", "#216863", "#3d8c5a", "#72ad48",
+        "#b3ca34", "#f4e31d", "#f8b437", "#e7764a", "#bc3843", "#801438"]},
     "Viridis": {"kind": SEQUENTIAL, "cb_safe": True, "colors": [
         "#440154", "#472d7b", "#3b528b", "#2c728e", "#21918c",
         "#28ae80", "#5ec962", "#addc30", "#fde725"]},
@@ -39,6 +42,12 @@ PALETTES: Dict[str, dict] = {
     "Cividis": {"kind": SEQUENTIAL, "cb_safe": True, "colors": [
         "#00204d", "#00336f", "#39486b", "#575d6d", "#707173",
         "#8a8779", "#a69d75", "#c4b56c", "#fee838"]},
+    "Sunset": {"kind": SEQUENTIAL, "cb_safe": True, "colors": [
+        "#0c1048", "#2b2a6d", "#583f88", "#875097", "#b85c96",
+        "#e16e86", "#f78d6e", "#fdb659", "#fbe382"]},
+    "Twilight": {"kind": DIVERGING, "cb_safe": True, "colors": [
+        "#e2d9e2", "#9ebcd3", "#5c79be", "#3b3662", "#47183e",
+        "#7b1c3c", "#b64547", "#df8d76", "#e2d9e2"]},
     "Turbo": {"kind": SEQUENTIAL, "cb_safe": False, "colors": [
         "#30123b", "#4662d8", "#36aaf9", "#1ae4b6", "#72fe5e",
         "#c8ef34", "#faba39", "#f66b19", "#cb2a04", "#7a0403"]},
@@ -48,6 +57,12 @@ PALETTES: Dict[str, dict] = {
     "Rocket": {"kind": SEQUENTIAL, "cb_safe": True, "colors": [
         "#03051a", "#291535", "#5c1846", "#90174c", "#c12844",
         "#e35338", "#f48648", "#fbb96b", "#faefa6"]},
+    "Bamako": {"kind": SEQUENTIAL, "cb_safe": True, "colors": [
+        "#1b4028", "#335e38", "#537e4c", "#78a063", "#a1c27e",
+        "#cfe49e", "#e8edb9", "#c6c39f", "#8e866a", "#4a4130"]},
+    "Nuuk": {"kind": SEQUENTIAL, "cb_safe": True, "colors": [
+        "#0d2138", "#174360", "#286884", "#438ea4", "#6bb5be",
+        "#9ed8d4", "#cff0e5", "#ecf9f0"]},
     "Earth": {"kind": SEQUENTIAL, "cb_safe": False, "colors": [
         "#1a4329", "#2d6a4f", "#74c69d", "#d8f3dc", "#e9d8a6",
         "#ee9b00", "#ca6702", "#9b2226", "#ffffff"]},
@@ -101,6 +116,12 @@ PALETTES: Dict[str, dict] = {
     "Spectral": {"kind": DIVERGING, "cb_safe": False, "colors": [
         "#9e0142", "#d53e4f", "#f46d43", "#fdae61", "#fee08b", "#ffffbf",
         "#e6f598", "#abdda4", "#66c2a5", "#3288bd", "#5e4fa2"]},
+    "Roma": {"kind": DIVERGING, "cb_safe": True, "colors": [
+        "#7e1700", "#ac4e03", "#d68b1a", "#e9c968", "#eef2b2",
+        "#99cee3", "#579dc5", "#286ca0", "#023858"]},
+    "TealRose": {"kind": DIVERGING, "cb_safe": True, "colors": [
+        "#009392", "#39b185", "#9ccb86", "#e9e29c", "#eeb479",
+        "#e88471", "#cf597e"]},
     "RdYlGn": {"kind": DIVERGING, "cb_safe": False, "colors": [
         "#a50026", "#d73027", "#f46d43", "#fdae61", "#fee08b", "#ffffbf",
         "#d9ef8b", "#a6d96a", "#66bd63", "#1a9850", "#006837"]},
@@ -131,14 +152,42 @@ PALETTES: Dict[str, dict] = {
 _DEFAULTS = {SEQUENTIAL: "Viridis", DIVERGING: "RdBu", QUALITATIVE: "Set2"}
 
 
-def _hex_to_rgb(h: str):
-    h = h.lstrip("#")
-    return int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+def _hex_to_rgb(h: str) -> Tuple[int, int, int]:
+    h = h.strip().lstrip("#")
+    if len(h) == 3:
+        h = "".join(c * 2 for c in h)
+    if len(h) < 6:
+        return (0, 0, 0)
+    try:
+        return int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+    except ValueError:
+        return (0, 0, 0)
 
 
-def _rgb_to_hex(rgb) -> str:
+def _rgb_to_hex(rgb: Tuple[int, int, int] | List[int]) -> str:
     r, g, b = (max(0, min(255, int(round(c)))) for c in rgb)
     return f"#{r:02x}{g:02x}{b:02x}"
+
+
+def hex_to_rgb(h: str) -> Tuple[int, int, int]:
+    """Public helper to convert hex '#RRGGBB' to integer (r, g, b) in [0, 255]."""
+    return _hex_to_rgb(h)
+
+
+def rgb_to_hex(rgb: Tuple[int, int, int] | List[int]) -> str:
+    """Public helper to convert integer (r, g, b) to '#RRGGBB' hex."""
+    return _rgb_to_hex(rgb)
+
+
+def blend_colors(c1: str, c2: str, t: float = 0.5) -> str:
+    """Linearly blend two hex colours by parameter t in [0.0, 1.0]."""
+    t_clamped = max(0.0, min(1.0, float(t)))
+    r1, g1, b1 = _hex_to_rgb(c1)
+    r2, g2, b2 = _hex_to_rgb(c2)
+    r = r1 + (r2 - r1) * t_clamped
+    g = g1 + (g2 - g1) * t_clamped
+    b = b1 + (b2 - b1) * t_clamped
+    return _rgb_to_hex((r, g, b))
 
 
 def _sample_gradient(colors: List[str], n: int) -> List[str]:
@@ -159,6 +208,16 @@ def _sample_gradient(colors: List[str], n: int) -> List[str]:
         a, b = stops[lo], stops[hi]
         out.append(_rgb_to_hex(tuple(a[k] + (b[k] - a[k]) * frac for k in range(3))))
     return out
+
+
+def interpolate_palette(colors: List[str], n: int) -> List[str]:
+    """Public helper to interpolate an arbitrary sequence of hex colours to ``n`` steps."""
+    return _sample_gradient(colors, n)
+
+
+def reverse_palette(colors: List[str]) -> List[str]:
+    """Return a reversed copy of the color list."""
+    return list(reversed(colors))
 
 
 def get_palette(name: str, n: int) -> List[str]:

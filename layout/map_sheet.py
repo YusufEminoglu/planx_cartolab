@@ -42,15 +42,20 @@ except ImportError:
 from ..core.layout_math import page_size_mm
 from .layout_utils import unique_layout_name, north_arrow_svg_path
 
-# A real font fallback chain — QFont("A, B") treats the whole string as one
-# family name and matches nothing, so use setFamilies() for a true cascade.
-_FONT_FAMILIES = ["Inter", "Segoe UI", "Arial", "sans-serif"]
+# A real font fallback chain with standard installed Windows/Unix fonts
+_FONT_FAMILIES = ["Segoe UI", "Arial", "Helvetica", "sans-serif"]
 
 
-def _font(size: float, bold: bool = False) -> QFont:
-    f = QFont()
-    f.setFamilies(_FONT_FAMILIES)
-    f.setPointSizeF(float(size))
+def _font(size: float, bold: bool = False, family: str = "Segoe UI") -> QFont:
+    f = QFont(family, int(round(size)))
+    hint = getattr(getattr(QFont, "StyleHint", QFont), "SansSerif", getattr(QFont, "SansSerif", None))
+    if hint is not None and hasattr(f, "setStyleHint"):
+        with suppress(Exception):
+            f.setStyleHint(hint)
+    if hasattr(f, "setFamilies"):
+        f.setFamilies([family] + _FONT_FAMILIES)
+    if hasattr(f, "setPointSizeF"):
+        f.setPointSizeF(float(size))
     f.setBold(bold)
     return f
 
@@ -109,17 +114,35 @@ def create_map_sheet(
     preset: str = "swiss_modern",
     layout_name: str = "CartoLab Map Sheet",
     project: Optional[QgsProject] = None,
+    template: Optional[str] = None,
 ) -> QgsPrintLayout:
     """
-    Build and register a finished publication-ready map sheet.
+    Build and register a finished publication-ready map sheet or template archetype.
 
     Every element is optional via the ``add_*`` switches. Inputs left as
     ``None`` are resolved from ``iface`` (canvas layers / extent / CRS).
     Supports typography and styling presets ('swiss_modern', 'academic_serif', 'technical_blueprint', 'editorial_warm').
+    If ``template`` is specified ('report_figure', 'academic_journal', 'poster_exhibition', 'fact_sheet', 'side_by_side_diptych'),
+    delegates directly to the corresponding Template Gallery builder.
 
     Returns the :class:`QgsPrintLayout`, already added to the project's
     layout manager.
     """
+    if template:
+        from .template_gallery import create_template_layout
+        return create_template_layout(
+            template,
+            iface=iface,
+            layers=layers,
+            extent=extent,
+            crs=crs,
+            title=title or "CartoLab Map Sheet",
+            subtitle=subtitle,
+            credits=credits or "Cartography: Yusuf Eminoğlu · PlanX CartoLab",
+            layout_name=layout_name,
+            project=project,
+        )
+
     project = project or QgsProject.instance()
     layers = layers if layers is not None else _resolve_layers(iface, project)
     extent = extent if extent is not None else _resolve_extent(iface, layers)
@@ -190,19 +213,23 @@ def create_map_sheet(
         text = title or project.title() or "Map"
         label = QgsLayoutItemLabel(layout)
         label.setText(text)
-        label.setFont(_font(20, bold=True))
+        label.setBackgroundEnabled(False)
+        label.setFrameEnabled(False)
+        label.setFont(_font(18, bold=True))
         label.setFontColor(QColor("#0f172a"))
         label.attemptMove(QgsLayoutPoint(margin, margin, _MM))
-        label.attemptResize(QgsLayoutSize(page_w - 2 * margin, 10.0, _MM))
+        label.attemptResize(QgsLayoutSize(page_w - 2 * margin, 9.0, _MM))
         layout.addLayoutItem(label)
 
         if subtitle:
             sub = QgsLayoutItemLabel(layout)
             sub.setText(subtitle)
-            sub.setFont(_font(10))
+            sub.setBackgroundEnabled(False)
+            sub.setFrameEnabled(False)
+            sub.setFont(_font(9.5))
             sub.setFontColor(QColor("#475569"))
-            sub.attemptMove(QgsLayoutPoint(margin, margin + 9.0, _MM))
-            sub.attemptResize(QgsLayoutSize(page_w - 2 * margin, 6.0, _MM))
+            sub.attemptMove(QgsLayoutPoint(margin, margin + 9.5, _MM))
+            sub.attemptResize(QgsLayoutSize(page_w - 2 * margin, 5.5, _MM))
             layout.addLayoutItem(sub)
 
     # --- legend ----------------------------------------------------------
@@ -210,9 +237,22 @@ def create_map_sheet(
         legend = QgsLayoutItemLegend(layout)
         legend.setLinkedMap(map_item)
         legend.setLegendFilterByMapEnabled(True)
-        legend.setAutoUpdateModel(True)
         legend.setResizeToContents(True)
+        legend.setBackgroundEnabled(False)
+        legend.setFrameEnabled(False)
         legend.setTitle("")
+        if hasattr(legend, "rstyle"):
+            with suppress(Exception):
+                from qgis.core import QgsLegendStyle
+                for style_attr in ("Title", "Group", "Subgroup", "SymbolLabel"):
+                    style_enum = getattr(QgsLegendStyle, style_attr, getattr(getattr(QgsLegendStyle, "Style", None), style_attr, None))
+                    if style_enum is not None:
+                        tf = legend.rstyle(style_enum).textFormat()
+                        f = _font(9.0 if style_attr == "SymbolLabel" else 10.0)
+                        tf.setFont(f)
+                        tf.setColor(QColor("#0f172a"))
+                        legend.rstyle(style_enum).setTextFormat(tf)
+        legend.setAutoUpdateModel(False)
         legend.attemptMove(QgsLayoutPoint(map_x + map_w + gap, map_y, _MM))
         legend.attemptResize(QgsLayoutSize(legend_w, map_h, _MM))
         layout.addLayoutItem(legend)
@@ -224,6 +264,24 @@ def create_map_sheet(
         bar.applyDefaultSettings()
         bar.setStyle("Line Ticks Up" if preset == "swiss_modern" else "Single Box")
         bar.applyDefaultSize()
+
+        unit_km = getattr(QgsUnitTypes, "DistanceKilometers", getattr(getattr(QgsUnitTypes, "DistanceUnit", None), "DistanceKilometers", 1))
+        bar.setUnits(unit_km)
+        bar.setUnitLabel("km")
+        bar.setNumberOfSegments(2)
+        bar.setNumberOfSegmentsLeft(0)
+        bar.setBackgroundEnabled(False)
+        bar.setFrameEnabled(False)
+        ext = map_item.extent()
+        if ext and not ext.isEmpty():
+            map_w_km = ext.width() / 1000.0 if (hasattr(map_item, "crs") and map_item.crs().isValid() and not map_item.crs().isGeographic()) else 10.0
+            seg_km = max(1.0, round(map_w_km / 6.0))
+            bar.setUnitsPerSegment(seg_km)
+        with suppress(Exception):
+            tf_sb = bar.textFormat()
+            tf_sb.setFont(_font(8.0))
+            tf_sb.setColor(QColor("#0f172a"))
+            bar.setTextFormat(tf_sb)
         bar.attemptMove(
             QgsLayoutPoint(map_x, map_y + map_h + gap, _MM)
         )
@@ -237,6 +295,8 @@ def create_map_sheet(
     if credits:
         cred = QgsLayoutItemLabel(layout)
         cred.setText(credits)
+        cred.setBackgroundEnabled(False)
+        cred.setFrameEnabled(False)
         cred.setFont(_font(8))
         cred.setFontColor(QColor("#64748b"))
         cred.attemptResize(QgsLayoutSize(map_w * 0.6, bottom_h, _MM))
@@ -245,32 +305,27 @@ def create_map_sheet(
         )
         layout.addLayoutItem(cred)
 
-    # Apply typography hierarchy preset if specified
+    # Apply paper theme and typography hierarchy preset if specified
     if preset:
         with suppress(Exception):
             from .typography_engine import apply_typography_hierarchy
             apply_typography_hierarchy(layout, preset=preset)
+        with suppress(Exception):
+            from .paper_themes import apply_paper_theme
+            apply_paper_theme(layout, theme_key=preset)
 
     project.layoutManager().addLayout(layout)
     layout.refresh()
     return layout
 
 
-def _add_north_arrow(layout, x: float, y: float, size: float = 13.0) -> None:
-    """Add a north-arrow picture; fall back to a drawn arrow if no SVG."""
-    svg = north_arrow_svg_path()
-    if svg:
-        pic = QgsLayoutItemPicture(layout)
-        pic.setPicturePath(svg)
-        pic.attemptResize(QgsLayoutSize(size, size, _MM))
-        pic.attemptMove(QgsLayoutPoint(x, y, _MM))
-        layout.addLayoutItem(pic)
-        return
+def _add_north_arrow(layout, x: float, y: float, size: float = 12.0) -> None:
+    """Add a crisp vector north arrow with Segoe UI typography."""
     _add_drawn_north_arrow(layout, x, y, size)
 
 
-def _add_drawn_north_arrow(layout, x: float, y: float, size: float) -> None:
-    """Vector fallback: a filled triangle plus an 'N' label."""
+def _add_drawn_north_arrow(layout, x: float, y: float, size: float = 12.0, color: str = "#0f172a") -> None:
+    """Vector north arrow: a filled triangle plus an 'N' label."""
     half = size / 2.0
     poly = QPolygonF([
         QPointF(x + half, y),
@@ -279,15 +334,24 @@ def _add_drawn_north_arrow(layout, x: float, y: float, size: float) -> None:
         QPointF(x, y + size),
     ])
     arrow = QgsLayoutItemPolygon(poly, layout)
-    sym = QgsFillSymbol.createSimple({
-        "color": "#1b2733", "outline_color": "#1b2733", "outline_width": "0.2",
-    })
-    arrow.setSymbol(sym)
+    arrow.setId("cartolab_north_arrow")
+    arrow.setBackgroundEnabled(False)
+    arrow.setFrameEnabled(False)
+    if QgsFillSymbol:
+        sym = QgsFillSymbol.createSimple({
+            "color": color, "outline_color": color, "outline_width": "0.2",
+        })
+        if sym:
+            arrow.setSymbol(sym)
     layout.addLayoutItem(arrow)
 
     label = QgsLayoutItemLabel(layout)
+    label.setId("cartolab_north_arrow_label")
     label.setText("N")
-    label.setFont(_font(9, bold=True))
+    label.setBackgroundEnabled(False)
+    label.setFrameEnabled(False)
+    label.setFont(_font(8.5, bold=True))
+    label.setFontColor(QColor(color))
     label.adjustSizeToText()
-    label.attemptMove(QgsLayoutPoint(x + half - 2.0, y - 5.0, _MM))
+    label.attemptMove(QgsLayoutPoint(x + half - 2.5, y - 4.5, _MM))
     layout.addLayoutItem(label)

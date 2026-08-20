@@ -51,7 +51,7 @@ Everything is reachable from the **CartoLab Dashboard** (`Plugins → PlanX Cart
 | Module | What it does | Surface |
 |---|---|---|
 | **Quick Style** | One click: graduated (numeric) or categorized (text) renderer with quantile / equal-interval / geometric-interval breaks and a colour-palette picker | Dashboard panel + Processing |
-| **Colour Palettes** | ColorBrewer + colour-blind-safe viridis/magma/plasma/inferno/cividis, sampled to any class count, with a colour-blind-safe filter | Quick Style panel |
+| **Colour Palettes & Accessibility** | 24+ ramps (ColorBrewer + Scientific viridis/magma/cividis) with live 5-mode CVD simulation (Deuteranopia, Protanopia, Tritanopia, Achromatopsia) and WCAG 2.1 contrast scoring | Dashboard → Symbology Studio |
 | **2.5D Building Styling** | Height/floor-field extrusion, material presets, shadows, wall shading, stepped floors, per-floor colour bands, QML export | Dashboard panel + Processing |
 | **Bivariate Choropleth** | Two variables, one map; 3×3 palettes incl. custom corner colours; diamond/square legends | Processing + layout |
 | **Value-by-Alpha** | Value drives hue, reliability drives opacity | Processing |
@@ -64,10 +64,10 @@ Everything is reachable from the **CartoLab Dashboard** (`Plugins → PlanX Cart
 | **Visual-Center Label Points** | Pole-of-inaccessibility (polylabel) anchors that always sit inside the shape | Processing |
 | **Graticule / Reference Grid** | Meridians & parallels on nice intervals, each carrying a coordinate label | Processing |
 | **Choropleth Normalization & Rates** | Rate, z-score, robust z, min-max, percentile rank, log — prep before classifying | Processing |
-| **Feature Inspector** | Floating HTML feature cards with radar-style attribute charts | Dashboard |
-| **Auto Map Sheet** | Complete print layout from the current view — map, legend, scale bar, north arrow, grid, credits — in one click | Dashboard → Layout |
-| **Layout Manager** | List, open, duplicate, delete and export (PNG / PDF / SVG, 96–600 dpi) project layouts | Dashboard → Layout |
-| **Layout Decorators** | Native bivariate legends, isometric layer stacks, idempotent minimalist grids, typography hierarchy | Dashboard → Layout |
+| **Layout Template Gallery** | 5 publication archetypes: Report Figure (16:9), Academic Journal (2-col), Exhibition Poster (A1/A2), Fact Sheet, Comparative Diptych | Dashboard → Layout Studio |
+| **Auto Map Sheet** | Complete print layout from the current view — map, legend, scale bar, north arrow, grid, credits — in one click | Dashboard → Layout Studio |
+| **Layout Manager** | List, open, duplicate, delete and export (PNG / PDF / SVG, 96–600 dpi) project layouts | Dashboard → Layout Studio |
+| **Layout Decorators** | Native bivariate legends, 3D isometric layer stacks, idempotent minimalist grids, typography hierarchy, paper themes | Dashboard → Layout Studio |
 
 ---
 

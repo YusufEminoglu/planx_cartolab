@@ -118,6 +118,9 @@ from planx_cartolab.core import normalize as norm
 from planx_cartolab.core import layout_math as lm
 from planx_cartolab.core import palettes as pal
 from planx_cartolab.core import quick_style as qs
+from planx_cartolab.core import color_accessibility as ca
+from planx_cartolab.core import sun_lighting as sl
+from planx_cartolab.core import publication_styler as ps
 
 # ---------------------------------------------------------------------------
 # Test framework
@@ -197,6 +200,46 @@ check("Fisher-Jenks skewed ok", len(fj_skew) == 5)
 fj_many_classes = be.fisher_jenks_breaks(NORMAL, len(NORMAL) - 1)
 check("Fisher-Jenks many classes ok", len(fj_many_classes) == len(NORMAL))
 
+# -- Standard Deviation Breaks --
+sdb = be.standard_deviation_breaks(NORMAL, 5)
+check("Standard Deviation returns >= 2 breaks", len(sdb) >= 2, str(sdb))
+check("Standard Deviation monotonic", all(sdb[i] < sdb[i+1] for i in range(len(sdb)-1)))
+check("Standard Deviation spans bounds", sdb[0] == min(NORMAL) and sdb[-1] >= max(NORMAL))
+
+sdb_neg = be.standard_deviation_breaks(NEGATIVE, 4)
+check("Standard Deviation handles negative", len(sdb_neg) >= 2 and sdb_neg[0] == min(NEGATIVE))
+
+sdb_same = be.standard_deviation_breaks([10, 10, 10, 10], 5)
+check("Standard Deviation handles constant", len(sdb_same) == 2)
+
+sdb_custom_std = be.standard_deviation_breaks(NORMAL, 5, interval_std=1.0)
+check("Standard Deviation custom interval", len(sdb_custom_std) >= 2)
+
+# -- Box Plot / Tukey Breaks --
+bpb = be.box_plot_breaks(NORMAL)
+check("Box Plot returns >= 3 breaks", len(bpb) >= 3, str(bpb))
+check("Box Plot monotonic", all(bpb[i] < bpb[i+1] for i in range(len(bpb)-1)))
+check("Box Plot spans bounds", bpb[0] == min(NORMAL) and bpb[-1] >= max(NORMAL))
+
+bpb_outliers = be.box_plot_breaks([-100, 10, 12, 14, 15, 16, 18, 20, 500], iqr_multiplier=1.5)
+check("Box Plot isolates extreme outliers", bpb_outliers[0] == -100 and bpb_outliers[-1] >= 500)
+
+tukey_b = be.tukey_breaks(NORMAL)
+check("Tukey alias matches box plot", tukey_b == bpb)
+
+bpb_small = be.box_plot_breaks([1, 2, 3])
+check("Box Plot handles small dataset", len(bpb_small) == 2)
+
+# -- Equal Area / Quantile Refinement --
+eab = be.equal_area_breaks(NORMAL, n_classes=5)
+check("Equal area unweighted returns n+1 breaks", len(eab) == 6, str(eab))
+check("Equal area unweighted monotonic", all(eab[i] < eab[i+1] for i in range(len(eab)-1)))
+
+weights = [100, 100, 100, 100]
+eab_w = be.equal_area_breaks([10, 20, 30, 40], weights=weights, n_classes=4)
+check("Equal area weighted returns breaks", len(eab_w) == 5, str(eab_w))
+check("Equal area weighted monotonic", all(eab_w[i] < eab_w[i+1] for i in range(len(eab_w)-1)))
+
 # -- _validate_values --
 try:
     be._validate_values([])
@@ -227,6 +270,7 @@ check("Colour matrix 2x2", len(m1) == 2 and len(m1[0]) == 2)
 
 check("BIVARIATE_PALETTE_PRESETS has teal_brown", "teal_brown" in be.BIVARIATE_PALETTE_PRESETS)
 check("BIVARIATE_PALETTE_PRESETS has stevens_pink_cyan", "stevens_pink_cyan" in be.BIVARIATE_PALETTE_PRESETS)
+check("BIVARIATE_PALETTE_PRESETS has pink_green", "pink_green" in be.BIVARIATE_PALETTE_PRESETS)
 m_hex = be.bivariate_colour_matrix_hex(3, "#e8e8e8", "#5ab4ac", "#d8b365", "#8c510a")
 check("bivariate_colour_matrix_hex returns 3x3 hex strings", len(m_hex) == 3 and len(m_hex[0]) == 3 and m_hex[0][0].startswith("#"))
 m_hex_preset = be.bivariate_colour_matrix_hex(size=4, preset="teal_brown")
@@ -285,7 +329,6 @@ check("iso offsets dx zero", all(dx == 0.0 for dx, _ in offsets))
 # ===================================================================
 section("Cartogram Engine")
 
-# Create mock geometry for CartogramFeature
 mock_geom = FakeGeometry("POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0))")
 cf = ce.CartogramFeature(1, mock_geom, 25.0)
 check("CartogramFeature created", cf.id == 1)
@@ -468,8 +511,6 @@ check("symbol_size monotonic", psym.symbol_size(25, 100, 8.0) < psym.symbol_size
 check("symbol_size within bounds", 1.0 <= psym.symbol_size(40, 100, 8.0, 1.0) <= 8.0)
 check("symbol_size flannery differs from linear",
       abs(psym.symbol_size(25, 100, 8.0, 0.0, True) - psym.symbol_size(25, 100, 8.0, 0.0, False)) > 1e-6)
-# Flannery exponent (0.5716 > 0.5) shrinks sub-max circles vs true-area scaling,
-# widening the visual spread so large values stand out.
 check("symbol_size flannery more spread at mid", psym.symbol_size(25, 100, 8.0, 0.0, True) < psym.symbol_size(25, 100, 8.0, 0.0, False))
 check("symbol_size bad vmax", psym.symbol_size(5, 0, 8.0, 1.0) == 1.0)
 check("symbol_size clamps over-max", abs(psym.symbol_size(200, 100, 8.0) - 8.0) < 1e-9)
@@ -492,10 +533,8 @@ for q, r in [(0, 0), (2, 1), (-3, 4), (5, -2), (10, -7)]:
     cx, cy = hxg.cell_center(q, r, 3.0)
     check(f"hex round-trip ({q},{r})", hxg.point_to_cell(cx, cy, 3.0) == (q, r),
           f"{hxg.point_to_cell(cx, cy, 3.0)}")
-# a point near a centre maps to that cell
 cx0, cy0 = hxg.cell_center(4, 4, 5.0)
 check("hex point near centre maps to cell", hxg.point_to_cell(cx0 + 0.4, cy0 - 0.4, 5.0) == (4, 4))
-# distinct nearby points fall into a small set of neighbouring cells
 cells = {hxg.point_to_cell(x * 0.5, y * 0.5, 2.0) for x in range(20) for y in range(20)}
 check("hex binning many points", len(cells) >= 4)
 verts = hxg.hex_vertices(10, 10, 4.0)
@@ -517,7 +556,6 @@ ax, ay, ad = lblp.polylabel([LSHAPE], 0.1)
 check("polylabel L-shape inside", lblp.point_to_polygon_dist(ax, ay, [LSHAPE]) > 0)
 check("polylabel L-shape positive dist", ad > 0)
 
-# polylabel avoids a hole: pole should not land in the hole
 hx2, hy2, hd2 = lblp.polylabel([SQUARE, HOLE], 0.1)
 check("polylabel avoids hole", not dd.point_in_polygon([HOLE], hx2, hy2), f"({hx2:.2f},{hy2:.2f})")
 check("polylabel degenerate ring", lblp.polylabel([[(0, 0), (1, 1)]])[2] == 0.0)
@@ -525,7 +563,6 @@ check("polylabel degenerate ring", lblp.polylabel([[(0, 0), (1, 1)]])[2] == 0.0)
 check("point_to_polygon_dist outside negative", lblp.point_to_polygon_dist(20, 20, [SQUARE]) < 0)
 check("seg dist sq basic", abs(lblp._seg_dist_sq(0, 0, 3, 0, 3, 4) - 9.0) < 1e-9)
 
-# polygon orientation tests
 RECT_H = [(0, 0), (100, 0), (100, 10), (0, 10)]
 deg_h = lblp.polygon_orientation_angle(RECT_H)
 check("orientation angle horizontal rectangle is near 0", abs(deg_h) < 5.0, str(deg_h))
@@ -555,8 +592,8 @@ check("format_coord decimal", grat.format_coord(20.5) == "20.5")
 glines = grat.graticule_lines(0, 0, 100, 80, 20, 20)
 mer = [g for g in glines if g["orientation"] == "meridian"]
 par = [g for g in glines if g["orientation"] == "parallel"]
-check("graticule meridian count", len(mer) == 6, str(len(mer)))  # 0,20,40,60,80,100
-check("graticule parallel count", len(par) == 5, str(len(par)))  # 0,20,40,60,80
+check("graticule meridian count", len(mer) == 6, str(len(mer)))
+check("graticule parallel count", len(par) == 5, str(len(par)))
 check("graticule each line 2 points", all(len(g["points"]) == 2 for g in glines))
 check("graticule meridian spans y", mer[0]["points"][0][1] == 0 and mer[0]["points"][1][1] == 80)
 check("graticule points within extent",
@@ -607,14 +644,34 @@ check("winsorized_min_max caps extreme outlier", wmm[-1] == 1.0 and wmm[0] == 0.
 dr = norm.decile_rank([10, 20, 30, 40, 50, 60, 70, 80, 90, 100])
 check("decile_rank assigns deciles 1 to 10", dr[0] == 1 and dr[-1] == 10, str(dr))
 
-check("normalize methods catalogue", len(norm.METHODS) >= 9)
+# -- New transforms: sigmoid, power_transform, quantile_normalize --
+sig = norm.sigmoid_scale([10, 20, 30, 40, 50])
+check("sigmoid_scale bounds in 0-1", all(0.0 <= s <= 1.0 for s in sig if s is not None))
+check("sigmoid_scale preserves None", norm.sigmoid_scale([10, None, 30])[1] is None)
+
+pw = norm.power_transform([1, 4, 9, 16, 25], lmbda=0.5)
+check("power_transform computes square root transform", len(pw) == 5 and all(p is not None for p in pw))
+
+pw_log = norm.power_transform([1, 10, 100], lmbda=0.0)
+check("power_transform lmbda=0 falls back to log", abs(pw_log[0] - 0.0) < 0.01)
+
+qn = norm.quantile_normalize([10, 20, 30, 40, 50])
+check("quantile_normalize produces uniform [0, 1]", qn[0] == 0.1 and qn[-1] == 0.9, str(qn))
+
+riqr = norm.robust_iqr([10, 20, 30, 40, 50])
+check("robust_iqr median centred", abs(riqr[2]) < 1e-6, str(riqr))
+check("robust_iqr monotonic", riqr[0] < riqr[1] < riqr[2] < riqr[3] < riqr[4])
+
+thr = norm.tukey_hinge_rank([-100, 10, 20, 30, 40, 500])
+check("tukey_hinge_rank assigns classes 1 to 6", thr[0] == 1 and thr[-1] == 6, str(thr))
+
+check("normalize methods catalogue >= 14", len(norm.METHODS) >= 14)
 
 # ===================================================================
-# LAYOUT MATH — nice intervals, unique names, page geometry
+# 13. LAYOUT MATH — nice intervals, unique names, page geometry
 # ===================================================================
 section("Layout Math")
 
-# nice_number snaps to 1/2/5 x 10^n
 check("nice_number 625 -> 500", lm.nice_number(625) == 500.0, str(lm.nice_number(625)))
 check("nice_number 8 -> 10", lm.nice_number(8) == 10.0, str(lm.nice_number(8)))
 check("nice_number 0.0043 -> 0.005",
@@ -623,7 +680,6 @@ check("nice_number ceil 2.1 -> 5", lm.nice_number(2.1, round_down=False) == 5.0,
       str(lm.nice_number(2.1, round_down=False)))
 check("nice_number nonpositive -> 0", lm.nice_number(0) == 0.0 and lm.nice_number(-5) == 0.0)
 
-# nice_interval divides a span into ~target parts, at any scale
 iv = lm.nice_interval(5000.0, 8)
 check("nice_interval 5000/8 rounded", iv == 500.0, str(iv))
 check("nice_interval splits span into >=5 parts", 5000.0 / iv >= 5, str(5000.0 / iv))
@@ -631,14 +687,12 @@ check("nice_interval degrees span", lm.nice_interval(0.05, 8) > 0, str(lm.nice_i
 check("nice_interval zero span -> 0", lm.nice_interval(0, 8) == 0.0)
 check("nice_interval negative span -> 0", lm.nice_interval(-100, 8) == 0.0)
 
-# unique_name never collides
 check("unique_name free base", lm.unique_name(["a", "b"], "Map") == "Map")
 check("unique_name first collision -> 2", lm.unique_name(["Map"], "Map") == "Map 2")
 check("unique_name chained collisions",
       lm.unique_name(["Map", "Map 2", "Map 3"], "Map") == "Map 4",
       lm.unique_name(["Map", "Map 2", "Map 3"], "Map"))
 
-# page_size_mm portrait/landscape + fallback
 check("page A4 portrait", lm.page_size_mm("A4", landscape=False) == (210.0, 297.0))
 check("page A4 landscape swaps axes", lm.page_size_mm("A4", landscape=True) == (297.0, 210.0))
 check("page unknown falls back to A4",
@@ -646,7 +700,7 @@ check("page unknown falls back to A4",
 check("page A3 landscape", lm.page_size_mm("A3", landscape=True) == (420.0, 297.0))
 
 # ===================================================================
-# PALETTES — ColorBrewer + scientific colour ramps
+# 14. PALETTES — ColorBrewer + scientific colour ramps
 # ===================================================================
 section("Palettes")
 
@@ -680,7 +734,14 @@ check("qualitative first three exact",
 check("qualitative cycles when n>len",
       len(pal.get_palette("Set2", 20)) == 20)
 
-# colour-blind safety flags
+# colour-blind safety flags for new & classic ramps
+check("batlow is cb-safe", pal.is_colorblind_safe("Batlow"))
+check("twilight is cb-safe", pal.is_colorblind_safe("Twilight"))
+check("sunset is cb-safe", pal.is_colorblind_safe("Sunset"))
+check("roma is cb-safe", pal.is_colorblind_safe("Roma"))
+check("tealrose is cb-safe", pal.is_colorblind_safe("TealRose"))
+check("bamako is cb-safe", pal.is_colorblind_safe("Bamako"))
+check("nuuk is cb-safe", pal.is_colorblind_safe("Nuuk"))
 check("viridis is cb-safe", pal.is_colorblind_safe("Viridis"))
 check("mako is cb-safe", pal.is_colorblind_safe("Mako"))
 check("rocket is cb-safe", pal.is_colorblind_safe("Rocket"))
@@ -690,12 +751,29 @@ check("turbo is not cb-safe", not pal.is_colorblind_safe("Turbo"))
 check("spectral is not cb-safe", not pal.is_colorblind_safe("Spectral"))
 check("RdYlGn not cb-safe (red-green)", not pal.is_colorblind_safe("RdYlGn"))
 
+# Batlow, Twilight, Sunset specific tests
+batlow_5 = pal.get_palette("Batlow", 5)
+check("Batlow samples 5 colors", len(batlow_5) == 5 and all(_is_hex(c) for c in batlow_5))
+
+twilight_7 = pal.get_palette("Twilight", 7)
+check("Twilight samples 7 colors", len(twilight_7) == 7 and all(_is_hex(c) for c in twilight_7))
+
+sunset_6 = pal.get_palette("Sunset", 6)
+check("Sunset samples 6 colors", len(sunset_6) == 6 and all(_is_hex(c) for c in sunset_6))
+
+# Helper functions in palettes
+check("reverse_palette reverses list", pal.reverse_palette(["#111111", "#222222"]) == ["#222222", "#111111"])
+check("interpolate_palette interpolates", len(pal.interpolate_palette(["#000000", "#ffffff"], 5)) == 5)
+check("blend_colors 50% blend", pal.blend_colors("#000000", "#ffffff", 0.5) == "#808080")
+check("hex_to_rgb conversion", pal.hex_to_rgb("#ff8000") == (255, 128, 0))
+check("rgb_to_hex conversion", pal.rgb_to_hex((255, 128, 0)) == "#ff8000")
+
 # listing + filters
 check("list all non-empty", len(pal.list_palettes()) == len(pal.PALETTES))
 check("list sequential only", all(pal.palette_kind(n) == pal.SEQUENTIAL
                                   for n in pal.list_palettes(kind=pal.SEQUENTIAL)))
 check("list cb-safe excludes Spectral", "Spectral" not in pal.list_palettes(cb_safe_only=True))
-check("list cb-safe includes Viridis", "Viridis" in pal.list_palettes(cb_safe_only=True))
+check("list cb-safe includes Batlow", "Batlow" in pal.list_palettes(cb_safe_only=True))
 
 # defaults + unknown handling
 check("default sequential is Viridis", pal.default_palette(pal.SEQUENTIAL) == "Viridis")
@@ -707,7 +785,7 @@ except ValueError:
     check("unknown palette raises", True)
 
 # ===================================================================
-# QUICK STYLE — class breaks
+# 15. QUICK STYLE — class breaks
 # ===================================================================
 section("Quick Style")
 
@@ -736,6 +814,15 @@ check("head_tail breaks returns edges", len(htb) >= 2)
 sdb = qs.std_dev_breaks(vals, 5)
 check("std_dev breaks returns edges", len(sdb) >= 2)
 
+bpb_qs = qs.box_plot_breaks(vals, 5)
+check("box_plot_breaks returns edges", len(bpb_qs) >= 3 and bpb_qs[0] == 1 and bpb_qs[-1] >= 10)
+
+tukey_qs = qs.tukey_breaks(vals)
+check("tukey_breaks returns edges", len(tukey_qs) >= 3)
+
+eab_qs = qs.equal_area_breaks(vals, n=4)
+check("equal_area_breaks returns edges", len(eab_qs) == 5)
+
 mb = qs.maximum_breaks([1, 2, 3, 10, 11, 12, 100, 101, 102], 3)
 check("maximum_breaks splits at largest gaps", len(mb) >= 3 and mb[0] == 1 and mb[-1] == 102)
 
@@ -748,6 +835,12 @@ cb_max = qs.compute_breaks(vals, qs.MAXIMUM, 3)
 check("compute_breaks with maximum breaks works", len(cb_max) >= 3)
 cb_pretty = qs.compute_breaks(vals, qs.PRETTY, 4)
 check("compute_breaks with pretty breaks works", len(cb_pretty) >= 3)
+cb_bp = qs.compute_breaks(vals, qs.BOX_PLOT, 5)
+check("compute_breaks with box plot works", len(cb_bp) >= 3)
+cb_ea = qs.compute_breaks(vals, qs.EQUAL_AREA, 4)
+check("compute_breaks with equal area works", len(cb_ea) == 5)
+cb_sd = qs.compute_breaks(vals, qs.STD_DEV, 5)
+check("compute_breaks with std dev works", len(cb_sd) >= 2)
 
 check("dedupe drops zero-width", qs.dedupe_edges([1, 1, 2, 3, 3]) == [1, 2, 3])
 check("edges_to_ranges pairs", qs.edges_to_ranges([0, 1, 2, 3]) ==
@@ -756,7 +849,7 @@ check("edges_to_ranges skips dup class",
       qs.edges_to_ranges([0, 0, 1, 2]) == [(0, 1), (1, 2)])
 
 # ===================================================================
-# PRINT LAYOUT DESIGNER INTEGRATION
+# 16. PRINT LAYOUT DESIGNER INTEGRATION
 # ===================================================================
 section("Print Layout Designer Integration")
 from planx_cartolab.layout import designer_integration as di
@@ -765,7 +858,7 @@ check("designer_integration attach function exists", callable(di.attach_cartolab
 check("designer_integration dock creator exists", callable(di.create_cartolab_layout_dock))
 
 # ===================================================================
-# PAPER CANVASS THEMES
+# 17. PAPER CANVAS THEMES
 # ===================================================================
 section("Paper Canvas Themes")
 from planx_cartolab.layout import paper_themes as pt
@@ -779,17 +872,19 @@ check("japanese_washi theme exists", "japanese_washi" in pt.PAPER_THEMES)
 check("apply_paper_theme function exists", callable(pt.apply_paper_theme))
 
 # ===================================================================
-# PUBLICATION AUTO-STYLER ENGINE
+# 18. PUBLICATION AUTO-STYLER ENGINE
 # ===================================================================
 section("Publication Auto-Styler Engine")
-from planx_cartolab.core import publication_styler as ps
 check("auto_style_layer function exists", callable(ps.auto_style_layer))
 check("style_choropleth_layer function exists", callable(ps.style_choropleth_layer))
 check("style_cartogram_layer function exists", callable(ps.style_cartogram_layer))
 check("style_dot_density_layer function exists", callable(ps.style_dot_density_layer))
+check("style_25d_layer function exists", callable(ps.style_25d_layer))
+check("auto_style_layer handles None safely", ps.auto_style_layer(None) is False)
+check("auto_style_layer 25d handles None safely", ps.auto_style_layer(None, "25d") is False)
 
 # ===================================================================
-# VERTICAL SIDEBAR NAVIGATION WORKSPACE
+# 19. VERTICAL SIDEBAR NAVIGATION WORKSPACE
 # ===================================================================
 section("Vertical Sidebar Navigation Workspace")
 from planx_cartolab.ui import cartolab_dashboard as cd
@@ -815,25 +910,74 @@ check("apply_coordinate_grid_decorator function exists", callable(cg.apply_coord
 from planx_cartolab.layout import layout_optimizer as lo
 check("optimize_layout_visual_balance function exists", callable(lo.optimize_layout_visual_balance))
 
+# ===================================================================
+# 20. COLOR ACCESSIBILITY & CONTRAST ENGINE
+# ===================================================================
 section("Color Accessibility & Contrast Engine")
-from planx_cartolab.core import color_accessibility as ca
 check("relative_luminance black is 0.0", abs(ca.relative_luminance("#000000") - 0.0) < 0.001)
 check("relative_luminance white is 1.0", abs(ca.relative_luminance("#ffffff") - 1.0) < 0.001)
 cr = ca.contrast_ratio("#ffffff", "#000000")
 check("contrast_ratio B/W is 21.0", abs(cr - 21.0) < 0.01)
 sim_d = ca.simulate_cvd_hex("#ff0000", "deuteranopia")
 check("CVD simulation returns valid hex", sim_d.startswith("#") and len(sim_d) == 7)
+
+# CVD severity simulations
+sim_p_half = ca.simulate_cvd_hex("#ff0000", "protanopia", severity=0.5)
+check("CVD severity 0.5 returns valid hex", sim_p_half.startswith("#") and len(sim_p_half) == 7)
+sim_anom = ca.simulate_cvd_hex("#00ff00", "deuteranomaly")
+check("CVD anomaly returns valid hex", sim_anom.startswith("#") and len(sim_anom) == 7)
+
+# WCAG 2.1 detailed evaluation
+wcag_eval = ca.evaluate_wcag_contrast("#000000", "#ffffff", font_size_pt=10, is_bold=False)
+check("evaluate_wcag_contrast B/W passes AA", wcag_eval["passes_aa"] is True)
+check("evaluate_wcag_contrast B/W passes AAA", wcag_eval["passes_aaa"] is True)
+check("evaluate_wcag_contrast normal text flag", wcag_eval["aa_normal_text"] is True)
+
+wcag_large = ca.evaluate_wcag_contrast("#777777", "#ffffff", font_size_pt=18, is_bold=False)
+check("evaluate_wcag_contrast large text detected", wcag_large["is_large_text"] is True)
+
+# Suggest accessible color
+sug_dark = ca.suggest_accessible_color("#888888", "#ffffff", target_ratio=4.5)
+check("suggest_accessible_color meets target ratio on light bg", ca.contrast_ratio(sug_dark, "#ffffff") >= 4.5)
+
+sug_light = ca.suggest_accessible_color("#888888", "#000000", target_ratio=4.5)
+check("suggest_accessible_color meets target ratio on dark bg", ca.contrast_ratio(sug_light, "#000000") >= 4.5)
+
 eval_res = ca.evaluate_palette_accessibility(["#ffffff", "#3b82f6", "#0f172a"])
 check("evaluate_palette_accessibility has rating", "rating" in eval_res and "min_step_contrast" in eval_res)
+check("evaluate_palette_accessibility has CVD distinctness", "deuteranopia" in eval_res["cvd_distinct"])
 
+# CIE L*a*b* & Delta E
+delta_e_same = ca.delta_e_cie76("#123456", "#123456")
+check("Delta E same color is 0", abs(delta_e_same) < 0.001)
+
+delta_e_diff = ca.delta_e_cie76("#000000", "#ffffff")
+check("Delta E black vs white is ~100", delta_e_diff > 80.0)
+
+# ===================================================================
+# 21. SOLAR POSITION & 2.5D ARCHITECTURAL LIGHTING
+# ===================================================================
 section("Solar Position & 2.5D Architectural Lighting")
-from planx_cartolab.core import sun_lighting as sl
 alt, az = sl.calculate_solar_position(latitude_deg=38.4, day_of_year=172, solar_hour=12.5)
 check("solar altitude at noon is positive", alt > 60.0)
 check("solar azimuth is valid degree", 0.0 <= az <= 360.0)
 sun_res = sl.solar_to_25d_lighting(latitude_deg=38.4, season="summer_solstice", time_preset="afternoon_studio")
 check("solar_to_25d_lighting returns shadow multiplier", "shadow_length_mult" in sun_res and sun_res["shadow_length_mult"] > 0)
 
+# Lambertian shading contrast & shadow vectors
+contrast = sl.calculate_solar_shading_contrast(45.0, 180.0, aspect_deg=180.0, slope_deg=30.0)
+check("solar shading contrast in [0, 1]", 0.0 <= contrast <= 1.0)
+
+dx, dy, length = sl.calculate_shadow_vector(45.0, 180.0, height=20.0)
+check("shadow vector length positive", length > 0.0)
+
+check("SOLAR_TIMES has dawn_crisp", "dawn_crisp" in sl.SOLAR_TIMES)
+check("SOLAR_SEASONS has autumn_equinox", "autumn_equinox" in sl.SOLAR_SEASONS)
+
+# ===================================================================
+# 22. LAYOUT & EXTENSION TOOLS
+# ===================================================================
+section("Layout & Extension Tools")
 from planx_cartolab.layout import atlas_builder as ab
 check("setup_layout_atlas function exists", callable(ab.setup_layout_atlas))
 
@@ -847,17 +991,6 @@ check("25D preset emerald_metropolis exists", "emerald_metropolis" in q25.STYLE_
 check("25D preset terracotta_mediterranean exists", "terracotta_mediterranean" in q25.STYLE_25D_PRESETS)
 check("25D floor palette turbo_height exists", "turbo_height" in q25.FLOOR_BAND_PALETTES)
 check("25D floor palette viridis_height exists", "viridis_height" in q25.FLOOR_BAND_PALETTES)
-
-
-
-
-
-
-
-
-
-
-
 
 from planx_cartolab.core.utils import safe_float, safe_int
 check("safe_float cleans meter suffix '8 m'", safe_float("8 m") == 8.0)
@@ -877,10 +1010,47 @@ from planx_cartolab.ui import floating_annotation as fa
 check("FloatingAnnotationTool class exists", hasattr(fa, "FloatingAnnotationTool"))
 
 # ===================================================================
+# 23. TEMPLATE GALLERY & PUBLICATION ARCHETYPES
+# ===================================================================
+section("Template Gallery & Publication Archetypes")
+from planx_cartolab.layout import template_gallery as tg
+check("TEMPLATE_GALLERY exists and has 5 archetypes", len(tg.TEMPLATE_GALLERY) == 5)
+check("report_figure template registered", "report_figure" in tg.TEMPLATE_GALLERY)
+check("academic_journal template registered", "academic_journal" in tg.TEMPLATE_GALLERY)
+check("exhibition_poster template registered", "exhibition_poster" in tg.TEMPLATE_GALLERY and tg.get_template_info("poster_exhibition") is not None)
+check("fact_sheet template registered", "fact_sheet" in tg.TEMPLATE_GALLERY)
+check("diptych template registered", "diptych" in tg.TEMPLATE_GALLERY and tg.get_template_info("side_by_side_diptych") is not None)
+
+check("create_report_figure is callable", callable(tg.create_report_figure))
+check("create_academic_journal is callable", callable(tg.create_academic_journal))
+check("create_exhibition_poster is callable", callable(tg.create_exhibition_poster))
+check("create_fact_sheet is callable", callable(tg.create_fact_sheet))
+check("create_diptych is callable", callable(tg.create_diptych))
+check("create_template_layout is callable", callable(tg.create_template_layout))
+
+# Verify schema of each template in gallery
+for tkey, tinfo in tg.TEMPLATE_GALLERY.items():
+    check(f"template {tkey} has valid name", isinstance(tinfo.get("name"), str) and len(tinfo["name"]) > 0)
+    check(f"template {tkey} has category", isinstance(tinfo.get("category"), str))
+    check(f"template {tkey} has tagline", isinstance(tinfo.get("tagline"), str))
+    check(f"template {tkey} has description", isinstance(tinfo.get("description"), str))
+    check(f"template {tkey} has features list", isinstance(tinfo.get("features"), list) and len(tinfo["features"]) >= 3)
+    check(f"template {tkey} has callable builder", callable(tinfo.get("builder")))
+    check(f"template {tkey} has default_page", tinfo.get("default_page") in ("A4", "A3", "A2", "A1", "A0", "16:9"))
+
+try:
+    tg.create_template_layout("invalid_template_id")
+    check("create_template_layout raises on invalid id", False)
+except ValueError:
+    check("create_template_layout raises on invalid id", True)
+
+# ===================================================================
 # SUMMARY
 # ===================================================================
 section("RESULTS")
 total = passed + failed
+print(f"Total tests: {total}, Passed: {passed}, Failed: {failed}")
+
 def test_all_cartolab_core_modules():
     assert failed == 0, f"{failed} core tests failed"
 
@@ -889,5 +1059,4 @@ if __name__ == "__main__":
         sys.exit(1)
     else:
         sys.exit(0)
-
 

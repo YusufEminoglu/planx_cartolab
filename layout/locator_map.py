@@ -88,8 +88,17 @@ def add_locator_inset_map(
     if hasattr(inset_map, "setFrameStrokeColor") and QColor:
         inset_map.setFrameStrokeColor(QColor(border_color))
         inset_map.setFrameStrokeWidth(QgsLayoutMeasurement(0.3, _MM))
+    if QColor:
+        inset_map.setBackgroundColor(QColor("#ffffff"))
+        inset_map.setBackgroundEnabled(True)
 
     if main_map is not None:
+        if hasattr(main_map, "crs") and main_map.crs().isValid():
+            inset_map.setCrs(main_map.crs())
+        if hasattr(main_map, "layers") and main_map.layers():
+            inset_map.setLayers(list(main_map.layers()))
+            inset_map.setKeepLayerSet(True)
+
         # Scale inset map out for context
         ext = main_map.extent()
         if ext and not ext.isEmpty():
@@ -106,8 +115,13 @@ def add_locator_inset_map(
                 overview.setEnabled(True)
                 if QgsFillSymbol:
                     alpha_255 = int(round(overview_opacity * 255))
+                    qc = QColor(overview_color) if QColor else None
+                    if qc and qc.isValid():
+                        col_str = f"{qc.red()},{qc.green()},{qc.blue()},{alpha_255}"
+                    else:
+                        col_str = "239,68,68,90"
                     sym = QgsFillSymbol.createSimple({
-                        "color": f"{overview_color}{alpha_255:02x}",
+                        "color": col_str,
                         "outline_color": overview_color,
                         "outline_width": "0.4",
                     })
@@ -120,9 +134,11 @@ def add_locator_inset_map(
     if add_header and QgsLayoutItemLabel:
         tag = QgsLayoutItemLabel(layout)
         tag.setText("LOCATOR OVERVIEW")
-        f = QFont()
-        f.setFamilies(["Inter", "Segoe UI", "Arial", "sans-serif"])
-        f.setPointSizeF(6.5)
+        tag.setBackgroundEnabled(False)
+        tag.setFrameEnabled(False)
+        f = QFont("Segoe UI", 7)
+        if hasattr(f, "setFamilies"):
+            f.setFamilies(["Segoe UI", "Arial", "sans-serif"])
         f.setBold(True)
         tag.setFont(f)
         if QColor:

@@ -18,9 +18,10 @@ from qgis.PyQt.QtGui import QColor
 from ..core.utils import safe_float
 from ..core.bivariate_engine import (
     geometric_interval_breaks, head_tail_breaks, fisher_jenks_breaks,
+    standard_deviation_breaks, box_plot_breaks,
 )
 from ..core.quick_style import maximum_breaks, pretty_breaks
-from ..core.palettes import get_palette
+from ..core import palettes as pal
 from ._help_mixin import CartoLabHelpMixin
 
 
@@ -37,20 +38,19 @@ class GeometricIntervalAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
         ("Adaptive Geometric Interval (GIC)", "geometric"),
         ("Head/Tail Breaks", "head_tail"),
         ("Fisher-Jenks Natural Breaks", "fisher_jenks"),
+        ("Standard Deviation", "std_dev"),
+        ("Box Plot / Tukey Breaks", "box_plot"),
         ("Maximum Distribution Breaks", "maximum_breaks"),
         ("Pretty Nice-Round Breaks", "pretty_breaks"),
     ]
 
-    PALETTES_LIST = [
-        "Viridis", "Plasma", "Inferno", "Magma", "Cividis",
-        "Turbo", "Mako", "Rocket", "Blues", "Oranges", "YlOrRd", "Purples", "Greens"
-    ]
+    PALETTES_LIST = pal.ordered_names()
 
     def name(self) -> str:
         return "geometric_interval_classification"
 
     def displayName(self) -> str:
-        return "Advanced Classification (GIC / Head-Tail / Jenks / Max / Pretty)"
+        return "Advanced Classification (GIC / Head-Tail / Jenks / StdDev / BoxPlot / Max / Pretty)"
 
     def group(self) -> str:
         return "Classification"
@@ -67,6 +67,8 @@ class GeometricIntervalAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
             "• Adaptive GIC: Optimal for skewed continuous and geometric growth data.\n"
             "• Head/Tail Breaks: Optimal for heavy-tailed / power-law spatial distributions.\n"
             "• Fisher-Jenks: Natural breaks minimising within-class variance.\n"
+            "• Standard Deviation: Symmetrical interval breaks centered at the sample mean.\n"
+            "• Box Plot / Tukey: Outlier-resistant quartile and fence boundaries.\n"
             "• Maximum Breaks: Splits data at the largest natural distribution gaps.\n"
             "• Pretty Breaks: Heckbert algorithm for clean rounded interval boundaries.\n\n"
             "Output carries 'gic_class' (0-based integer index) and 'gic_label' fields, "
@@ -121,6 +123,10 @@ class GeometricIntervalAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
             breaks = head_tail_breaks(values)
         elif method == "fisher_jenks":
             breaks = fisher_jenks_breaks(values, n_classes)
+        elif method == "std_dev":
+            breaks = standard_deviation_breaks(values, n_classes)
+        elif method == "box_plot":
+            breaks = box_plot_breaks(values)
         elif method == "maximum_breaks":
             breaks = maximum_breaks(values, n_classes)
         elif method == "pretty_breaks":
@@ -167,7 +173,7 @@ class GeometricIntervalAlgorithm(CartoLabHelpMixin, QgsProcessingAlgorithm):
             out_layer = context.getMapLayer(dest_id)
             if out_layer:
                 num_classes = max(1, len(breaks) - 1)
-                colours = get_palette(pal_name, num_classes)
+                colours = pal.get_palette(pal_name, num_classes)
                 ranges = []
                 for i in range(num_classes):
                     sym = QgsSymbol.defaultSymbol(out_layer.geometryType())

@@ -19,6 +19,7 @@ try:
     from qgis.PyQt.QtGui import QDesktopServices, QIcon
     from qgis.PyQt.QtWidgets import (
         QAction,
+        QCheckBox,
         QComboBox,
         QDockWidget,
         QDoubleSpinBox,
@@ -39,7 +40,7 @@ try:
     )
 except ImportError:
     QgsProject = QgsLayoutItemMap = None
-    Qt = QUrl = QDesktopServices = QIcon = QAction = QComboBox = QDockWidget = QDoubleSpinBox = QFileDialog = QFormLayout = QGroupBox = QHBoxLayout = QLabel = QLineEdit = QMenu = QMessageBox = QPushButton = QScrollArea = QTabWidget = QToolBar = QVBoxLayout = QWidget = None
+    Qt = QUrl = QDesktopServices = QIcon = QAction = QCheckBox = QComboBox = QDockWidget = QDoubleSpinBox = QFileDialog = QFormLayout = QGroupBox = QHBoxLayout = QLabel = QLineEdit = QMenu = QMessageBox = QPushButton = QScrollArea = QTabWidget = QToolBar = QVBoxLayout = QWidget = None
 
 
 
@@ -223,6 +224,109 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
             font-size: 11px;
         }
     """)
+
+    # -----------------------------------------------------------------
+    # TAB 0: Template Gallery (Publication Archetypes)
+    # -----------------------------------------------------------------
+    tab_tpl = QWidget()
+    lyt_tpl = QVBoxLayout(tab_tpl)
+    lyt_tpl.setContentsMargins(8, 8, 8, 8)
+    lyt_tpl.setSpacing(10)
+
+    gb_archetype = QGroupBox("Publication Layout Archetypes")
+    fl_arch = QFormLayout(gb_archetype)
+
+    tpl_combo = QComboBox()
+    tpl_combo.addItem("Report & Slide Figure (16:9 Landscape)", "report_figure")
+    tpl_combo.addItem("Academic Journal Figure (A4 Portrait 2-Col)", "academic_journal")
+    tpl_combo.addItem("Exhibition Poster (A1/A2 Large-Format)", "poster_exhibition")
+    tpl_combo.addItem("Executive Fact Sheet (A4 Portrait)", "fact_sheet")
+    tpl_combo.addItem("Side-by-Side Diptych (A4/A3 Comparative)", "side_by_side_diptych")
+    fl_arch.addRow("Archetype:", tpl_combo)
+
+    tpl_desc_lbl = QLabel("Widescreen 16:9 layout with prominent figure title, hero map frame, and compact right HUD card.")
+    tpl_desc_lbl.setWordWrap(True)
+    tpl_desc_lbl.setStyleSheet("color: #475569; font-size: 10.5px; padding: 2px 0;")
+    fl_arch.addRow(tpl_desc_lbl)
+
+    tpl_title_input = QLineEdit()
+    tpl_title_input.setPlaceholderText("Layout Title (optional)")
+    fl_arch.addRow("Title:", tpl_title_input)
+
+    tpl_sub_input = QLineEdit()
+    tpl_sub_input.setPlaceholderText("Subtitle / Context (optional)")
+    fl_arch.addRow("Subtitle:", tpl_sub_input)
+
+    def _on_tpl_combo_changed():
+        tid = tpl_combo.currentData()
+        descs = {
+            "report_figure": "Widescreen 16:9 layout with prominent figure title, hero map frame, and compact right HUD card.",
+            "academic_journal": "Formal 2-column scientific layout with double-column map, caption box, formal citation, and methodology block.",
+            "poster_exhibition": "Large-format presentation poster with bold banner, hero map frame, regional locator map, and thematic legend cards.",
+            "fact_sheet": "Executive summary with top KPI metric cards, central thematic map, and bottom analytical narrative block.",
+            "side_by_side_diptych": "Comparative dual-map layout with paired synchronized map frames for before/after or scenario comparison.",
+        }
+        tpl_desc_lbl.setText(descs.get(tid, ""))
+
+    tpl_combo.currentIndexChanged.connect(_on_tpl_combo_changed)
+
+    btn_create_tpl = QPushButton("Create New Template Layout ⚡")
+    btn_create_tpl.setIcon(_get_cartolab_icon("layout.png"))
+
+    def _create_template_clicked():
+        tid = tpl_combo.currentData() or "report_figure"
+        title = tpl_title_input.text().strip()
+        sub = tpl_sub_input.text().strip()
+        try:
+            from .template_gallery import create_template_layout
+            new_layout = create_template_layout(
+                tid,
+                iface=iface,
+                title=title or "CartoLab Map",
+                subtitle=sub or "",
+            )
+            if new_layout:
+                if hasattr(iface, "openLayoutDesigner"):
+                    iface.openLayoutDesigner(new_layout)
+                if hasattr(iface, "messageBar"):
+                    iface.messageBar().pushSuccess("CartoLab", f"Template layout '{new_layout.name()}' created.")
+        except Exception as exc:
+            QMessageBox.critical(parent_win, "Template Error", str(exc))
+
+    btn_create_tpl.clicked.connect(_create_template_clicked)
+    fl_arch.addRow(btn_create_tpl)
+    lyt_tpl.addWidget(gb_archetype)
+
+    gb_quick_tpl = QGroupBox("Quick 1-Click Launchers")
+    lyt_quick_tpl = QVBoxLayout(gb_quick_tpl)
+
+    for q_name, q_tid in [
+        ("Report Figure (16:9)", "report_figure"),
+        ("Academic Journal (A4)", "academic_journal"),
+        ("Exhibition Poster (A1)", "poster_exhibition"),
+        ("Executive Fact Sheet (A4)", "fact_sheet"),
+        ("Side-by-Side Diptych (A4)", "side_by_side_diptych"),
+    ]:
+        btn_q = QPushButton(f"+ New {q_name}")
+        btn_q.setObjectName("ghost")
+        btn_q.setIcon(_get_cartolab_icon("layout.png"))
+        def _make_launcher(t_id):
+            def _launch():
+                try:
+                    from .template_gallery import create_template_layout
+                    nl = create_template_layout(t_id, iface=iface)
+                    if nl and hasattr(iface, "openLayoutDesigner"):
+                        iface.openLayoutDesigner(nl)
+                except Exception as exc:
+                    QMessageBox.critical(parent_win, "Template Error", str(exc))
+            return _launch
+        btn_q.clicked.connect(_make_launcher(q_tid))
+        lyt_quick_tpl.addWidget(btn_q)
+
+    lyt_tpl.addWidget(gb_quick_tpl)
+    lyt_tpl.addStretch()
+
+    tabs.addTab(tab_tpl, _get_cartolab_icon("layout.png"), "Templates")
 
     # -----------------------------------------------------------------
     # TAB 1: Canvas & Grid
@@ -744,6 +848,20 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
                 atlas_layer_combo.addItem(lyr.name(), lyr)
     fl_atlas.addRow("Coverage Layer:", atlas_layer_combo)
 
+    atlas_banner_check = QCheckBox("Add Styled Header Banner")
+    atlas_banner_check.setChecked(True)
+    fl_atlas.addRow(atlas_banner_check)
+
+    atlas_locator_check = QCheckBox("Add Overview Locator Inset Map")
+    atlas_locator_check.setChecked(False)
+    fl_atlas.addRow(atlas_locator_check)
+
+    atlas_margin_spin = QDoubleSpinBox()
+    atlas_margin_spin.setRange(4.0, 50.0)
+    atlas_margin_spin.setValue(12.0)
+    atlas_margin_spin.setSuffix(" mm")
+    fl_atlas.addRow("Page Margin:", atlas_margin_spin)
+
     btn_setup_atlas = QPushButton("Configure Map Book Atlas (1-Click)")
     btn_setup_atlas.setIcon(_get_cartolab_icon("layout.png"))
 
@@ -757,7 +875,13 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
             return
         try:
             from .atlas_builder import setup_layout_atlas
-            if setup_layout_atlas(layout, cov_layer):
+            if setup_layout_atlas(
+                layout,
+                cov_layer,
+                page_margin_mm=atlas_margin_spin.value(),
+                add_header_banner=atlas_banner_check.isChecked(),
+                add_overview_locator=atlas_locator_check.isChecked(),
+            ):
                 if hasattr(iface, "messageBar"):
                     iface.messageBar().pushSuccess("CartoLab", f"Map Book Atlas configured for '{cov_layer.name()}'.")
             else:

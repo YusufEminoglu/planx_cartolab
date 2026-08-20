@@ -142,7 +142,9 @@ def apply_coordinate_grid_decorator(
 
         grid.setAnnotationFontColor(QColor("#475569"))
         if QFont is not None:
-            grid.setAnnotationFont(QFont("Inter, Segoe UI", 8))
+            f_grid = QFont("Segoe UI", 8)
+            f_grid.setFamily("Segoe UI")
+            grid.setAnnotationFont(f_grid)
         grid.setAnnotationFrameDistance(1.5)
 
     main_map.updateBoundingRect()

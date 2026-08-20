@@ -19,12 +19,17 @@ METHODS = [
     ("Rate (numerator / denominator)", "rate"),
     ("Z-score (standardise)", "zscore"),
     ("Robust z-score (median / MAD)", "robust_z"),
+    ("Robust IQR (median / IQR)", "robust_iqr"),
     ("Min-max to 0-1", "minmax"),
     ("Percentile rank (0-100)", "percentile"),
     ("Log (base 10)", "log"),
     ("Location Quotient (Specialisation Index)", "lq"),
     ("Winsorized Min-Max (5th-95th percentile clamp)", "winsorized"),
     ("Decile rank (1-10)", "decile"),
+    ("Tukey Hinge Rank (1-6 Box Plot class)", "tukey_hinge"),
+    ("Sigmoid logistic scaling (0-1)", "sigmoid"),
+    ("Power transform (Box-Cox / Yeo-Johnson)", "power"),
+    ("Quantile uniform normalization (0-1)", "quantile_norm"),
 ]
 
 
@@ -32,14 +37,15 @@ from .utils import safe_float
 
 
 def _finite(v) -> bool:
-    return safe_float(v) is not None
+    f = safe_float(v)
+    return f is not None and not math.isnan(f) and not math.isinf(f)
 
 
 def _clean(values) -> List[float]:
     cleaned = []
     for v in values:
         f = safe_float(v)
-        if f is not None:
+        if f is not None and not math.isnan(f) and not math.isinf(f):
             cleaned.append(f)
     return cleaned
 
@@ -111,7 +117,7 @@ def percentile_rank(values) -> List[Optional[float]]:
     out: List[Optional[float]] = []
     for v in values:
         fv = safe_float(v)
-        if fv is None:
+        if fv is None or math.isnan(fv) or math.isinf(fv):
             out.append(None)
             continue
         below = sum(1 for x in ordered if x < fv)
@@ -203,7 +209,7 @@ def winsorized_min_max(values, lower_pct: float = 5.0, upper_pct: float = 95.0, 
     out: List[Optional[float]] = []
     for v in values:
         fv = safe_float(v)
-        if fv is None:
+        if fv is None or math.isnan(fv) or math.isinf(fv):
             out.append(None)
         else:
             clamped = max(v_lo, min(fv, v_hi))
@@ -224,4 +230,139 @@ def decile_rank(values) -> List[Optional[int]]:
         else:
             dec = int(math.ceil(r / 10.0))
             out.append(max(1, min(10, dec)))
+    return out
+
+
+def sigmoid_scale(values, k: float = 1.0) -> List[Optional[float]]:
+    """
+    Map values to standard logistic sigmoid in [0.0, 1.0]: 1 / (1 + exp(-k * z_score)).
+    Smoothly squashes unbounded distributions while preserving central distinctions.
+    """
+    zs = z_scores(values)
+    out: List[Optional[float]] = []
+    for z in zs:
+        if z is None:
+            out.append(None)
+        else:
+            # Clamp z to avoid overflow
+            clamped_z = max(-20.0, min(20.0, z * k))
+            sig = 1.0 / (1.0 + math.exp(-clamped_z))
+            out.append(round(sig, 4))
+    return out
+
+
+def power_transform(values, lmbda: float = 0.5) -> List[Optional[float]]:
+    """
+    Box-Cox / Yeo-Johnson style power transform for variance stabilization.
+    For positive shifted data: (x^lambda - 1) / lambda (or log(x) if lambda == 0).
+    """
+    c = _clean(values)
+    if not c:
+        return [None for _ in values]
+    vmin = min(c)
+    shift = 0.0
+    if vmin <= 0:
+        shift = -vmin + 1.0
+
+    out: List[Optional[float]] = []
+    for v in values:
+        fv = safe_float(v)
+        if fv is None or math.isnan(fv) or math.isinf(fv):
+            out.append(None)
+        else:
+            x = fv + shift
+            if abs(lmbda) < 1e-6:
+                val = math.log(x)
+            else:
+                val = (math.pow(x, lmbda) - 1.0) / lmbda
+            out.append(round(val, 4))
+    return out
+
+
+def quantile_normalize(values, n_quantiles: int = 100) -> List[Optional[float]]:
+    """
+    Map empirical distribution uniformly to [0.0, 1.0] using percentile ranking.
+    """
+    pr = percentile_rank(values)
+    return [round(r / 100.0, 4) if r is not None else None for r in pr]
+
+
+def robust_iqr(values) -> List[Optional[float]]:
+    """
+    Median-centred, Interquartile Range (IQR) scaled robust standardization:
+    (x - median) / IQR.
+    """
+    c = sorted(_clean(values))
+    if not c:
+        return [None for _ in values]
+    n = len(c)
+
+    def _percentile(p: float) -> float:
+        idx = p * (n - 1)
+        lo = int(math.floor(idx))
+        hi = min(lo + 1, n - 1)
+        frac = idx - lo
+        return c[lo] + (c[hi] - c[lo]) * frac
+
+    med = median(c)
+    q1 = _percentile(0.25)
+    q3 = _percentile(0.75)
+    iqr = q3 - q1
+
+    if iqr == 0:
+        return [0.0 if _finite(v) else None for v in values]
+
+    return [
+        round((safe_float(v) - med) / iqr, 4) if _finite(v) else None
+        for v in values
+    ]
+
+
+def tukey_hinge_rank(values, iqr_multiplier: float = 1.5) -> List[Optional[int]]:
+    """
+    Classify distribution into Box Plot / Tukey categories (integers 1 to 6):
+    1: Lower Outlier (< Q1 - 1.5*IQR)
+    2: Lower Whisker (Q1 - 1.5*IQR to Q1)
+    3: Lower Central Box (Q1 to Median)
+    4: Upper Central Box (Median to Q3)
+    5: Upper Whisker (Q3 to Q3 + 1.5*IQR)
+    6: Upper Outlier (> Q3 + 1.5*IQR)
+    """
+    c = sorted(_clean(values))
+    if not c:
+        return [None for _ in values]
+    n = len(c)
+
+    def _percentile(p: float) -> float:
+        idx = p * (n - 1)
+        lo = int(math.floor(idx))
+        hi = min(lo + 1, n - 1)
+        frac = idx - lo
+        return c[lo] + (c[hi] - c[lo]) * frac
+
+    med = median(c)
+    q1 = _percentile(0.25)
+    q3 = _percentile(0.75)
+    iqr = q3 - q1
+
+    f_low = q1 - iqr_multiplier * iqr
+    f_high = q3 + iqr_multiplier * iqr
+
+    out: List[Optional[int]] = []
+    for v in values:
+        fv = safe_float(v)
+        if fv is None or math.isnan(fv) or math.isinf(fv):
+            out.append(None)
+        elif fv < f_low:
+            out.append(1)
+        elif fv < q1:
+            out.append(2)
+        elif fv <= med:
+            out.append(3)
+        elif fv <= q3:
+            out.append(4)
+        elif fv <= f_high:
+            out.append(5)
+        else:
+            out.append(6)
     return out

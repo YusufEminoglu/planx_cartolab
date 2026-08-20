@@ -8,6 +8,7 @@ no temporary files behind and stays fully editable in the Layout Designer.
 """
 from __future__ import annotations
 
+from contextlib import suppress
 from typing import List
 
 try:
@@ -44,12 +45,13 @@ def add_bivariate_legend_to_layout(
     y_label: str = "Variable Y",
     grid_size: int = 4,
     position: tuple = (12.0, 12.0),
-    size_mm: tuple = (46.0, 46.0),
+    size_mm: tuple = (40.0, 40.0),
     color_ll: str = "#e8e8e8",
     color_lh: str = "#5ab4ac",
     color_hl: str = "#d8b365",
     color_hh: str = "#8c510a",
     legend_type: str = "diamond",
+    add_card: bool = True,
 ) -> QgsLayoutItemGroup:
     """
     Insert a bivariate colour-matrix legend built from native layout items.
@@ -59,15 +61,17 @@ def add_bivariate_legend_to_layout(
     """
     matrix = bivariate_colour_matrix(grid_size, color_ll, color_lh, color_hl, color_hh)
     if legend_type == "square":
-        items = _build_square(layout, matrix, position, size_mm, x_label, y_label)
+        items = _build_square(layout, matrix, position, size_mm, x_label, y_label, add_card=add_card)
     else:
-        items = _build_diamond(layout, matrix, position, size_mm, x_label, y_label)
+        items = _build_diamond(layout, matrix, position, size_mm, x_label, y_label, add_card=add_card)
 
     if hasattr(layout, "groupItems") and items:
         grp = layout.groupItems(items)
         if grp:
             return grp
     return items
+
+
 def add_bivariate_legend(
     layout: QgsLayout,
     colors: tuple = None,
@@ -75,6 +79,7 @@ def add_bivariate_legend(
     title: str = "Bivariate Legend",
     x_label: str = "Variable X",
     y_label: str = "Variable Y",
+    add_card: bool = True,
     **kwargs,
 ) -> QgsLayoutItemGroup:
     """Convenience wrapper for add_bivariate_legend_to_layout."""
@@ -91,9 +96,9 @@ def add_bivariate_legend(
         color_hl=chl,
         color_hh=chh,
         legend_type=legend_type,
+        add_card=add_card,
         **kwargs,
     )
-
 
 
 def _fill(color: QColor) -> QgsFillSymbol:
@@ -104,15 +109,23 @@ def _fill(color: QColor) -> QgsFillSymbol:
     })
 
 
-def _label(layout, text: str, x: float, y: float, size: int = 8,
+def _label(layout, text: str, x: float, y: float, size: float = 8.0,
            bold: bool = False, rotation: float = 0.0, color: str = "#0f172a") -> QgsLayoutItemLabel:
     lbl = QgsLayoutItemLabel(layout)
     lbl.setText(text)
     lbl.setBackgroundEnabled(False)
     lbl.setFrameEnabled(False)
-    f = QFont()
-    f.setFamilies(["Inter", "Segoe UI", "Arial", "sans-serif"])
-    f.setPointSize(size)
+    f = QFont("Segoe UI")
+    hint = getattr(getattr(QFont, "StyleHint", QFont), "SansSerif", getattr(QFont, "SansSerif", None))
+    if hint is not None and hasattr(f, "setStyleHint"):
+        with suppress(Exception):
+            f.setStyleHint(hint)
+    if hasattr(f, "setFamilies"):
+        f.setFamilies(["Segoe UI", "Arial", "sans-serif"])
+    if hasattr(f, "setPointSizeF"):
+        f.setPointSizeF(float(size))
+    else:
+        f.setPointSize(int(round(size)))
     f.setBold(bold)
     lbl.setFont(f)
     lbl.setFontColor(QColor(color))
@@ -124,21 +137,38 @@ def _label(layout, text: str, x: float, y: float, size: int = 8,
     return lbl
 
 
-def _build_square(layout, matrix, position, size_mm, x_label, y_label) -> List:
+def _build_square(layout, matrix, position, size_mm, x_label, y_label, add_card: bool = True) -> List:
     n = len(matrix)
     x0, y0 = position
     cell = min(size_mm[0], size_mm[1]) / float(n)
-    items: List = []
-
-    # Optional background card for contrast
-    bg_margin = 6.0
     grid_w = n * cell
     grid_h = n * cell
+    items: List = []
+
+    if add_card and QgsLayoutItemShape is not None:
+        card_w = grid_w + 26.0
+        card_h = grid_h + 20.0
+        card = QgsLayoutItemShape(layout)
+        shape_type = getattr(getattr(QgsLayoutItemShape, "Shape", QgsLayoutItemShape), "Rectangle", getattr(QgsLayoutItemShape, "Rectangle", 0))
+        card.setShapeType(shape_type)
+        card.attemptResize(QgsLayoutSize(card_w, card_h, _MM))
+        card.attemptMove(QgsLayoutPoint(x0 - 12.0, y0 - 6.0, _MM))
+        if QgsFillSymbol:
+            card_sym = QgsFillSymbol.createSimple({
+                "color": "255,255,255,245",
+                "outline_color": "#cbd5e1",
+                "outline_width": "0.3",
+            })
+            if card_sym:
+                card.setSymbol(card_sym)
+        layout.addLayoutItem(card)
+        items.append(card)
 
     for ri, row in enumerate(matrix):
         for ci, col in enumerate(row):
             shape = QgsLayoutItemShape(layout)
-            shape.setShapeType(QgsLayoutItemShape.Shape.Rectangle)
+            shape_type = getattr(getattr(QgsLayoutItemShape, "Shape", QgsLayoutItemShape), "Rectangle", getattr(QgsLayoutItemShape, "Rectangle", 0))
+            shape.setShapeType(shape_type)
             shape.attemptResize(QgsLayoutSize(cell, cell, _MM))
             shape.attemptMove(QgsLayoutPoint(x0 + ci * cell, y0 + ri * cell, _MM))
             shape.setSymbol(_fill(col))
@@ -146,21 +176,41 @@ def _build_square(layout, matrix, position, size_mm, x_label, y_label) -> List:
             items.append(shape)
 
     # High-contrast X & Y axis labels and directional indicators
-    items.append(_label(layout, f"{x_label} ➔", x0, y0 + grid_h + 2.0, size=8, bold=True, color="#0f172a"))
-    items.append(_label(layout, f"▲ {y_label}", x0 - 2.0, y0 + grid_h - 2.0, size=8, bold=True, rotation=270.0, color="#0f172a"))
-    items.append(_label(layout, "Low", x0 - 2.0, y0 + grid_h + 1.0, size=7, bold=False, color="#64748b"))
-    items.append(_label(layout, "High", x0 + grid_w - 6.0, y0 + grid_h + 1.0, size=7, bold=False, color="#64748b"))
+    items.append(_label(layout, f"{x_label} ->", x0, y0 + grid_h + 2.0, size=7.5, bold=True, color="#0f172a"))
+    items.append(_label(layout, f"{y_label} ^", x0 - 2.0, y0 + grid_h - 2.0, size=7.5, bold=True, rotation=270.0, color="#0f172a"))
+    items.append(_label(layout, "Low", x0 - 2.0, y0 + grid_h + 1.0, size=6.5, bold=False, color="#64748b"))
+    items.append(_label(layout, "High", x0 + grid_w - 6.0, y0 + grid_h + 1.0, size=6.5, bold=False, color="#64748b"))
     return items
 
 
-def _build_diamond(layout, matrix, position, size_mm, x_label, y_label) -> List:
+def _build_diamond(layout, matrix, position, size_mm, x_label, y_label, add_card: bool = True) -> List:
     n = len(matrix)
     half_w = size_mm[0] / (2.0 * n)
     half_h = size_mm[1] / (2.0 * n)
     x0, y0 = position
-    offset_x = x0 + (n - 1) * half_w + half_w
-    offset_y = y0 + half_h + 8.0
     items: List = []
+
+    if add_card and QgsLayoutItemShape is not None:
+        card_w = size_mm[0] + 32.0
+        card_h = size_mm[1] + 24.0
+        card = QgsLayoutItemShape(layout)
+        shape_type = getattr(getattr(QgsLayoutItemShape, "Shape", QgsLayoutItemShape), "Rectangle", getattr(QgsLayoutItemShape, "Rectangle", 0))
+        card.setShapeType(shape_type)
+        card.attemptResize(QgsLayoutSize(card_w, card_h, _MM))
+        card.attemptMove(QgsLayoutPoint(x0 - 16.0, y0 - 10.0, _MM))
+        if QgsFillSymbol:
+            card_sym = QgsFillSymbol.createSimple({
+                "color": "255,255,255,245",
+                "outline_color": "#cbd5e1",
+                "outline_width": "0.3",
+            })
+            if card_sym:
+                card.setSymbol(card_sym)
+        layout.addLayoutItem(card)
+        items.append(card)
+
+    offset_x = x0 + (n - 1) * half_w + half_w
+    offset_y = y0 + half_h + 4.0
 
     for ri in range(n):
         for ci in range(n):
@@ -180,10 +230,10 @@ def _build_diamond(layout, matrix, position, size_mm, x_label, y_label) -> List:
 
     cx_mid = offset_x
     # Top/bottom/left/right axis labels
-    items.append(_label(layout, "High Y ▲", cx_mid - 6.0, offset_y - (n * half_h) - 4.0, size=7, bold=True, color="#0f172a"))
-    items.append(_label(layout, "Low Y", cx_mid - 4.0, offset_y + (n * half_h) + 1.0, size=7, bold=False, color="#64748b"))
-    items.append(_label(layout, f"{x_label} ➔", offset_x + (n * half_w) - 2.0, offset_y - 2.0, size=8, bold=True, color="#0f172a"))
-    items.append(_label(layout, f"▲ {y_label}", x0 - 4.0, offset_y - 2.0, size=8, bold=True, color="#0f172a"))
+    items.append(_label(layout, f"High {y_label} ^", cx_mid - 12.0, offset_y - (n * half_h) - 4.0, size=7, bold=True, color="#0f172a"))
+    items.append(_label(layout, f"Low {y_label}", cx_mid - 10.0, offset_y + (n * half_h) + 2.0, size=6.5, bold=False, color="#64748b"))
+    items.append(_label(layout, f"{x_label} ->", offset_x + (n * half_w) + 1.0, offset_y - 2.0, size=7.5, bold=True, color="#0f172a"))
+    items.append(_label(layout, f"Low {x_label}", x0 - 12.0, offset_y - 2.0, size=6.5, bold=False, color="#64748b"))
     return items
 
 

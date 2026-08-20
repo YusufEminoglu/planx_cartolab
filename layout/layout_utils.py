@@ -9,6 +9,7 @@ map items, finding a bundled north-arrow SVG, and exporting to PNG/PDF.
 from __future__ import annotations
 
 import os
+from contextlib import suppress
 from typing import List, Optional
 
 try:
@@ -90,11 +91,9 @@ def export_layout(layout: QgsLayout, path: str, dpi: int = 300) -> bool:
         return False
     exporter = QgsLayoutExporter(layout)
     ext = os.path.splitext(path)[1].lower()
-    try:
+    with suppress(OSError):
         if os.path.exists(path):
             os.remove(path)
-    except OSError:
-        pass
 
     if ext == ".pdf":
         settings = QgsLayoutExporter.PdfExportSettings()

@@ -1,5 +1,17 @@
 # Changelog - PlanX CartoLab
 
+## [2.9.0] - 2026-08-20
+
+- Added Publication Layout Template Gallery with 5 distinct publication archetypes:
+  - Report & Slide Figure (16:9 widescreen / A4 landscape executive presentation format with right HUD sidebar and takeaway metric callouts).
+  - Academic Journal Figure (A4 portrait 2-column scientific format with formal figure caption, methodology note, stepped line scalebar, and standardized citation block).
+  - Exhibition & Competition Poster (A1/A2 large-format landscape with bold architectural header banner, dominant hero map, regional locator inset map, and thematic legend cards).
+  - Executive Fact Sheet (A4 portrait 1-pager with top 4 KPI metric cards, central thematic map, and bottom analytical narrative & policy recommendation block).
+  - Side-by-Side Diptych (A4/A3 comparative dual-map layout with paired synchronized map frames, scenario A/B badges, shared extent & CRS, and comparative synthesis bar).
+- Added dedicated Palette & Accessibility Inspector with live continuous gradient, discrete swatches, Color Vision Deficiency (CVD) 5-mode simulation comparison (Normal, Deuteranopia, Protanopia, Tritanopia, Achromatopsia), and real-time WCAG 2.1 contrast scoring.
+- Added modular sub-tab navigation to Layout Studio (Template Gallery, Custom Map Sheet & Manager, 3D Isometric Stacker) and Symbology Studio (Quick Style, 2.5D Building Extrusion, Advanced Thematic Suite, Palette & Accessibility).
+- Pinned and integrated all 14 Processing algorithms into dashboard card catalog and headless test harness.
+
 ## [2.8.8] - 2026-08-14
 
 - Fixed bivariate_colour_matrix_hex parameter signature and Dashboard preview matrix generation

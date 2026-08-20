@@ -1,25 +1,7 @@
 [general]
 name=PlanX CartoLab
-version=2.8.8
+version=2.9.0
 hasProcessingProvider=yes
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 category=Vector
 tags=cartography, thematic map, choropleth, quick style, graduated, categorized, bivariate, cartogram, dot-density, proportional-symbols, hexbin, value-by-alpha, ridge-maps, 2.5d, buildings, map layout, print layout, atlas, legend, north arrow, scale bar, graticule, labels, color ramp, colorbrewer, colorblind, viridis, symbology, map design, export, planx
@@ -40,6 +22,7 @@ qgisMinimumVersion=3.28
 qgisMaximumVersion=4.99
 
 changelog=
+    PlanX CartoLab 2.9.0 - Added Publication Layout Template Gallery (Report Figure, Academic Journal, Exhibition Poster, Fact Sheet, Comparative Diptych) with paper themes, dedicated Palette & Accessibility Inspector with live 5-mode CVD simulation comparison and WCAG 2.1 contrast scoring, and reorganized modular sub-tabs.
     PlanX CartoLab 1.6.2 - Security hardening: drove the shipped code to zero Bandit findings for the QGIS Plugin Hub scan (self-contained deterministic dot-density generator instead of the random module; defensive try/except blocks rewritten as contextlib.suppress). No behaviour change.
     PlanX CartoLab 1.6.1 - Security and Qt6 hardening: removed the pip/subprocess dependency installer flagged by the Plugin Hub security scan (CartoLab needs no external packages), fully scoped all Qt6/QGIS 4 enums (85 compatibility warnings cleared), and stopped shipping test files in the package. No user-facing feature changes.
     PlanX CartoLab 1.6.0 - Added Quick Style: one-click graduated (numeric) or categorized (text) rendering for any vector layer, with quantile, equal-interval or geometric-interval breaks. New colour palette library - ColorBrewer plus the colour-blind-safe viridis family - with a live preview and a colour-blind-safe filter. Layout export presets now cover PNG, PDF and SVG at 96 to 600 dpi.
