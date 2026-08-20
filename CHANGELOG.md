@@ -1,5 +1,13 @@
 # Changelog - PlanX CartoLab
 
+## [2.9.1] - 2026-08-20
+
+- Added brand new high-resolution transparent 3D isometric main plugin icon with bivariate matrix and golden compass star.
+- Enhanced all layout scalebars across Map Sheet, Template Gallery, and Legend Decorator to 3-4 segments with Heckbert nice-number intervals.
+- Fixed tab header text truncation, padding, and mnemonic ampersand stripping in CartoLab Dashboard.
+- Fixed Atlas configuration `QgsPrintLayout` attribute resolution in Layout Designer embedded studio.
+- Optimized north arrow positioning and element spacing across publication layout templates.
+
 ## [2.9.0] - 2026-08-20
 
 - Added Publication Layout Template Gallery with 5 distinct publication archetypes:

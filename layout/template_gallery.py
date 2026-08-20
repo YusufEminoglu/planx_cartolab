@@ -49,7 +49,7 @@ except ImportError:
     QgsLayoutMeasurement = QgsLayoutPoint = QgsLayoutSize = QgsPrintLayout = QgsProject = QgsRectangle = QgsUnitTypes = None
     _MM = 0
 
-from ..core.layout_math import page_size_mm
+from ..core.layout_math import page_size_mm, nice_scalebar_segments
 from .layout_utils import north_arrow_svg_path, unique_layout_name
 from .locator_map import add_locator_inset_map
 from .map_sheet import _add_north_arrow, _font, _resolve_extent, _resolve_layers
@@ -280,13 +280,16 @@ def _create_scalebar(
     unit_km = getattr(QgsUnitTypes, "DistanceKilometers", getattr(getattr(QgsUnitTypes, "DistanceUnit", None), "DistanceKilometers", 1))
     scalebar.setUnits(unit_km)
     scalebar.setUnitLabel("km")
-    scalebar.setNumberOfSegments(max(1, segments))
+    num_segs = max(3, segments)
+    scalebar.setNumberOfSegments(num_segs)
     scalebar.setNumberOfSegmentsLeft(0)
     if linked_map is not None:
         ext = linked_map.extent()
         if ext and not ext.isEmpty():
             map_w_km = ext.width() / 1000.0 if (hasattr(linked_map, "crs") and linked_map.crs().isValid() and not linked_map.crs().isGeographic()) else 10.0
-            seg_km = max(1.0, round(map_w_km / 6.0))
+            seg_km, n_right, n_left = nice_scalebar_segments(map_w_km, target_segments=num_segs)
+            scalebar.setNumberOfSegments(n_right)
+            scalebar.setNumberOfSegmentsLeft(n_left)
             scalebar.setUnitsPerSegment(seg_km)
     scalebar.setBackgroundEnabled(False)
     scalebar.setFrameEnabled(False)
@@ -392,10 +395,10 @@ def create_report_figure_layout(
     takeaway_text = "Key Spatial Insights:\n• Concentrated core density\n• High peripheral connectivity\n• Balanced accessibility"
     _create_label(layout, takeaway_text, hud_x + 6.0, callout_y + 2.0, hud_w - 12.0, callout_h - 4.0, font_size=7.5, color="#334155")
 
-    # Scale Bar & North Arrow at Bottom of HUD
+    # Scale Bar in HUD Bottom & North Arrow inside Map Frame
     if map_item is not None:
         _create_scalebar(layout, map_item, hud_x + 4.0, hud_y + hud_h - 18.0, style="Line Ticks Up")
-    _add_north_arrow(layout, hud_x + hud_w - 18.0, hud_y + hud_h - 18.0, size=12.0)
+    _add_north_arrow(layout, map_x + map_w - 16.0, map_y + 4.0, size=12.0)
 
     # 4. Bottom Footer Metadata Strip
     footer_y = page_h - margin
@@ -490,10 +493,10 @@ def create_academic_journal_layout(
     )
     _create_label(layout, caption_text, col1_x, body_y, col_w, body_h - 22.0, font_size=8.0, color="#334155")
 
-    # Stepped Line Scale bar & Minimal North indicator in Column 1
+    # Stepped Line Scale bar in Column 1 & North Arrow inside Map Frame
     if map_item is not None:
         _create_scalebar(layout, map_item, col1_x, page_h - margin - 16.0, style="Stepped Line")
-    _add_north_arrow(layout, col1_x + col_w - 14.0, page_h - margin - 16.0, size=11.0)
+    _add_north_arrow(layout, map_x + map_w - 14.0, map_y + 4.0, size=11.0)
 
     # Column 2 (Right): Filtered Academic Legend & Formal Citation Box
     if map_item is not None:

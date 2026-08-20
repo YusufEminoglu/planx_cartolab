@@ -966,16 +966,28 @@ def create_cartolab_layout_dock(iface, designer, parent_win) -> QDockWidget:
 
 
 def _get_designer_layout(designer):
-    """Retrieve the QgsLayout from a designer instance safely."""
+    """Retrieve the QgsPrintLayout from a designer instance safely."""
     if designer is None:
         return None
-    for attr in ("layout", "currentLayout", "masterLayout"):
+    layout = None
+    for attr in ("masterLayout", "currentLayout", "layout"):
         if hasattr(designer, attr):
             val = getattr(designer, attr)
             if callable(val):
-                res = val()
-                if res:
-                    return res
+                with suppress(Exception):
+                    res = val()
+                    if res:
+                        layout = res
+                        break
             elif val:
-                return val
-    return None
+                layout = val
+                break
+    if layout is not None:
+        if hasattr(layout, "atlas"):
+            return layout
+        if hasattr(layout, "name") and QgsProject and QgsProject.instance():
+            with suppress(Exception):
+                resolved = QgsProject.instance().layoutManager().layoutByName(layout.name())
+                if resolved:
+                    return resolved
+    return layout

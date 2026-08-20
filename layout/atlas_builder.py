@@ -25,6 +25,8 @@ try:
         QgsLayoutMeasurement,
         QgsLayoutPoint,
         QgsLayoutSize,
+        QgsPrintLayout,
+        QgsProject,
         QgsUnitTypes,
         QgsVectorLayer,
     )
@@ -36,7 +38,7 @@ try:
     )
 except ImportError:
     QgsLayout = QgsLayoutItemLabel = QgsLayoutItemLegend = QgsLayoutItemMap = QgsLayoutItemShape = QgsLayoutItemScaleBar = None
-    QgsLayoutMeasurement = QgsLayoutPoint = QgsLayoutSize = QgsUnitTypes = QgsVectorLayer = None
+    QgsLayoutMeasurement = QgsLayoutPoint = QgsLayoutSize = QgsPrintLayout = QgsProject = QgsUnitTypes = QgsVectorLayer = None
     QgsFillSymbol = QFont = QColor = None
     _MM = 0
 
@@ -72,6 +74,17 @@ def setup_layout_atlas(
       - Filter and sort expressions for ordered atlas generation.
     """
     if layout is None or coverage_layer is None or QgsLayoutItemMap is None:
+        return False
+
+    if not hasattr(layout, "atlas"):
+        # If a base QgsLayout C++ wrapper was passed, resolve the actual QgsPrintLayout from project layoutManager
+        with suppress(Exception):
+            if hasattr(layout, "name") and QgsProject and QgsProject.instance():
+                resolved = QgsProject.instance().layoutManager().layoutByName(layout.name())
+                if resolved and hasattr(resolved, "atlas"):
+                    layout = resolved
+
+    if not hasattr(layout, "atlas"):
         return False
 
     atlas = layout.atlas()

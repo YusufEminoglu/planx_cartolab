@@ -72,7 +72,7 @@ from ..core.qgis_25d_style import (
 
 
 IS_QGIS4 = int(getattr(Qgis, "QGIS_VERSION_INT", 0)) >= 40000
-DASHBOARD_SIZE = (1100, 760) if IS_QGIS4 else (1180, 800)
+DASHBOARD_SIZE = (1160, 760) if IS_QGIS4 else (1220, 800)
 DEFAULT_CARD_COLUMNS = 2 if IS_QGIS4 else 3
 
 # ── Algorithm catalogue ─────────────────────────────────────────────
@@ -276,13 +276,14 @@ class CartoLabDashboard(_QDialogBase):
                 color: #065f46; background: #ecfdf5; border: 1px solid #a7f3d0;
                 border-radius: 6px; padding: 4px 10px; font-weight: 600; font-size: 11px;
             }}
-            QTabWidget::pane {{ border: 1px solid #e2e8f0; border-radius: {r}px; background: #ffffff; }}
+            QTabWidget::pane {{ border: 1px solid #e2e8f0; border-radius: {r}px; background: #ffffff; margin-top: -1px; }}
             QTabBar::tab {{
-                background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0;
-                padding: 8px 16px; border-top-left-radius: 6px; border-top-right-radius: 6px; margin-right: 3px;
-                font-weight: 600; font-size: 12px;
+                background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; border-bottom: none;
+                padding: 7px 18px 7px 18px; border-top-left-radius: 6px; border-top-right-radius: 6px; margin-right: 4px;
+                font-weight: 600; font-size: 12px; min-height: 26px;
             }}
-            QTabBar::tab:selected {{ background: #ffffff; color: #0f172a; font-weight: 700; border-bottom-color: #ffffff; }}
+            QTabBar::tab:selected {{ background: #ffffff; color: #1d4ed8; font-weight: 700; border: 1px solid #94a3b8; border-bottom: 2px solid #2563eb; }}
+            QTabBar::tab:hover:!selected {{ background: #e2e8f0; color: #0f172a; }}
             QListWidget#sidebarNav {{
                 background: #ffffff; color: #334155; border: 1px solid #e2e8f0;
                 border-radius: {r}px; padding: 6px; outline: none;
@@ -360,10 +361,10 @@ class CartoLabDashboard(_QDialogBase):
         gb = QGroupBox(title)
         gb.setFont(QFont("Inter, Segoe UI", 9, QFont.Weight.Bold))
         gb.setStyleSheet(
-            "QGroupBox { border: 1px solid #ccc; border-radius: 6px; "
-            "margin-top: 8px; padding: 8px; }"
-            "QGroupBox::title { subcontrol-origin: margin; left: 10px; "
-            "padding: 0 4px; }"
+            "QGroupBox { border: 1px solid #cbd5e1; border-radius: 8px; "
+            "margin-top: 16px; padding-top: 14px; padding-left: 10px; padding-right: 10px; padding-bottom: 10px; background: #ffffff; }"
+            "QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top left; left: 12px; "
+            "padding: 0 6px; background: #ffffff; color: #0f172a; font-weight: 700; }"
         )
         return gb
 
@@ -400,7 +401,7 @@ class CartoLabDashboard(_QDialogBase):
 
         self.nav_sidebar = QListWidget()
         self.nav_sidebar.setObjectName("sidebarNav")
-        self.nav_sidebar.setFixedWidth(230)
+        self.nav_sidebar.setFixedWidth(205)
 
         item_symb = QListWidgetItem(_cartolab_icon("style.png"), " Symbology Studio")
         item_layout = QListWidgetItem(_cartolab_icon("layout.png"), " Layout Studio")
@@ -438,16 +439,22 @@ class CartoLabDashboard(_QDialogBase):
         """Workspace 1: Unified Symbology & Thematic Studio (Quick Style, 2.5D, Advanced Suite, Palette Inspector)."""
         studio_widget = QWidget()
         layout = QVBoxLayout(studio_widget)
-        layout.setContentsMargins(4, 4, 4, 4)
+        layout.setContentsMargins(6, 6, 6, 6)
 
         self.symbology_sub_tabs = QTabWidget()
+        self.symbology_sub_tabs.setUsesScrollButtons(True)
+        with suppress(Exception):
+            _ElideNone = getattr(getattr(Qt, "TextElideMode", Qt), "ElideNone", getattr(Qt, "ElideNone", 0))
+            self.symbology_sub_tabs.tabBar().setElideMode(_ElideNone)
+            self.symbology_sub_tabs.tabBar().setExpanding(False)
 
         # Sub-tab 1: Quick Style
         qs_widget = QWidget()
         qs_layout = QVBoxLayout(qs_widget)
-        qs_layout.setContentsMargins(8, 8, 8, 8)
+        qs_layout.setContentsMargins(12, 16, 12, 12)
         self._build_quick_style_contents(qs_layout)
-        self.symbology_sub_tabs.addTab(qs_widget, _cartolab_icon("style.png"), "Quick Style (Choropleth)")
+        self.symbology_sub_tabs.addTab(qs_widget, _cartolab_icon("style.png"), "Quick Style")
+        self.symbology_sub_tabs.setTabToolTip(0, "Quick Style: One-click graduated & categorized thematic styling")
 
         # Sub-tab 2: 2.5D Building Extrusion
         self.tab_25d = QScrollArea()
@@ -456,15 +463,18 @@ class CartoLabDashboard(_QDialogBase):
         tab_body = QWidget()
         self.tab_25d.setWidget(tab_body)
         self._build_25d_contents(tab_body)
-        self.symbology_sub_tabs.addTab(self.tab_25d, _cartolab_icon("isometric.png"), "2.5D Building Extrusion")
+        self.symbology_sub_tabs.addTab(self.tab_25d, _cartolab_icon("isometric.png"), "2.5D Buildings")
+        self.symbology_sub_tabs.setTabToolTip(1, "2.5D Building Extrusion: Native height extrusion, lighting & floor bands")
 
         # Sub-tab 3: Advanced Thematic Suite
         thematic_widget = self._build_thematic_suite_subwidget()
-        self.symbology_sub_tabs.addTab(thematic_widget, _cartolab_icon("bivariate.png"), "Advanced Thematic Suite")
+        self.symbology_sub_tabs.addTab(thematic_widget, _cartolab_icon("bivariate.png"), "Thematic Maps")
+        self.symbology_sub_tabs.setTabToolTip(2, "Thematic Maps: Bivariate choropleth, Value-by-Alpha, Cartogram, Ridge maps")
 
         # Sub-tab 4: Palette & Accessibility Inspector
         palette_widget = self._build_palette_inspector_subwidget()
-        self.symbology_sub_tabs.addTab(palette_widget, _cartolab_icon("style.png"), "Palette & Accessibility")
+        self.symbology_sub_tabs.addTab(palette_widget, _cartolab_icon("inspector.png"), "Palette & Accessibility")
+        self.symbology_sub_tabs.setTabToolTip(3, "Palette & Accessibility Inspector: CVD simulation & WCAG 2.1 contrast scoring")
 
         layout.addWidget(self.symbology_sub_tabs)
         self.stack.addWidget(studio_widget)
@@ -1063,7 +1073,7 @@ class CartoLabDashboard(_QDialogBase):
         drawer_layout.setContentsMargins(8, 4, 8, 4)
 
         hdr_row = QHBoxLayout()
-        self.drawer_toggle_btn = QPushButton("📊 Diagnostics & Run Log (Collapsible)")
+        self.drawer_toggle_btn = QPushButton("📊 Diagnostics && Run Log (Collapsible)")
         self.drawer_toggle_btn.setObjectName("ghost")
         self.drawer_toggle_btn.setCheckable(True)
         self.drawer_toggle_btn.setChecked(False)
@@ -2229,21 +2239,29 @@ class CartoLabDashboard(_QDialogBase):
         """Workspace 2: Layout Automation Studio (Templates Gallery, Custom Map Sheet, Isometric Stacker)."""
         studio_widget = QWidget()
         layout = QVBoxLayout(studio_widget)
-        layout.setContentsMargins(4, 4, 4, 4)
+        layout.setContentsMargins(6, 6, 6, 6)
 
         self.layout_sub_tabs = QTabWidget()
+        self.layout_sub_tabs.setUsesScrollButtons(True)
+        with suppress(Exception):
+            _ElideNone = getattr(getattr(Qt, "TextElideMode", Qt), "ElideNone", getattr(Qt, "ElideNone", 0))
+            self.layout_sub_tabs.tabBar().setElideMode(_ElideNone)
+            self.layout_sub_tabs.tabBar().setExpanding(False)
 
         # Sub-tab 1: Layout Templates Gallery
         templates_widget = self._build_template_gallery_subwidget()
-        self.layout_sub_tabs.addTab(templates_widget, _cartolab_icon("layout.png"), "Layout Templates Gallery")
+        self.layout_sub_tabs.addTab(templates_widget, _cartolab_icon("layout.png"), "Template Gallery")
+        self.layout_sub_tabs.setTabToolTip(0, "Publication Layout Templates: Report Figure, Academic Journal, Poster, Fact Sheet, Diptych")
 
         # Sub-tab 2: Custom Map Sheet & Manager
         mapsheet_widget = self._build_custom_mapsheet_subwidget()
-        self.layout_sub_tabs.addTab(mapsheet_widget, _cartolab_icon("grid.png"), "Custom Map Sheet & Manager")
+        self.layout_sub_tabs.addTab(mapsheet_widget, _cartolab_icon("grid.png"), "Map Sheet Studio")
+        self.layout_sub_tabs.setTabToolTip(1, "Auto Map Sheet Builder, Layout Manager & Decorators")
 
         # Sub-tab 3: Isometric 3D Stacker
         iso_widget = self._build_isometric_stacker_subwidget()
         self.layout_sub_tabs.addTab(iso_widget, _cartolab_icon("isometric.png"), "3D Isometric Stacker")
+        self.layout_sub_tabs.setTabToolTip(2, "3D Isometric Layer Stacker: Multi-layer perspective assembly")
 
         layout.addWidget(self.layout_sub_tabs)
         self.stack.addWidget(studio_widget)

@@ -1,6 +1,6 @@
 [general]
 name=PlanX CartoLab
-version=2.9.0
+version=2.9.1
 hasProcessingProvider=yes
 
 category=Vector
@@ -22,6 +22,7 @@ qgisMinimumVersion=3.28
 qgisMaximumVersion=4.99
 
 changelog=
+    PlanX CartoLab 2.9.1 - High-res transparent 3D isometric plugin icon, 3-4 segment Heckbert scalebars across all layouts, tab header text layout and ampersand mnemonic fixes, and layout designer Atlas QgsPrintLayout resolution fix.
     PlanX CartoLab 2.9.0 - Added Publication Layout Template Gallery (Report Figure, Academic Journal, Exhibition Poster, Fact Sheet, Comparative Diptych) with paper themes, dedicated Palette & Accessibility Inspector with live 5-mode CVD simulation comparison and WCAG 2.1 contrast scoring, and reorganized modular sub-tabs.
     PlanX CartoLab 1.6.2 - Security hardening: drove the shipped code to zero Bandit findings for the QGIS Plugin Hub scan (self-contained deterministic dot-density generator instead of the random module; defensive try/except blocks rewritten as contextlib.suppress). No behaviour change.
     PlanX CartoLab 1.6.1 - Security and Qt6 hardening: removed the pip/subprocess dependency installer flagged by the Plugin Hub security scan (CartoLab needs no external packages), fully scoped all Qt6/QGIS 4 enums (85 compatibility warnings cleared), and stopped shipping test files in the package. No user-facing feature changes.

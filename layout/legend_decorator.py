@@ -36,6 +36,7 @@ except ImportError:
 
 
 from ..core.bivariate_engine import bivariate_colour_matrix
+from ..core.layout_math import nice_scalebar_segments
 
 
 
@@ -241,8 +242,8 @@ def add_scalebar_to_layout(
     layout: QgsLayout,
     map_item: QgsLayoutItemMap = None,
     position: tuple = (15.0, 15.0),
-    style_name: str = "Single Box",
-    segments: int = 2,
+    style_name: str = "Clean Line (Ticks Up)",
+    segments: int = 3,
     units_per_segment: float = 1.0,
     unit_label: str = "km",
 ) -> QgsLayoutItemScaleBar:
@@ -285,8 +286,23 @@ def add_scalebar_to_layout(
     if _DistKm is not None:
         scalebar.setUnits(_DistKm)
 
-    scalebar.setNumberOfSegments(max(1, segments))
-    scalebar.setUnitsPerSegment(units_per_segment)
+    n_segs = max(3, segments)
+    scalebar.setNumberOfSegments(n_segs)
+    scalebar.setNumberOfSegmentsLeft(0)
+
+    if map_item is not None and units_per_segment == 1.0:
+        ext = map_item.extent()
+        if ext and not ext.isEmpty():
+            map_w_km = ext.width() / 1000.0 if (hasattr(map_item, "crs") and map_item.crs().isValid() and not map_item.crs().isGeographic()) else 10.0
+            seg_km, n_right, n_left = nice_scalebar_segments(map_w_km, target_segments=n_segs)
+            scalebar.setNumberOfSegments(n_right)
+            scalebar.setNumberOfSegmentsLeft(n_left)
+            scalebar.setUnitsPerSegment(seg_km)
+        else:
+            scalebar.setUnitsPerSegment(units_per_segment)
+    else:
+        scalebar.setUnitsPerSegment(units_per_segment)
+
     scalebar.setUnitLabel(unit_label)
 
     # Clean styling

@@ -39,7 +39,7 @@ except ImportError:
     QgsLayoutItemScaleBar = QgsLayoutItemPicture = QgsLayoutItemPolygon = QgsLayoutPoint = QgsLayoutSize = None
     _MM = 0
 
-from ..core.layout_math import page_size_mm
+from ..core.layout_math import page_size_mm, nice_scalebar_segments
 from .layout_utils import unique_layout_name, north_arrow_svg_path
 
 # A real font fallback chain with standard installed Windows/Unix fonts
@@ -268,14 +268,16 @@ def create_map_sheet(
         unit_km = getattr(QgsUnitTypes, "DistanceKilometers", getattr(getattr(QgsUnitTypes, "DistanceUnit", None), "DistanceKilometers", 1))
         bar.setUnits(unit_km)
         bar.setUnitLabel("km")
-        bar.setNumberOfSegments(2)
+        bar.setNumberOfSegments(3)
         bar.setNumberOfSegmentsLeft(0)
         bar.setBackgroundEnabled(False)
         bar.setFrameEnabled(False)
         ext = map_item.extent()
         if ext and not ext.isEmpty():
             map_w_km = ext.width() / 1000.0 if (hasattr(map_item, "crs") and map_item.crs().isValid() and not map_item.crs().isGeographic()) else 10.0
-            seg_km = max(1.0, round(map_w_km / 6.0))
+            seg_km, n_right, n_left = nice_scalebar_segments(map_w_km, target_segments=3)
+            bar.setNumberOfSegments(n_right)
+            bar.setNumberOfSegmentsLeft(n_left)
             bar.setUnitsPerSegment(seg_km)
         with suppress(Exception):
             tf_sb = bar.textFormat()

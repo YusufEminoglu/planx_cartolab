@@ -95,3 +95,21 @@ def page_size_mm(name: str, landscape: bool = True) -> Tuple[float, float]:
     if landscape:
         return (h, w)
     return (w, h)
+
+
+def nice_scalebar_segments(map_w_km: float, target_segments: int = 3) -> Tuple[float, int, int]:
+    """
+    Calculate optimal (units_per_segment_km, segments_right, segments_left) for cartographic scalebars.
+    Ensures scalebar spans ~20-30% of map width with clean 1/2/5 round numbers and 3-4 segments.
+    """
+    if map_w_km <= 0 or not math.isfinite(map_w_km):
+        return (5.0, max(3, target_segments), 0)
+    target_total_km = map_w_km * 0.25
+    raw_seg = target_total_km / float(max(1, target_segments))
+    seg_km = nice_number(raw_seg, round_down=False)
+    if seg_km < 0.05:
+        seg_km = 0.05
+    if seg_km * target_segments > map_w_km * 0.45:
+        seg_km = nice_number(raw_seg, round_down=True)
+    return (seg_km, max(3, target_segments), 0)
+
